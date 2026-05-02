@@ -15,7 +15,7 @@ app.use('/api/auth', authRoutes)
 
 // Ruta de prueba
 app.get('/', (req, res) => {
-  res.json({ mensaje: 'DentaSoft API funcionando' })
+  res.json({ mensaje: 'Oralyn API funcionando' })
 })
 
 app.listen(PORT, () => {
