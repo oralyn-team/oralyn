@@ -1,0 +1,330 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────
+
+enum EstadoCita {
+  pendiente
+  asistio
+  no_asistio
+  cancelada
+}
+
+enum EstadoCotizacion {
+  borrador
+  aprobada
+  rechazada
+  pagada
+}
+
+enum Sexo {
+  masculino
+  femenino
+  otro
+}
+
+enum TipoDocumento {
+  RC
+  TI
+  CC
+  CE
+  NUIP
+  PAS
+}
+
+enum MetodoPago {
+  efectivo
+  transferencia
+  tarjeta
+}
+
+enum TipoConsentimiento {
+  anestesia
+  cirugia_oral
+  retiro_poste_corona
+  rehabilitacion
+  higiene_oral
+}
+
+enum TipoItem {
+  detartraje_curetraje
+  superficie_retina
+  incrustaciones
+  carillas
+  tratamiento_conducto
+  exodoncia
+  cirugia
+  nucleo
+  corona
+  blanqueamiento_dental
+  otro
+}
+
+// ─── USUARIOS ───────────────────────────────────────────────
+
+model Usuario {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  nombre        String
+  nit           String
+  registro      String?
+  creado_en     DateTime @default(now())
+}
+
+// ─── PACIENTES ──────────────────────────────────────────────
+
+model Paciente {
+  id                   Int           @id @default(autoincrement())
+  primer_apellido      String
+  segundo_apellido     String?
+  nombres              String
+  tipo_documento       TipoDocumento
+  numero_documento     String        @unique
+  fecha_nacimiento     DateTime
+  sexo                 Sexo
+  estado_civil         String?
+  direccion_residencia String?
+  telefono             String?
+  correo               String?
+  departamento         String?
+  municipio_ciudad     String
+  ocupacion            String?
+  rh                   String?
+  clase_seguro         String?
+  asegurador           String?
+  rango_salarial       String?
+  tipo_vinculacion     String?
+  nombre_empresa       String?
+  acudiente_nombre     String?
+  acudiente_parentesco String?
+  acudiente_telefono   String?
+  creado_en            DateTime      @default(now())
+
+  historias       HistoriaClinica[]
+  citas           Cita[]
+  cotizaciones    Cotizacion[]
+  pagos           Pago[]
+  consentimientos Consentimiento[]
+  certificados    CertificadoDental[]
+}
+
+// ─── HISTORIA CLÍNICA ───────────────────────────────────────
+
+model HistoriaClinica {
+  id                    Int      @id @default(autoincrement())
+  paciente_id           Int
+  paciente              Paciente @relation(fields: [paciente_id], references: [id])
+  fecha_atencion        DateTime @default(now())
+  motivo_consulta       String
+  evento_adverso        Boolean  @default(false)
+  evento_adverso_obs    String?
+  habitos_json          Json?
+  habitos_observaciones String?
+  diagnostico           String
+  tratamiento_realizado String?
+  observaciones         String?
+  recomendaciones       String?
+  firma_doctor          String?
+  firma_paciente        String?
+
+  antecedentes           HcAntecedentes?
+  examen                 HcExamenEstomatologico?
+  odontogramas           HcOdontograma[]
+  evoluciones            HojaEvolucion[]
+  recomendaciones_postqx RecomendacionPostQx[]
+
+  @@index([paciente_id])
+}
+
+model HcAntecedentes {
+  id                      Int             @id @default(autoincrement())
+  historia_id             Int             @unique
+  historia                HistoriaClinica @relation(fields: [historia_id], references: [id])
+  tratamiento_medicacion  Boolean         @default(false)
+  tratamiento_med_obs     String?
+  reacciones_alergicas    Boolean         @default(false)
+  alergias_obs            String?
+  problemas_coagulacion   Boolean         @default(false)
+  coagulacion_obs         String?
+  irradiaciones           Boolean         @default(false)
+  irradiaciones_obs       String?
+  tension_arterial        Boolean         @default(false)
+  tension_obs             String?
+  sinusitis               Boolean         @default(false)
+  sinusitis_obs           String?
+  enf_respiratorias       Boolean         @default(false)
+  respiratorias_obs       String?
+  cardiopatias            Boolean         @default(false)
+  cardiopatias_obs        String?
+  diabetes                Boolean         @default(false)
+  diabetes_obs            String?
+  fiebre_reumatica        Boolean         @default(false)
+  fiebre_obs              String?
+  hepatitis               Boolean         @default(false)
+  hepatitis_obs           String?
+  vih                     Boolean         @default(false)
+  vih_obs                 String?
+  trastornos_emocionales  Boolean         @default(false)
+  emocionales_obs         String?
+  observaciones_generales String?
+}
+
+model HcExamenEstomatologico {
+  id                 Int             @id @default(autoincrement())
+  historia_id        Int             @unique
+  historia           HistoriaClinica @relation(fields: [historia_id], references: [id])
+  estructuras_json   Json?
+  observaciones      String?
+  examen_pulpar_json Json?
+  pulpar_obs         String?
+  tejidos_json       Json?
+  tejidos_obs        String?
+  periodontal_json   Json?
+  dx_periodontal     String?
+  periodontal_obs    String?
+}
+
+model HcOdontograma {
+  id            Int             @id @default(autoincrement())
+  historia_id   Int
+  historia      HistoriaClinica @relation(fields: [historia_id], references: [id])
+  dientes_json  Json
+  observaciones String?
+  creado_en     DateTime        @default(now())
+
+  @@index([historia_id])
+}
+
+// ─── HOJA DE EVOLUCIÓN ──────────────────────────────────────
+
+model HojaEvolucion {
+  id                      Int             @id @default(autoincrement())
+  historia_id             Int
+  historia                HistoriaClinica @relation(fields: [historia_id], references: [id])
+  fecha                   DateTime
+  diente                  String?
+  cavidad                 String?
+  tipo_consulta           String?
+  procedimiento_realizado String
+  firma_odontologo        String?
+  firma_paciente          String?
+
+  @@index([historia_id])
+}
+
+// ─── CITAS ──────────────────────────────────────────────────
+
+model Cita {
+  id                 Int        @id @default(autoincrement())
+  paciente_id        Int
+  paciente           Paciente   @relation(fields: [paciente_id], references: [id])
+  fecha_hora         DateTime
+  procedimiento      String
+  codigo_cups        String?
+  codigo_cie10       String?
+  valor_cobrado      Decimal?   @db.Decimal(10, 2)
+  estado             EstadoCita @default(pendiente)
+  causas_no_atencion String?
+  creado_en          DateTime   @default(now())
+
+  certificados       CertificadoDental[]
+
+  @@index([paciente_id])
+}
+
+// ─── COTIZACIONES ───────────────────────────────────────────
+
+model Cotizacion {
+  id            Int              @id @default(autoincrement())
+  paciente_id   Int
+  paciente      Paciente         @relation(fields: [paciente_id], references: [id])
+  fecha         DateTime         @default(now())
+  descuento     Decimal          @default(0) @db.Decimal(10, 2)
+  subtotal      Decimal          @db.Decimal(12, 2)
+  total         Decimal          @db.Decimal(12, 2)
+  estado        EstadoCotizacion @default(borrador)
+  observaciones String?
+
+  items         CotizacionItem[]
+
+  @@index([paciente_id])
+}
+
+model CotizacionItem {
+  id               Int        @id @default(autoincrement())
+  cotizacion_id    Int
+  cotizacion       Cotizacion @relation(fields: [cotizacion_id], references: [id])
+  tipo_item        TipoItem
+  descripcion_otro String?
+  numero           Int        @default(1)
+  valor            Decimal    @db.Decimal(10, 2)
+
+  @@index([cotizacion_id])
+}
+
+// ─── PAGOS ──────────────────────────────────────────────────
+
+model Pago {
+  id          Int        @id @default(autoincrement())
+  paciente_id Int
+  paciente    Paciente   @relation(fields: [paciente_id], references: [id])
+  fecha       DateTime   @default(now())
+  monto       Decimal    @db.Decimal(10, 2)
+  metodo_pago MetodoPago
+  concepto    String?
+  creado_en   DateTime   @default(now())
+
+  @@index([paciente_id])
+}
+
+// ─── CONSENTIMIENTOS ────────────────────────────────────────
+
+model Consentimiento {
+  id                        Int                @id @default(autoincrement())
+  paciente_id               Int
+  paciente                  Paciente           @relation(fields: [paciente_id], references: [id])
+  tipo                      TipoConsentimiento
+  ciudad                    String             @default("Villavicencio")
+  fecha                     DateTime           @default(now())
+  campos_especificos        Json?
+  nombre_paciente_declarado String?
+  cc_paciente_declarado     String?
+  firma_paciente            String?
+  cc_profesional            String?
+  firma_doctor              String?
+  pdf_generado_en           DateTime?
+
+  @@index([paciente_id])
+}
+
+// ─── CERTIFICADOS DENTALES ──────────────────────────────────
+
+model CertificadoDental {
+  id               Int      @id @default(autoincrement())
+  paciente_id      Int
+  paciente         Paciente @relation(fields: [paciente_id], references: [id])
+  cita_id          Int?
+  cita             Cita?    @relation(fields: [cita_id], references: [id])
+  tipo_cita_texto  String
+  ciudad           String   @default("Villavicencio")
+  fecha_expedicion DateTime
+  creado_en        DateTime @default(now())
+
+  @@index([paciente_id])
+}
+
+// ─── RECOMENDACIONES POST-QX ────────────────────────────────
+
+model RecomendacionPostQx {
+  id          Int              @id @default(autoincrement())
+  historia_id Int?
+  historia    HistoriaClinica? @relation(fields: [historia_id], references: [id])
+  fecha       DateTime
+  creado_en   DateTime         @default(now())
+}
