@@ -66,10 +66,53 @@ router.get('/', async (req, res) => {
         telefono: true,
         correo: true,
         municipio_ciudad: true,
-        creado_en: true
+        creado_en: true,
+        citas: {
+          select: { id: true, fecha_hora: true },
+          orderBy: { fecha_hora: 'desc' },
+          take: 1
+        },
+        cotizaciones: {
+          where: { estado: 'aprobada' },
+          select: { total: true },
+        },
+        pagos: {
+          select: { monto: true }
+        }
       }
     })
-    res.json(pacientes)
+
+    const resultado = pacientes.map(p => {
+      const tieneCitas = p.citas.length > 0
+      const totalCotizado = p.cotizaciones.reduce((sum, c) => sum + Number(c.total), 0)
+      const totalPagado = p.pagos.reduce((sum, pg) => sum + Number(pg.monto), 0)
+      const tieneSaldo = totalCotizado - totalPagado > 0
+
+      let estado = 'Nuevo'
+      if (tieneCitas && tieneSaldo) estado = 'Pendiente'
+      else if (tieneCitas && !tieneSaldo) estado = 'Al día'
+
+      const ultimaVisita = p.citas[0]?.fecha_hora
+        ? p.citas[0].fecha_hora.toISOString().split('T')[0]
+        : null
+
+      return {
+        id: p.id,
+        primer_apellido: p.primer_apellido,
+        segundo_apellido: p.segundo_apellido,
+        nombres: p.nombres,
+        tipo_documento: p.tipo_documento,
+        numero_documento: p.numero_documento,
+        telefono: p.telefono,
+        correo: p.correo,
+        municipio_ciudad: p.municipio_ciudad,
+        creado_en: p.creado_en,
+        ultimaVisita,
+        estado
+      }
+    })
+
+    res.json(resultado)
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
@@ -157,6 +200,25 @@ router.put('/:id', async (req, res) => {
       data: datos
     })
     res.json(paciente)
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Paciente no encontrado' })
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+
+// DELETE /api/pacientes/:id — eliminar paciente
+router.delete('/:id', async (req, res) => {
+  const id = parseInt(req.params.id)
+
+  try {
+    await prisma.paciente.delete({
+      where: { id }
+    })
+    res.status(200).json({ message: 'Paciente eliminado correctamente' })
   } catch (error) {
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Paciente no encontrado' })
