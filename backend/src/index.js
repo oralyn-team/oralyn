@@ -27,3 +27,6 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`)
 })
+
+const historiasRoutes = require('./routes/historias')
+app.use('/api/historias', historiasRoutes)
