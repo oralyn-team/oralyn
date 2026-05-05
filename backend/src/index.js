@@ -42,3 +42,6 @@ app.use('/api/cotizaciones', cotizacionesRoutes)
 
 const consentimientosRoutes = require('./routes/consentimientos')
 app.use('/api/consentimientos', consentimientosRoutes)
+
+const dashboardRoutes = require('./routes/dashboard')
+app.use('/api/dashboard', dashboardRoutes)
