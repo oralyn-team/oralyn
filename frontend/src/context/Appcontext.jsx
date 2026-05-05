@@ -1,11 +1,9 @@
-// src/context/AppContext.jsx
-import { createContext, useContext, useState } from 'react';
-import { pacientesIniciales } from '../data/pacientesData';
-import { historiasIniciales  } from '../data/historiasData';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { historiasIniciales } from '../data/historiasData';
+import { api } from '../api';
 
 const AppContext = createContext(null);
 
-// Historia vacía generada desde los datos del paciente
 function crearHistoriaDesde(paciente) {
   const hoy = new Date();
   const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
@@ -13,7 +11,6 @@ function crearHistoriaDesde(paciente) {
   return {
     id:               Date.now() + Math.random(),
     pacienteId:       paciente.id,
-    // Datos sincronizados desde paciente
     pacienteNombre:   `${paciente.nombres} ${paciente.primer_apellido}${paciente.segundo_apellido ? ' ' + paciente.segundo_apellido : ''}`,
     cedula:           paciente.numero_documento,
     tipoDocumento:    paciente.tipo_documento,
@@ -23,7 +20,6 @@ function crearHistoriaDesde(paciente) {
     correo:           paciente.correo   || '',
     municipioCiudad:  paciente.municipio_ciudad || '',
     fechaCreacion:    fecha,
-    // Campos exclusivos de la historia
     departamento:     '',
     edad:             '',
     acudiente:        '',
@@ -52,54 +48,43 @@ function crearHistoriaDesde(paciente) {
   };
 }
 
-// Normalizar pacientes iniciales al formato nuevo si vienen del mock viejo
-function normalizarPaciente(p) {
-  if (p.primer_apellido) return p; // ya está en formato nuevo
-  // Compatibilidad con el mock anterior (nombre, cedula, telefono)
-  const partes = (p.nombre || '').trim().split(' ');
-  return {
-    ...p,
-    nombres:          partes[0] || '',
-    primer_apellido:  partes[1] || '',
-    segundo_apellido: partes[2] || '',
-    tipo_documento:   'CC',
-    numero_documento: p.cedula || '',
-    fecha_nacimiento: '',
-    sexo:             '',
-    municipio_ciudad: '',
-    correo:           '',
-  };
-}
-
 export function AppProvider({ children }) {
-  const [pacientes, setPacientes] = useState(
-    pacientesIniciales.map(normalizarPaciente)
-  );
+  const [pacientes, setPacientes] = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
 
-  const [historias, setHistorias] = useState(() => {
-    // Partir de las historias iniciales simuladas
-    const base = [...historiasIniciales];
-    // Crear historia vacía para cualquier paciente que no tenga
-    pacientesIniciales.forEach((p) => {
-      const normalizado = normalizarPaciente(p);
-      if (!base.find((h) => h.pacienteId === p.id)) {
-        base.push(crearHistoriaDesde(normalizado));
-      }
-    });
-    return base;
-  });
+  const [historias, setHistorias] = useState(() => [...historiasIniciales]);
+
+  // ── Carga inicial desde el backend ─────────────────────────────────────
+  useEffect(() => {
+    api.getPacientes()
+      .then((data) => {
+        setPacientes(data);
+        // Crear historia vacía para los que no tengan
+        setHistorias((prev) => {
+          const extras = data
+            .filter((p) => !prev.find((h) => h.pacienteId === p.id))
+            .map(crearHistoriaDesde);
+          return [...prev, ...extras];
+        });
+      })
+      .catch((err) => {
+        console.error('Error cargando pacientes:', err);
+        setError('No se pudieron cargar los pacientes');
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   // ── Pacientes ──────────────────────────────────────────────────────────
-  function agregarPaciente(datosPaciente) {
-    const nuevo = { ...datosPaciente, id: Date.now() };
+  async function agregarPaciente(datosPaciente) {
+    const nuevo = await api.crearPaciente(datosPaciente);
     setPacientes((prev) => [nuevo, ...prev]);
-    // Crear historia vacía automáticamente
     setHistorias((prev) => [crearHistoriaDesde(nuevo), ...prev]);
   }
 
-  function eliminarPaciente(id) {
+  async function eliminarPaciente(id) {
+    await api.eliminarPaciente(id);
     setPacientes((prev) => prev.filter((p) => p.id !== id));
-    // Opcional: también eliminar su historia
     setHistorias((prev) => prev.filter((h) => h.pacienteId !== id));
   }
 
@@ -114,6 +99,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       pacientes, setPacientes, agregarPaciente, eliminarPaciente,
       historias, actualizarHistoria,
+      loading, error,
     }}>
       {children}
     </AppContext.Provider>
