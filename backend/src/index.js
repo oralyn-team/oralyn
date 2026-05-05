@@ -30,3 +30,6 @@ app.listen(PORT, () => {
 
 const historiasRoutes = require('./routes/historias')
 app.use('/api/historias', historiasRoutes)
+
+const citasRoutes = require('./routes/citas')
+app.use('/api/citas', citasRoutes)
