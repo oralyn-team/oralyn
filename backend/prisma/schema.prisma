@@ -118,21 +118,23 @@ model Paciente {
 // ─── HISTORIA CLÍNICA ───────────────────────────────────────
 
 model HistoriaClinica {
-  id                    Int      @id @default(autoincrement())
-  paciente_id           Int
-  paciente              Paciente @relation(fields: [paciente_id], references: [id])
-  fecha_atencion        DateTime @default(now())
-  motivo_consulta       String
-  evento_adverso        Boolean  @default(false)
-  evento_adverso_obs    String?
-  habitos_json          Json?
-  habitos_observaciones String?
-  diagnostico           String
-  tratamiento_realizado String?
-  observaciones         String?
-  recomendaciones       String?
-  firma_doctor          String?
-  firma_paciente        String?
+  id                         Int      @id @default(autoincrement())
+  paciente_id                Int
+  paciente                   Paciente @relation(fields: [paciente_id], references: [id])
+  fecha_atencion             DateTime @default(now())
+  motivo_consulta            String
+  medicamentos_actuales      String?
+  antecedentes_odontologicos String?
+  evento_adverso             Boolean  @default(false)
+  evento_adverso_obs         String?
+  habitos_json               Json?
+  habitos_observaciones      String?
+  diagnostico                String
+  tratamiento_realizado      String?
+  observaciones              String?
+  recomendaciones            String?
+  firma_doctor               String?
+  firma_paciente             String?
 
   antecedentes           HcAntecedentes?
   examen                 HcExamenEstomatologico?
@@ -201,6 +203,7 @@ model HcOdontograma {
 
   @@index([historia_id])
 }
+
 
 // ─── HOJA DE EVOLUCIÓN ──────────────────────────────────────
 
