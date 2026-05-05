@@ -39,3 +39,6 @@ const cotizacionesRoutes = require('./routes/cotizaciones')
 
 app.use('/api/pagos', pagosRoutes)
 app.use('/api/cotizaciones', cotizacionesRoutes)
+
+const consentimientosRoutes = require('./routes/consentimientos')
+app.use('/api/consentimientos', consentimientosRoutes)
