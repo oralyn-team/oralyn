@@ -204,10 +204,10 @@ export default function PacienteForm({ onAgregar, onClose }) {
             onChange={handleChange}
             error={errs.sexo}
           >
-            <option value="">Selecciona una opción</option>
-            <option value="F">Femenino</option>
-            <option value="M">Masculino</option>
-            <option value="O">Otro</option>
+            <option value="" disabled>Selecciona una opción</option>
+            <option value="femenino">Femenino</option>
+            <option value="masculino">Masculino</option>
+            <option value="otro">Otro</option>
           </SelectField>
 
           <Field
@@ -236,6 +236,7 @@ export default function PacienteForm({ onAgregar, onClose }) {
           />
 
           <SelectField name="estado" label="Estado" value={form.estado} onChange={handleChange}>
+            <option value="" disabled>Selecciona una opción</option>
             <option value="Nuevo">Nuevo</option>
             <option value="Al día">Al día</option>
             <option value="Pendiente">Pendiente</option>

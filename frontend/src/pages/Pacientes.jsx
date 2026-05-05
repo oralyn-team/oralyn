@@ -21,14 +21,16 @@ function buildStats(pacientes) {
 
 export default function Pacientes() {
   const { pacientes, agregarPaciente, eliminarPaciente, loading, error } = useApp();
-  
+
+  const [busqueda, setBusqueda]   = useState('');
+  const [filtroEstado, setFiltro] = useState('Todos');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [toast, setToast]         = useState(null);
+
+  // DESPUÉS de todos los useState
   if (loading) return <p style={{ padding: 32 }}>Cargando pacientes...</p>;
   if (error)   return <p style={{ padding: 32, color: 'red' }}>{error}</p>;
 
-  const [busqueda, setBusqueda]     = useState('');
-  const [filtroEstado, setFiltro]   = useState('Todos');
-  const [modalOpen, setModalOpen]   = useState(false);
-  const [toast, setToast]           = useState(null);
 
   const pacientesFiltrados = pacientes.filter((p) => {
     const t = busqueda.toLowerCase().trim();
