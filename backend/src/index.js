@@ -33,3 +33,9 @@ app.use('/api/historias', historiasRoutes)
 
 const citasRoutes = require('./routes/citas')
 app.use('/api/citas', citasRoutes)
+
+const pagosRoutes = require('./routes/pagos')
+const cotizacionesRoutes = require('./routes/cotizaciones')
+
+app.use('/api/pagos', pagosRoutes)
+app.use('/api/cotizaciones', cotizacionesRoutes)
