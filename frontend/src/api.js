@@ -24,10 +24,10 @@ async function request(path, options = {}) {
 
 export const api = {
   login: (email, password) =>
-  request('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  }),
+    request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
 
   getPacientes: () => request('/pacientes'),
   buscarPacientes: (q) => request(`/pacientes/buscar?q=${encodeURIComponent(q)}`),
