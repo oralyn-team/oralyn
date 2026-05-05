@@ -1,17 +1,31 @@
 // src/main.jsx
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import './index.css';
-import App from './App';
-import { AppProvider } from './context/AppContext';
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Login  from './pages/login'
+import Pacientes from './pages/Pacientes'
+import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+function PrivateRoute({ children }) {
+  const token = localStorage.getItem('token')
+  return token ? children : <Navigate to="/login" />
+}
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
     <BrowserRouter>
-      <AppProvider>
-        <App />
-      </AppProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/pacientes"
+          element={
+            <PrivateRoute>
+              <Pacientes />
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
     </BrowserRouter>
-  </React.StrictMode>
-);
+  </StrictMode>
+)

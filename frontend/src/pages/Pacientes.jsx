@@ -20,7 +20,10 @@ function buildStats(pacientes) {
 }
 
 export default function Pacientes() {
-  const { pacientes, agregarPaciente, eliminarPaciente } = useApp();
+  const { pacientes, agregarPaciente, eliminarPaciente, loading, error } = useApp();
+  
+  if (loading) return <p style={{ padding: 32 }}>Cargando pacientes...</p>;
+  if (error)   return <p style={{ padding: 32, color: 'red' }}>{error}</p>;
 
   const [busqueda, setBusqueda]     = useState('');
   const [filtroEstado, setFiltro]   = useState('Todos');
@@ -52,6 +55,8 @@ export default function Pacientes() {
   }
 
   const stats = buildStats(pacientes);
+
+  
 
   return (
     <div className="flex min-h-screen bg-teal-bg font-sans relative">
