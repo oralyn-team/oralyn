@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { useApp } from '../context/AppContext'
 
 export default function Login() {
   const navigate = useNavigate()
+  const { guardarToken } = useApp()
   const [form, setForm] = useState({ email: '', password: '' })
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState(false)
@@ -14,19 +16,19 @@ export default function Login() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    setLoading(true)
-    setError(false)
-    try {
-      const { token } = await api.login(form.email, form.password)
-      localStorage.setItem('token', token)
-      navigate('/pacientes')
-    } catch {
-      setError(true)
-    } finally {
-      setLoading(false)
-    }
+  e.preventDefault()
+  setLoading(true)
+  setError(false)
+  try {
+    const { token } = await api.login(form.email, form.password)
+    guardarToken(token)      
+    navigate('/pacientes')
+  } catch {
+    setError(true)
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-teal-bg font-sans">
