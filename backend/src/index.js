@@ -5,10 +5,11 @@ require('dotenv').config()
 const authRoutes = require('./routes/auth')
 const pacientesRoutes = require('./routes/pacientes')
 const historiasRoutes = require('./routes/historias')
+const citasRoutes = require('./routes/citas')
 
 const app = express()
 
-// CORS (uno solo y bien configurado)
+// CORS
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -21,10 +22,13 @@ app.use(express.json())
 app.use('/api/auth', authRoutes)
 app.use('/api/pacientes', pacientesRoutes)
 app.use('/api/historias', historiasRoutes)
+app.use('/api/citas', citasRoutes)
+
 // Ruta de prueba
 app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })
 })
+
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
