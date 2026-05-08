@@ -100,18 +100,31 @@ router.get('/:pacienteId', async (req, res) => {
       orderBy: { fecha_atencion: 'desc' },
       select: {
         id: true,
+        paciente_id: true,
         fecha_atencion: true,
         motivo_consulta: true,
         diagnostico: true,
-        tratamiento_realizado: true
+        tratamiento_realizado: true,
+        medicamentos_actuales: true,
+        antecedentes_odontologicos: true,
+        evento_adverso: true,
+        evento_adverso_obs: true,
+        habitos_json: true,
+        habitos_observaciones: true,
+        observaciones: true,
+        recomendaciones: true,
+        firma_doctor: true,
+        firma_paciente: true
       }
     })
+
     res.json(historias)
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
+
 
 // GET /api/historias/detalle/:id — ver historia completa
 router.get('/detalle/:id', async (req, res) => {

@@ -4,6 +4,7 @@ require('dotenv').config()
 
 const authRoutes = require('./routes/auth')
 const pacientesRoutes = require('./routes/pacientes')
+const historiasRoutes = require('./routes/historias')
 
 const app = express()
 
@@ -19,18 +20,13 @@ app.use(express.json())
 // Rutas
 app.use('/api/auth', authRoutes)
 app.use('/api/pacientes', pacientesRoutes)
-
+app.use('/api/historias', historiasRoutes)
 // Ruta de prueba
 app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })
 })
-
-// 🔥 AQUÍ estaba el problema
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`)
 })
-
-const historiasRoutes = require('./routes/historias')
-app.use('/api/historias', historiasRoutes)

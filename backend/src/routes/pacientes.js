@@ -6,7 +6,6 @@ const router = express.Router()
 
 // Todas las rutas requieren token
 router.use(verificarToken)
-
 // POST /api/pacientes — crear paciente
 router.post('/', async (req, res) => {
   const {
@@ -27,21 +26,60 @@ router.post('/', async (req, res) => {
     const existe = await prisma.paciente.findUnique({
       where: { numero_documento }
     })
+
     if (existe) {
       return res.status(400).json({ error: 'Ya existe un paciente con ese documento' })
     }
 
-    const paciente = await prisma.paciente.create({
-      data: {
-        primer_apellido, segundo_apellido, nombres,
-        tipo_documento, numero_documento,
-        fecha_nacimiento: new Date(fecha_nacimiento),
-        sexo, estado_civil, direccion_residencia, telefono,
-        correo, departamento, municipio_ciudad, ocupacion,
-        rh, clase_seguro, asegurador, rango_salarial,
-        tipo_vinculacion, nombre_empresa,
-        acudiente_nombre, acudiente_parentesco, acudiente_telefono
-      }
+    const paciente = await prisma.$transaction(async (tx) => {
+      const nuevoPaciente = await tx.paciente.create({
+        data: {
+          primer_apellido,
+          segundo_apellido,
+          nombres,
+          tipo_documento,
+          numero_documento,
+          fecha_nacimiento: new Date(fecha_nacimiento),
+          sexo,
+          estado_civil,
+          direccion_residencia,
+          telefono,
+          correo,
+          departamento,
+          municipio_ciudad,
+          ocupacion,
+          rh,
+          clase_seguro,
+          asegurador,
+          rango_salarial,
+          tipo_vinculacion,
+          nombre_empresa,
+          acudiente_nombre,
+          acudiente_parentesco,
+          acudiente_telefono
+        }
+      })
+
+      await tx.historiaClinica.create({
+        data: {
+          paciente_id: nuevoPaciente.id,
+          motivo_consulta: 'Valoración inicial',
+          diagnostico: 'Pendiente por registrar',
+          tratamiento_realizado: null,
+          medicamentos_actuales: null,
+          antecedentes_odontologicos: null,
+          evento_adverso: false,
+          evento_adverso_obs: null,
+          habitos_json: null,
+          habitos_observaciones: null,
+          observaciones: null,
+          recomendaciones: null,
+          firma_doctor: null,
+          firma_paciente: null
+        }
+      })
+
+      return nuevoPaciente
     })
 
     res.status(201).json(paciente)
@@ -63,6 +101,8 @@ router.get('/', async (req, res) => {
         nombres: true,
         tipo_documento: true,
         numero_documento: true,
+        fecha_nacimiento: true,
+        sexo: true,
         telefono: true,
         correo: true,
         municipio_ciudad: true,
@@ -103,6 +143,10 @@ router.get('/', async (req, res) => {
         nombres: p.nombres,
         tipo_documento: p.tipo_documento,
         numero_documento: p.numero_documento,
+        fecha_nacimiento: p.fecha_nacimiento
+          ? p.fecha_nacimiento.toISOString().split('T')[0]
+          : null,
+        sexo: p.sexo,
         telefono: p.telefono,
         correo: p.correo,
         municipio_ciudad: p.municipio_ciudad,
@@ -118,6 +162,7 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
+
 
 // GET /api/pacientes/buscar?q= — buscar por nombre o documento
 router.get('/buscar', async (req, res) => {
