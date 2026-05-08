@@ -20,7 +20,7 @@ function buildStats(pacientes) {
 }
 
 export default function Pacientes() {
-  const { pacientes, agregarPaciente, eliminarPaciente, loading, error } = useApp();
+  const { pacientes, agregarPaciente, eliminarPaciente, recargarPacientes, loading, error } = useApp();
 
   const [busqueda, setBusqueda]   = useState('');
   const [filtroEstado, setFiltro] = useState('Todos');
@@ -56,9 +56,12 @@ export default function Pacientes() {
     setTimeout(() => setToast(null), 2200);
   }
 
-  const stats = buildStats(pacientes);
+  function handleEditar() {
+  recargarPacientes();
+  mostrarToast('Paciente actualizado correctamente');
+}
 
-  
+  const stats = buildStats(pacientes);
 
   return (
     <div className="flex min-h-screen bg-teal-bg font-sans relative">

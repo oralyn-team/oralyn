@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const ESTADO_INICIAL = {
   primer_apellido: '',
@@ -14,7 +14,15 @@ const ESTADO_INICIAL = {
   estado: 'Nuevo',
 };
 
-function Field({ name, label, placeholder, type = 'text', value, onChange, error }) {
+function Field({
+  name,
+  label,
+  placeholder,
+  type = 'text',
+  value,
+  onChange,
+  error,
+}) {
   const inputBase = [
     'w-full px-2.5 py-2 border border-teal-border rounded-lg',
     'text-[13px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
@@ -27,6 +35,7 @@ function Field({ name, label, placeholder, type = 'text', value, onChange, error
       <label className="block text-[11px] font-medium text-teal-muted uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
+
       <input
         type={type}
         name={name}
@@ -35,6 +44,7 @@ function Field({ name, label, placeholder, type = 'text', value, onChange, error
         placeholder={placeholder}
         className={`${inputBase} ${error ? 'border-status-red' : ''}`}
       />
+
       {error && (
         <p role="alert" className="text-[11px] text-status-red mt-1">
           {error}
@@ -44,7 +54,14 @@ function Field({ name, label, placeholder, type = 'text', value, onChange, error
   );
 }
 
-function SelectField({ name, label, value, onChange, error, children }) {
+function SelectField({
+  name,
+  label,
+  value,
+  onChange,
+  error,
+  children,
+}) {
   const selectBase = [
     'w-full px-2.5 py-2 border border-teal-border rounded-lg',
     'text-[13px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
@@ -57,6 +74,7 @@ function SelectField({ name, label, value, onChange, error, children }) {
       <label className="block text-[11px] font-medium text-teal-muted uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
+
       <select
         name={name}
         value={value}
@@ -65,6 +83,7 @@ function SelectField({ name, label, value, onChange, error, children }) {
       >
         {children}
       </select>
+
       {error && (
         <p role="alert" className="text-[11px] text-status-red mt-1">
           {error}
@@ -74,32 +93,80 @@ function SelectField({ name, label, value, onChange, error, children }) {
   );
 }
 
-export default function PacienteForm({ onAgregar, onClose }) {
+export default function PacienteForm({
+  onAgregar,
+  onEditar,
+  pacienteEditar,
+  onClose,
+}) {
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [errs, setErrs] = useState({});
 
+  // Cargar datos cuando sea edición
+  useEffect(() => {
+    if (pacienteEditar) {
+      setForm({
+        ...ESTADO_INICIAL,
+        ...pacienteEditar,
+      });
+    } else {
+      setForm(ESTADO_INICIAL);
+    }
+  }, [pacienteEditar]);
+
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errs[name]) setErrs((prev) => ({ ...prev, [name]: '' }));
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (errs[name]) {
+      setErrs((prev) => ({
+        ...prev,
+        [name]: '',
+      }));
+    }
   }
 
   function validar() {
     const e = {};
 
-    if (!form.primer_apellido.trim()) e.primer_apellido = 'Campo obligatorio';
-    if (!form.nombres.trim()) e.nombres = 'Campo obligatorio';
-    if (!form.tipo_documento.trim()) e.tipo_documento = 'Campo obligatorio';
-    if (!form.numero_documento.trim()) e.numero_documento = 'Campo obligatorio';
-    if (!form.fecha_nacimiento) e.fecha_nacimiento = 'Campo obligatorio';
-    if (!form.sexo) e.sexo = 'Campo obligatorio';
-    if (!form.municipio_ciudad.trim()) e.municipio_ciudad = 'Campo obligatorio';
+    if (!form.primer_apellido.trim()) {
+      e.primer_apellido = 'Campo obligatorio';
+    }
+
+    if (!form.nombres.trim()) {
+      e.nombres = 'Campo obligatorio';
+    }
+
+    if (!form.tipo_documento.trim()) {
+      e.tipo_documento = 'Campo obligatorio';
+    }
+
+    if (!form.numero_documento.trim()) {
+      e.numero_documento = 'Campo obligatorio';
+    }
+
+    if (!form.fecha_nacimiento) {
+      e.fecha_nacimiento = 'Campo obligatorio';
+    }
+
+    if (!form.sexo) {
+      e.sexo = 'Campo obligatorio';
+    }
+
+    if (!form.municipio_ciudad.trim()) {
+      e.municipio_ciudad = 'Campo obligatorio';
+    }
 
     return e;
   }
 
   function handleSubmit() {
     const errores = validar();
+
     if (Object.keys(errores).length) {
       setErrs(errores);
       return;
@@ -119,7 +186,12 @@ export default function PacienteForm({ onAgregar, onClose }) {
       estado: form.estado,
     };
 
-    onAgregar(payload);
+    if (pacienteEditar) {
+      onEditar(pacienteEditar.id, payload);
+    } else {
+      onAgregar(payload);
+    }
+
     setForm(ESTADO_INICIAL);
     setErrs({});
   }
@@ -127,11 +199,19 @@ export default function PacienteForm({ onAgregar, onClose }) {
   return (
     <div
       className="absolute inset-0 bg-primary/35 flex items-center justify-center z-10"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) =>
+        e.target === e.currentTarget && onClose()
+      }
     >
       <div className="bg-white rounded-[14px] w-[380px] max-h-[92vh] border border-teal-border overflow-hidden flex flex-col">
+        
         <div className="flex items-center justify-between px-5 py-4 bg-primary">
-          <h2 className="text-[14px] font-medium text-white">+ Nuevo paciente</h2>
+          <h2 className="text-[14px] font-medium text-white">
+            {pacienteEditar
+              ? 'Editar paciente'
+              : '+ Nuevo paciente'}
+          </h2>
+
           <button
             type="button"
             onClick={onClose}
@@ -142,6 +222,7 @@ export default function PacienteForm({ onAgregar, onClose }) {
         </div>
 
         <div className="px-5 py-5 overflow-y-auto">
+          
           <Field
             name="nombres"
             label="Nombres"
@@ -150,6 +231,7 @@ export default function PacienteForm({ onAgregar, onClose }) {
             onChange={handleChange}
             error={errs.nombres}
           />
+
           <Field
             name="primer_apellido"
             label="Primer apellido"
@@ -158,6 +240,7 @@ export default function PacienteForm({ onAgregar, onClose }) {
             onChange={handleChange}
             error={errs.primer_apellido}
           />
+
           <Field
             name="segundo_apellido"
             label="Segundo apellido"
@@ -188,6 +271,7 @@ export default function PacienteForm({ onAgregar, onClose }) {
             onChange={handleChange}
             error={errs.numero_documento}
           />
+
           <Field
             name="fecha_nacimiento"
             label="Fecha de nacimiento"
@@ -204,10 +288,21 @@ export default function PacienteForm({ onAgregar, onClose }) {
             onChange={handleChange}
             error={errs.sexo}
           >
-            <option value="" disabled>Selecciona una opción</option>
-            <option value="femenino">Femenino</option>
-            <option value="masculino">Masculino</option>
-            <option value="otro">Otro</option>
+            <option value="" disabled>
+              Selecciona una opción
+            </option>
+
+            <option value="femenino">
+              Femenino
+            </option>
+
+            <option value="masculino">
+              Masculino
+            </option>
+
+            <option value="otro">
+              Otro
+            </option>
           </SelectField>
 
           <Field
@@ -218,6 +313,7 @@ export default function PacienteForm({ onAgregar, onClose }) {
             value={form.telefono}
             onChange={handleChange}
           />
+
           <Field
             name="correo"
             label="Correo"
@@ -226,6 +322,7 @@ export default function PacienteForm({ onAgregar, onClose }) {
             value={form.correo}
             onChange={handleChange}
           />
+
           <Field
             name="municipio_ciudad"
             label="Municipio / ciudad"
@@ -235,15 +332,32 @@ export default function PacienteForm({ onAgregar, onClose }) {
             error={errs.municipio_ciudad}
           />
 
-          <SelectField name="estado" label="Estado" value={form.estado} onChange={handleChange}>
-            <option value="" disabled>Selecciona una opción</option>
-            <option value="Nuevo">Nuevo</option>
-            <option value="Al día">Al día</option>
-            <option value="Pendiente">Pendiente</option>
+          <SelectField
+            name="estado"
+            label="Estado"
+            value={form.estado}
+            onChange={handleChange}
+          >
+            <option value="" disabled>
+              Selecciona una opción
+            </option>
+
+            <option value="Nuevo">
+              Nuevo
+            </option>
+
+            <option value="Al día">
+              Al día
+            </option>
+
+            <option value="Pendiente">
+              Pendiente
+            </option>
           </SelectField>
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-3 border-t border-teal-soft">
+          
           <button
             type="button"
             onClick={onClose}
@@ -251,12 +365,15 @@ export default function PacienteForm({ onAgregar, onClose }) {
           >
             Cancelar
           </button>
+
           <button
             type="button"
             onClick={handleSubmit}
             className="px-3.5 py-[7px] text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors"
           >
-            Guardar paciente
+            {pacienteEditar
+              ? 'Actualizar paciente'
+              : 'Guardar paciente'}
           </button>
         </div>
       </div>

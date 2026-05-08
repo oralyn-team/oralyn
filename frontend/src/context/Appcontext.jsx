@@ -1,85 +1,55 @@
+// src/context/AppContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
-import { historiasIniciales } from '../data/historiasData';
 import { api } from '../api';
 
 const AppContext = createContext(null);
 
-function crearHistoriaDesde(paciente) {
-  const hoy = new Date();
-  const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
-
-  return {
-    id:               Date.now() + Math.random(),
-    pacienteId:       paciente.id,
-    pacienteNombre:   `${paciente.nombres} ${paciente.primer_apellido}${paciente.segundo_apellido ? ' ' + paciente.segundo_apellido : ''}`,
-    cedula:           paciente.numero_documento,
-    tipoDocumento:    paciente.tipo_documento,
-    fechaNacimiento:  paciente.fecha_nacimiento,
-    sexo:             paciente.sexo === 'F' ? 'Femenino' : paciente.sexo === 'M' ? 'Masculino' : 'Otro',
-    telefono:         paciente.telefono || '',
-    correo:           paciente.correo   || '',
-    municipioCiudad:  paciente.municipio_ciudad || '',
-    fechaCreacion:    fecha,
-    departamento:     '',
-    edad:             '',
-    acudiente:        '',
-    parentesco:       '',
-    eps:              '',
-    tipoAfiliacion:   '',
-    estadoCivil:      '',
-    direccion:        '',
-    ocupacion:        '',
-    tipoSangre:       '',
-    rh:               '',
-    alergias:         '',
-    medicamentos:     '',
-    antOdontologicos: '',
-    motivoConsulta:   '',
-    eventoAdverso:    false,
-    eventoAdversoObs: '',
-    antecedentes:     {},
-    habitosOrales:    {},
-    habitosObs:       '',
-    estomatologico:   {},
-    estomatologicoObs:'',
-    odontograma:      {},
-    evoluciones:      [],
-    adjuntos:         [],
-  };
-}
-
 export function AppProvider({ children }) {
+  const [token, setToken]         = useState(() => localStorage.getItem('token'));
   const [pacientes, setPacientes] = useState([]);
+  const [historias, setHistorias] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
 
-  const [historias, setHistorias] = useState(() => [...historiasIniciales]);
-
-  // ── Carga inicial desde el backend ─────────────────────────────────────
   useEffect(() => {
+    if (!token) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
     api.getPacientes()
-      .then((data) => {
-        setPacientes(data);
-        // Crear historia vacía para los que no tengan
-        setHistorias((prev) => {
-          const extras = data
-            .filter((p) => !prev.find((h) => h.pacienteId === p.id))
-            .map(crearHistoriaDesde);
-          return [...prev, ...extras];
-        });
-      })
+      .then((data) => setPacientes(data))
       .catch((err) => {
         console.error('Error cargando pacientes:', err);
         setError('No se pudieron cargar los pacientes');
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
-  // ── Pacientes ──────────────────────────────────────────────────────────
+  // ── Auth ─────────────────────────────────────────────────────────────
+  function guardarToken(nuevoToken) {
+    localStorage.setItem('token', nuevoToken);
+    setToken(nuevoToken);
+  }
+
+  function cerrarSesion() {
+    localStorage.removeItem('token');
+    setToken(null);
+    setPacientes([]);
+    setHistorias([]);
+  }
+
+  // ── Pacientes ────────────────────────────────────────────────────────
+  async function recargarPacientes() {
+    try {
+      const data = await api.getPacientes();
+      setPacientes(data);
+    } catch (err) {
+      console.error('Error recargando pacientes:', err);
+    }
+  }
+
   async function agregarPaciente(datosPaciente) {
     const nuevo = await api.crearPaciente(datosPaciente);
     setPacientes((prev) => [nuevo, ...prev]);
-    setHistorias((prev) => [crearHistoriaDesde(nuevo), ...prev]);
   }
 
   async function eliminarPaciente(id) {
@@ -88,17 +58,49 @@ export function AppProvider({ children }) {
     setHistorias((prev) => prev.filter((h) => h.pacienteId !== id));
   }
 
-  // ── Historias ──────────────────────────────────────────────────────────
-  function actualizarHistoria(historiaActualizada) {
+  // ── Historias ────────────────────────────────────────────────────────
+  async function actualizarHistoria(historiaActualizada) {
+    const { id, evoluciones, adjuntos, pacienteNombre, cedula,
+            tipoDocumento, fechaNacimiento, sexo, telefono,
+            correo, municipioCiudad, pacienteId, ...datos } = historiaActualizada;
+    await api.actualizarHistoria(id, datos);
     setHistorias((prev) =>
-      prev.map((h) => h.id === historiaActualizada.id ? historiaActualizada : h)
+      prev.map((h) => h.id === id ? historiaActualizada : h)
     );
+  }
+
+  async function crearEvolucion(historiaId, datos) {
+    const nueva = await api.crearEvolucion(historiaId, datos);
+    setHistorias((prev) => prev.map((h) =>
+      h.id === historiaId
+        ? { ...h, evoluciones: [...(h.evoluciones || []), nueva] }
+        : h
+    ));
+    return nueva;
+  }
+
+  async function eliminarEvolucion(historiaId, evolucionId) {
+    await api.eliminarEvolucion(historiaId, evolucionId);
+    setHistorias((prev) => prev.map((h) =>
+      h.id === historiaId
+        ? { ...h, evoluciones: h.evoluciones.filter((e) => e.id !== evolucionId) }
+        : h
+    ));
+  }
+
+  async function actualizarOdontograma(historiaId, odontograma) {
+    await api.actualizarOdontograma(historiaId, odontograma);
+    setHistorias((prev) => prev.map((h) =>
+      h.id === historiaId ? { ...h, odontograma } : h
+    ));
   }
 
   return (
     <AppContext.Provider value={{
-      pacientes, setPacientes, agregarPaciente, eliminarPaciente,
-      historias, actualizarHistoria,
+      token, guardarToken, cerrarSesion,
+      pacientes, setPacientes, agregarPaciente, eliminarPaciente, recargarPacientes,
+      historias, setHistorias, actualizarHistoria,
+      crearEvolucion, eliminarEvolucion, actualizarOdontograma,
       loading, error,
     }}>
       {children}
