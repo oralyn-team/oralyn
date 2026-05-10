@@ -120,12 +120,17 @@ router.get('/detalle/:id', async (req, res) => {
   try {
     const historia = await prisma.historiaClinica.findUnique({
       where: { id },
-      include: {
-        antecedentes: true,
-        examen: true,
-        odontogramas: { orderBy: { creado_en: 'desc' } },
-        evoluciones: { orderBy: { fecha: 'desc' } }
-      }
+     include: {
+  paciente: true,
+  antecedentes: true,
+  examen: true,
+  odontogramas: {
+    orderBy: { creado_en: 'desc' }
+  },
+  evoluciones: {
+    orderBy: { fecha: 'desc' }
+  }
+}
     })
 
     if (!historia) {

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; padding: 40px; color: #222; font-size: 13px; line-height: 1.6; }
+    .header { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+    .consultorio { text-align: right; font-size: 12px; color: #333; }
+    .consultorio strong { font-size: 13px; }
+    .fecha-linea { margin-bottom: 8px; font-size: 13px; }
+    .fecha-linea span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
+    .doctor-linea { margin-bottom: 6px; font-size: 13px; }
+    .doctor-linea span { display: inline-block; border-bottom: 1px solid #333; min-width: 200px; margin-left: 4px; }
+    .divider { border-top: 1px solid #333; margin: 16px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .header-tabla { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 4px; padding: 0 4px; }
+    .fila-tratamiento { display: flex; align-items: center; margin-bottom: 6px; font-size: 13px; }
+    .fila-tratamiento .nombre { flex: 1; display: flex; align-items: center; gap: 6px; }
+    .fila-tratamiento .numero { width: 80px; border-bottom: 1px solid #333; margin: 0 16px; }
+    .fila-tratamiento .valor { width: 120px; display: flex; align-items: center; gap: 4px; }
+    .fila-tratamiento .valor span { flex: 1; border-bottom: 1px solid #333; }
+    .otros-section { margin-top: 8px; }
+    .otros-linea { display: flex; align-items: center; margin-bottom: 8px; }
+    .otros-linea .label { min-width: 60px; font-size: 13px; }
+    .otros-linea .linea { flex: 1; border-bottom: 1px solid #333; margin-right: 16px; }
+    .otros-linea .valor { width: 120px; border-bottom: 1px solid #333; }
+    .totales-section { margin-top: 8px; }
+    .total-linea { display: flex; align-items: center; margin-bottom: 8px; }
+    .total-linea .label { min-width: 120px; font-weight: bold; font-size: 13px; }
+    .total-linea .linea { width: 150px; border-bottom: 1px solid #333; margin-left: auto; }
+    .firma-section { margin-top: 80px; text-align: center; }
+    .firma-linea { border-top: 1px solid #333; width: 200px; margin: 0 auto 6px; }
+    .firma-label { font-weight: bold; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="consultorio">
+    <strong>Villavicencio-Meta. Calle 32 #38-81 Barzal Alto</strong><br>
+    Cel: 322 947 8820<br>
+    NIT. 39579364-3
+  </div>
+</div>
+
+<div class="fecha-linea">
+  Villavicencio <span>{{dia}}</span> de <span>{{mes}}</span> de <span>{{anio}}</span>
+</div>
+<div class="doctor-linea">
+  El Doctor(a) de <span>{{doctor}}</span>
+</div>
+<div class="doctor-linea">
+  Atendió a <span>{{nombre_completo}}</span>
+</div>
+
+<div class="divider"></div>
+
+<div class="header-tabla">
+  <span>TRATAMIENTO</span>
+  <span style="margin-right:80px">N.°</span>
+  <span>VALOR</span>
+</div>
+
+<div class="fila-tratamiento">
+  <div class="nombre">➤ DETARTRAJE-CURETRAJE</div>
+  <div class="numero">{{detartraje_num}}</div>
+  <div class="valor">$ <span>{{detartraje_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ SUPERFICIE DE RETINA</div>
+  <div class="numero">{{superficie_num}}</div>
+  <div class="valor">$ <span>{{superficie_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ INCRUSTACIONES</div>
+  <div class="numero">{{incrustaciones_num}}</div>
+  <div class="valor">$ <span>{{incrustaciones_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ CARILLAS</div>
+  <div class="numero">{{carillas_num}}</div>
+  <div class="valor">$ <span>{{carillas_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ TRATAMIENTO DE CONDUCTO</div>
+  <div class="numero">{{conducto_num}}</div>
+  <div class="valor">$ <span>{{conducto_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ EXODONCIAS</div>
+  <div class="numero">{{exodoncia_num}}</div>
+  <div class="valor">$ <span>{{exodoncia_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ CIRUGIAS</div>
+  <div class="numero">{{cirugia_num}}</div>
+  <div class="valor">$ <span>{{cirugia_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ NUCLEOS</div>
+  <div class="numero">{{nucleo_num}}</div>
+  <div class="valor">$ <span>{{nucleo_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ CORONAS</div>
+  <div class="numero">{{corona_num}}</div>
+  <div class="valor">$ <span>{{corona_val}}</span></div>
+</div>
+<div class="fila-tratamiento">
+  <div class="nombre">➤ BLANQUEAMIENTO DENTAL</div>
+  <div class="numero">{{blanqueamiento_num}}</div>
+  <div class="valor">$ <span>{{blanqueamiento_val}}</span></div>
+</div>
+
+<div class="otros-section">
+  <div class="otros-linea">
+    <span class="label">OTROS:</span>
+    <span class="linea"></span>
+    <span class="valor"></span>
+  </div>
+  <div class="otros-linea">
+    <span class="label"></span>
+    <span class="linea"></span>
+    <span class="valor"></span>
+  </div>
+  <div class="otros-linea">
+    <span class="label"></span>
+    <span class="linea"></span>
+    <span class="valor"></span>
+  </div>
+</div>
+
+<div class="totales-section">
+  <div class="total-linea">
+    <span class="label">PRESUPUESTO</span>
+    <span class="linea">{{subtotal}}</span>
+  </div>
+  <div class="total-linea">
+    <span class="label">DTO</span>
+    <span class="linea">{{descuento}}</span>
+  </div>
+</div>
+
+<div class="firma-section">
+  <div class="firma-linea"></div>
+  <div class="firma-label">FIRMA Y SELLO</div>
+</div>
+
+</body>
+</html>
