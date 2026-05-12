@@ -6,6 +6,7 @@ const router = express.Router()
 
 // Todas las rutas requieren token
 router.use(verificarToken)
+
 // POST /api/pacientes — crear paciente
 router.post('/', async (req, res) => {
   const {
@@ -113,8 +114,9 @@ router.get('/', async (req, res) => {
           take: 1
         },
         cotizaciones: {
-          where: { estado: 'aprobada' },
-          select: { total: true },
+          // FIX: el enum EstadoCotizacion es 'aprobado', no 'aprobada'
+          where: { estado: 'aprobado' },
+          select: { total: true }
         },
         pagos: {
           select: { monto: true }
@@ -162,7 +164,6 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
-
 
 // GET /api/pacientes/buscar?q= — buscar por nombre o documento
 router.get('/buscar', async (req, res) => {
@@ -233,7 +234,13 @@ router.get('/:id', async (req, res) => {
 // PUT /api/pacientes/:id — editar
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
-  const datos = req.body
+  const {
+    historias,
+    citas,
+    creado_en,
+    id: bodyId,
+    ...datos
+  } = req.body
 
   if (datos.fecha_nacimiento) {
     datos.fecha_nacimiento = new Date(datos.fecha_nacimiento)
@@ -244,6 +251,7 @@ router.put('/:id', async (req, res) => {
       where: { id },
       data: datos
     })
+
     res.json(paciente)
   } catch (error) {
     if (error.code === 'P2025') {
@@ -253,7 +261,6 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
-
 
 // DELETE /api/pacientes/:id — eliminar paciente
 router.delete('/:id', async (req, res) => {

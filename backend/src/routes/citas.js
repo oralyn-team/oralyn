@@ -7,14 +7,17 @@ const router = express.Router()
 router.use(verificarToken)
 
 // POST /api/citas — crear cita
+// FIX: agregados campos 'doctor' y 'observaciones' que existen en el modelo Cita
 router.post('/', async (req, res) => {
   const {
     paciente_id,
     fecha_hora,
+    doctor,
     procedimiento,
     codigo_cups,
     codigo_cie10,
     valor_cobrado,
+    observaciones,
     causas_no_atencion
   } = req.body
 
@@ -32,11 +35,13 @@ router.post('/', async (req, res) => {
       data: {
         paciente_id,
         fecha_hora: new Date(fecha_hora),
+        doctor:              doctor              ?? null,
         procedimiento,
-        codigo_cups,
-        codigo_cie10,
-        valor_cobrado,
-        causas_no_atencion
+        codigo_cups:         codigo_cups         ?? null,
+        codigo_cie10:        codigo_cie10        ?? null,
+        valor_cobrado:       valor_cobrado       ?? null,
+        observaciones:       observaciones       ?? null,
+        causas_no_atencion:  causas_no_atencion  ?? null,
       }
     })
 
