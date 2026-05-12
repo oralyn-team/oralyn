@@ -6,6 +6,8 @@ const authRoutes = require('./routes/auth')
 const pacientesRoutes = require('./routes/pacientes')
 const historiasRoutes = require('./routes/historias')
 const citasRoutes = require('./routes/citas')
+const pagosRoutes = require('./routes/pagos')
+const cotizacionesRoutes = require('./routes/cotizaciones')
 
 const app = express()
 
@@ -23,6 +25,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api/pacientes', pacientesRoutes)
 app.use('/api/historias', historiasRoutes)
 app.use('/api/citas', citasRoutes)
+app.use('/api/pagos', pagosRoutes)
+app.use('/api/cotizaciones', cotizacionesRoutes)
 
 // Ruta de prueba
 app.get('/', (req, res) => {
