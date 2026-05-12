@@ -3,7 +3,6 @@ const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
-
 router.use(verificarToken)
 
 // POST /api/historias/:pacienteId — crear historia completa
@@ -23,9 +22,22 @@ router.post('/:pacienteId', async (req, res) => {
     recomendaciones,
     firma_doctor,
     firma_paciente,
+    // Campos adicionales
+    departamento,
+    estado_civil,
+    direccion,
+    ocupacion,
+    acudiente,
+    parentesco,
+    eps,
+    tipo_afiliacion,
+    tipo_sangre,
+    rh,
+    alergias,
+    // Nested
     antecedentes,
     examen,
-    odontograma
+    odontograma,
   } = req.body
 
   if (!motivo_consulta || !diagnostico) {
@@ -34,9 +46,7 @@ router.post('/:pacienteId', async (req, res) => {
 
   try {
     const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId } })
-    if (!paciente) {
-      return res.status(404).json({ error: 'Paciente no encontrado' })
-    }
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
     const historia = await prisma.$transaction(async (tx) => {
       const h = await tx.historiaClinica.create({
@@ -54,11 +64,22 @@ router.post('/:pacienteId', async (req, res) => {
           observaciones,
           recomendaciones,
           firma_doctor,
-          firma_paciente
+          firma_paciente,
+          departamento,
+          estado_civil,
+          direccion,
+          ocupacion,
+          acudiente,
+          parentesco,
+          eps,
+          tipo_afiliacion,
+          tipo_sangre,
+          rh,
+          alergias,
         }
       })
 
-      if (antecedentes) {
+      if (antecedentes && Object.keys(antecedentes).length > 0) {
         await tx.hcAntecedentes.create({
           data: { historia_id: h.id, ...antecedentes }
         })
@@ -66,16 +87,20 @@ router.post('/:pacienteId', async (req, res) => {
 
       if (examen) {
         await tx.hcExamenEstomatologico.create({
-          data: { historia_id: h.id, ...examen }
+          data: {
+            historia_id:      h.id,
+            estructuras_json: examen.estructuras_json ?? examen,
+            observaciones:    examen.observaciones ?? null,
+          }
         })
       }
 
       if (odontograma) {
         await tx.hcOdontograma.create({
           data: {
-            historia_id: h.id,
-            dientes_json: odontograma.dientes_json,
-            observaciones: odontograma.observaciones
+            historia_id:   h.id,
+            dientes_json:  odontograma.dientes_json,
+            observaciones: odontograma.observaciones,
           }
         })
       }
@@ -114,7 +139,18 @@ router.get('/:pacienteId', async (req, res) => {
         observaciones: true,
         recomendaciones: true,
         firma_doctor: true,
-        firma_paciente: true
+        firma_paciente: true,
+        departamento: true,
+        estado_civil: true,
+        direccion: true,
+        ocupacion: true,
+        acudiente: true,
+        parentesco: true,
+        eps: true,
+        tipo_afiliacion: true,
+        tipo_sangre: true,
+        rh: true,
+        alergias: true,
       }
     })
 
@@ -125,8 +161,7 @@ router.get('/:pacienteId', async (req, res) => {
   }
 })
 
-
-// GET /api/historias/detalle/:id — ver historia completa
+// GET /api/historias/detalle/:id — ver historia completa con nested
 router.get('/detalle/:id', async (req, res) => {
   const id = parseInt(req.params.id)
 
@@ -137,13 +172,11 @@ router.get('/detalle/:id', async (req, res) => {
         antecedentes: true,
         examen: true,
         odontogramas: { orderBy: { creado_en: 'desc' } },
-        evoluciones: { orderBy: { fecha: 'desc' } }
+        evoluciones:  { orderBy: { fecha: 'desc' } },
       }
     })
 
-    if (!historia) {
-      return res.status(404).json({ error: 'Historia clínica no encontrada' })
-    }
+    if (!historia) return res.status(404).json({ error: 'Historia clínica no encontrada' })
 
     res.json(historia)
   } catch (error) {
@@ -152,30 +185,70 @@ router.get('/detalle/:id', async (req, res) => {
   }
 })
 
-// PUT /api/historias/:id — editar historia
+// PUT /api/historias/:id — editar historia completa
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
-  const datos = req.body
+  const { antecedentes, examen, ...datos } = req.body
 
   try {
-    const historia = await prisma.historiaClinica.update({
-      where: { id },
-      data: {
-        motivo_consulta: datos.motivo_consulta,
-        medicamentos_actuales: datos.medicamentos_actuales,
-        antecedentes_odontologicos: datos.antecedentes_odontologicos,
-        evento_adverso: datos.evento_adverso,
-        evento_adverso_obs: datos.evento_adverso_obs,
-        habitos_json: datos.habitos_json,
-        habitos_observaciones: datos.habitos_observaciones,
-        diagnostico: datos.diagnostico,
-        tratamiento_realizado: datos.tratamiento_realizado,
-        observaciones: datos.observaciones,
-        recomendaciones: datos.recomendaciones,
-        firma_doctor: datos.firma_doctor,
-        firma_paciente: datos.firma_paciente
+    const historia = await prisma.$transaction(async (tx) => {
+
+      const h = await tx.historiaClinica.update({
+        where: { id },
+        data: {
+          motivo_consulta:            datos.motivo_consulta,
+          medicamentos_actuales:      datos.medicamentos_actuales,
+          antecedentes_odontologicos: datos.antecedentes_odontologicos,
+          evento_adverso:             datos.evento_adverso,
+          evento_adverso_obs:         datos.evento_adverso_obs,
+          habitos_json:               datos.habitos_json,
+          habitos_observaciones:      datos.habitos_observaciones,
+          diagnostico:                datos.diagnostico,
+          tratamiento_realizado:      datos.tratamiento_realizado,
+          observaciones:              datos.observaciones,
+          recomendaciones:            datos.recomendaciones,
+          firma_doctor:               datos.firma_doctor,
+          firma_paciente:             datos.firma_paciente,
+          departamento:               datos.departamento    ?? null,
+          estado_civil:               datos.estado_civil    ?? null,
+          direccion:                  datos.direccion       ?? null,
+          ocupacion:                  datos.ocupacion       ?? null,
+          acudiente:                  datos.acudiente       ?? null,
+          parentesco:                 datos.parentesco      ?? null,
+          eps:                        datos.eps             ?? null,
+          tipo_afiliacion:            datos.tipo_afiliacion ?? null,
+          tipo_sangre:                datos.tipo_sangre     ?? null,
+          rh:                         datos.rh              ?? null,
+          alergias:                   datos.alergias        ?? null,
+        }
+      })
+
+      if (antecedentes && Object.keys(antecedentes).length > 0) {
+        await tx.hcAntecedentes.upsert({
+          where:  { historia_id: id },
+          update: { ...antecedentes },
+          create: { historia_id: id, ...antecedentes },
+        })
       }
+
+      if (examen) {
+        await tx.hcExamenEstomatologico.upsert({
+          where:  { historia_id: id },
+          update: {
+            estructuras_json: examen.estructuras_json,
+            observaciones:    examen.observaciones,
+          },
+          create: {
+            historia_id:      id,
+            estructuras_json: examen.estructuras_json,
+            observaciones:    examen.observaciones,
+          },
+        })
+      }
+
+      return h
     })
+
     res.json(historia)
   } catch (error) {
     if (error.code === 'P2025') {
@@ -186,41 +259,47 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-// POST /api/historias/:historiaId/evoluciones — agregar evolución
+// POST /api/historias/:historiaId/evoluciones
+// FIX: campos actualizados para coincidir con el modelo HojaEvolucion del schema
 router.post('/:historiaId/evoluciones', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
   const {
     fecha,
-    diente,
-    cavidad,
-    tipo_consulta,
-    procedimiento_realizado,
-    firma_odontologo,
-    firma_paciente
+    doctor,
+    motivo,
+    diagnostico,
+    procedimiento,
+    piezas_tratadas,
+    tratamiento,
+    estado_clinico,
+    recomendaciones,
+    proximo_control,
+    observaciones,
   } = req.body
 
-  if (!procedimiento_realizado) {
-    return res.status(400).json({ error: 'El procedimiento realizado es obligatorio' })
+  // FIX: el campo obligatorio real es 'procedimiento', no 'procedimiento_realizado'
+  if (!procedimiento) {
+    return res.status(400).json({ error: 'El procedimiento es obligatorio' })
   }
 
   try {
-    const historia = await prisma.historiaClinica.findUnique({
-      where: { id: historiaId }
-    })
-    if (!historia) {
-      return res.status(404).json({ error: 'Historia no encontrada' })
-    }
+    const historia = await prisma.historiaClinica.findUnique({ where: { id: historiaId } })
+    if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
 
     const evolucion = await prisma.hojaEvolucion.create({
       data: {
-        historia_id: historiaId,
-        fecha: fecha ? new Date(fecha) : new Date(),
-        diente,
-        cavidad,
-        tipo_consulta,
-        procedimiento_realizado,
-        firma_odontologo,
-        firma_paciente
+        historia_id:    historiaId,
+        fecha:          fecha ? new Date(fecha) : new Date(),
+        doctor:         doctor         ?? null,
+        motivo:         motivo         ?? null,
+        diagnostico:    diagnostico    ?? null,
+        procedimiento,
+        piezas_tratadas: piezas_tratadas ?? null,
+        tratamiento:    tratamiento    ?? null,
+        estado_clinico: estado_clinico ?? null,
+        recomendaciones: recomendaciones ?? null,
+        proximo_control: proximo_control ? new Date(proximo_control) : null,
+        observaciones:  observaciones  ?? null,
       }
     })
 
@@ -231,7 +310,7 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
   }
 })
 
-// GET /api/historias/:historiaId/evoluciones — listar evoluciones
+// GET /api/historias/:historiaId/evoluciones
 router.get('/:historiaId/evoluciones', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
 
@@ -241,6 +320,40 @@ router.get('/:historiaId/evoluciones', async (req, res) => {
       orderBy: { fecha: 'desc' }
     })
     res.json(evoluciones)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// PUT /api/historias/:historiaId/odontograma
+router.put('/:historiaId/odontograma', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+  const { dientes_json, observaciones } = req.body
+
+  if (!dientes_json) {
+    return res.status(400).json({ error: 'dientes_json es obligatorio' })
+  }
+
+  try {
+    const historia = await prisma.historiaClinica.findUnique({ where: { id: historiaId } })
+    if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
+
+    const existente = await prisma.hcOdontograma.findFirst({
+      where: { historia_id: historiaId },
+      orderBy: { creado_en: 'desc' }
+    })
+
+    const odontograma = existente
+      ? await prisma.hcOdontograma.update({
+          where: { id: existente.id },
+          data: { dientes_json, observaciones }
+        })
+      : await prisma.hcOdontograma.create({
+          data: { historia_id: historiaId, dientes_json, observaciones }
+        })
+
+    res.json(odontograma)
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
