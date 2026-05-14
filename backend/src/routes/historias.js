@@ -173,6 +173,8 @@ router.get('/detalle/:id', async (req, res) => {
         examen: true,
         odontogramas: { orderBy: { creado_en: 'desc' } },
         evoluciones:  { orderBy: { fecha: 'desc' } },
+        adjuntos: { orderBy: { creado_en: 'desc' } },
+
       }
     })
 
@@ -225,10 +227,39 @@ router.put('/:id', async (req, res) => {
 
       if (antecedentes && Object.keys(antecedentes).length > 0) {
         await tx.hcAntecedentes.upsert({
-          where:  { historia_id: id },
-          update: { ...antecedentes },
-          create: { historia_id: id, ...antecedentes },
-        })
+  where: {
+    historia_id: id
+  },
+  update: {
+    tratamiento_medicacion: false,
+    problemas_coagulacion: false,
+    irradiaciones: false,
+    tension_arterial: false,
+    sinusitis: false,
+    enf_respiratorias: false,
+    cardiopatias: false,
+    diabetes: false,
+    fiebre_reumatica: true,
+    hepatitis: true,
+    vih: false,
+    trastornos_emocionales: false
+  },
+  create: {
+    historia_id: 1,
+    tratamiento_medicacion: false,
+    problemas_coagulacion: false,
+    irradiaciones: false,
+    tension_arterial: false,
+    sinusitis: false,
+    enf_respiratorias: false,
+    cardiopatias: false,
+    diabetes: false,
+    fiebre_reumatica: true,
+    hepatitis: true,
+    vih: false,
+    trastornos_emocionales: false
+  }
+})
       }
 
       if (examen) {
@@ -359,5 +390,198 @@ router.put('/:historiaId/odontograma', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
+
+// PUT /api/historias/:historiaId/evoluciones/:evolucionId — editar evolución
+router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+  const evolucionId = parseInt(req.params.evolucionId)
+
+  const {
+    fecha,
+    doctor,
+    motivo,
+    diagnostico,
+    procedimiento,
+    piezas_tratadas,
+    tratamiento,
+    estado_clinico,
+    recomendaciones,
+    proximo_control,
+    observaciones,
+  } = req.body
+
+  if (isNaN(historiaId) || isNaN(evolucionId)) {
+    return res.status(400).json({ error: 'ID inválido' })
+  }
+
+  if (!procedimiento) {
+    return res.status(400).json({ error: 'El procedimiento es obligatorio' })
+  }
+
+  try {
+    const evolucion = await prisma.hojaEvolucion.update({
+      where: { id: evolucionId },
+      data: {
+        fecha: fecha ? new Date(fecha) : new Date(),
+        doctor: doctor ?? null,
+        motivo: motivo ?? null,
+        diagnostico: diagnostico ?? null,
+        procedimiento,
+        piezas_tratadas: piezas_tratadas ?? null,
+        tratamiento: tratamiento ?? null,
+        estado_clinico: estado_clinico ?? null,
+        recomendaciones: recomendaciones ?? null,
+        proximo_control: proximo_control ? new Date(proximo_control) : null,
+        observaciones: observaciones ?? null,
+      }
+    })
+
+    if (evolucion.historia_id !== historiaId) {
+      return res.status(400).json({ error: 'La evolución no pertenece a esta historia' })
+    }
+
+    res.json(evolucion)
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Evolución no encontrada' })
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// DELETE /api/historias/:historiaId/evoluciones/:evolucionId
+router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+  const evolucionId = parseInt(req.params.evolucionId)
+
+  if (isNaN(historiaId) || isNaN(evolucionId)) {
+    return res.status(400).json({ error: 'ID inválido' })
+  }
+
+  try {
+    const evolucion = await prisma.hojaEvolucion.findUnique({
+      where: { id: evolucionId }
+    })
+
+    if (!evolucion) {
+      return res.status(404).json({ error: 'Evolución no encontrada' })
+    }
+
+    if (evolucion.historia_id !== historiaId) {
+      return res.status(400).json({ error: 'La evolución no pertenece a esta historia' })
+    }
+
+    await prisma.hojaEvolucion.delete({ where: { id: evolucionId } })
+
+    res.status(204).send()
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// GET /api/historias/:historiaId/adjuntos
+router.get('/:historiaId/adjuntos', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+
+  if (isNaN(historiaId)) {
+    return res.status(400).json({ error: 'ID de historia inválido' })
+  }
+
+  try {
+    const adjuntos = await prisma.hcAdjunto.findMany({
+      where: { historia_id: historiaId },
+      orderBy: { creado_en: 'desc' }
+    })
+
+    res.json(adjuntos)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// POST /api/historias/:historiaId/adjuntos
+router.post('/:historiaId/adjuntos', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+
+  const {
+    nombre,
+    nombre_archivo,
+    tipo,
+    mime_type,
+    tamano_bytes,
+    contenido_base64,
+    url,
+  } = req.body
+
+  if (isNaN(historiaId)) {
+    return res.status(400).json({ error: 'ID de historia inválido' })
+  }
+
+  if (!nombre_archivo && !nombre) {
+    return res.status(400).json({ error: 'El nombre del archivo es obligatorio' })
+  }
+
+  try {
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id: historiaId }
+    })
+
+    if (!historia) {
+      return res.status(404).json({ error: 'Historia no encontrada' })
+    }
+
+    const adjunto = await prisma.hcAdjunto.create({
+      data: {
+        historia_id: historiaId,
+        nombre_archivo: nombre_archivo ?? nombre,
+        tipo: tipo ?? null,
+        mime_type: mime_type ?? null,
+        tamano_bytes: tamano_bytes ? Number(tamano_bytes) : null,
+        contenido_base64: contenido_base64 ?? null,
+        url: url ?? null,
+      }
+    })
+
+    res.status(201).json(adjunto)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// DELETE /api/historias/:historiaId/adjuntos/:adjuntoId
+router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+  const adjuntoId = parseInt(req.params.adjuntoId)
+
+  if (isNaN(historiaId) || isNaN(adjuntoId)) {
+    return res.status(400).json({ error: 'ID inválido' })
+  }
+
+  try {
+    const adjunto = await prisma.hcAdjunto.findUnique({
+      where: { id: adjuntoId }
+    })
+
+    if (!adjunto) {
+      return res.status(404).json({ error: 'Adjunto no encontrado' })
+    }
+
+    if (adjunto.historia_id !== historiaId) {
+      return res.status(400).json({ error: 'El adjunto no pertenece a esta historia' })
+    }
+
+    await prisma.hcAdjunto.delete({ where: { id: adjuntoId } })
+
+    res.status(204).send()
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
 
 module.exports = router
