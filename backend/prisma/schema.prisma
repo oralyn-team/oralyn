@@ -139,6 +139,8 @@ model HistoriaClinica {
   odontogramas           HcOdontograma[]
   evoluciones            HojaEvolucion[]
   recomendaciones_postqx RecomendacionPostQx[]
+  adjuntos HcAdjunto[]
+
 
   @@index([paciente_id])
 }
@@ -231,6 +233,25 @@ model HojaEvolucion {
 
   @@index([historia_id])
 }
+
+model HcAdjunto {
+  id               Int      @id @default(autoincrement())
+  historia_id      Int
+
+  nombre_archivo   String
+  tipo             String?
+  mime_type        String?
+  tamano_bytes     Int?
+  contenido_base64 String?  @db.Text
+  url              String?
+  creado_en        DateTime @default(now())
+
+  historia         HistoriaClinica @relation(fields: [historia_id], references: [id], onDelete: Cascade)
+
+  @@index([historia_id])
+  @@map("hc_adjuntos")
+}
+
 
 // ─── ENUMS TRATAMIENTOS ──────────────────────────────────────────────────
 
