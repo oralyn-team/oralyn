@@ -2,7 +2,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AppProvider } from './context/AppContext'
+import { AppProvider } from './context/Appcontext'
 import Login from './pages/login'
 import Pacientes from './pages/Pacientes'
 import Historias from './pages/Historias'

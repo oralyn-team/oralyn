@@ -1,6 +1,6 @@
 // src/components/citas/CitaRow.jsx
 import { useState } from 'react';
-import { Pencil, Trash2, X, ChevronDown } from 'lucide-react';
+import { Pencil, Trash2, ChevronDown } from 'lucide-react';
 import { ESTADOS_CITA, ESTADO_ESTILOS } from '../../data/citasData';
 
 function ConfirmarEliminar({ nombre, fecha, onConfirmar, onCancelar }) {

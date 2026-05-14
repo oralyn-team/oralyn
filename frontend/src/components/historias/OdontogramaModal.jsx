@@ -1,9 +1,9 @@
 // src/components/historias/OdontogramaModal.jsx
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { X, Save, RotateCcw, Info } from 'lucide-react';
- 
+
 // ── Constantes ────────────────────────────────────────────────────────────
- 
+
 const ESTADOS = {
   sano:         { label: 'Sano',          color: '#3ECFCF', bg: '#E1F5EE', text: '#0F6E56',  dot: '#3ECFCF' },
   caries:       { label: 'Caries',        color: '#EF9F27', bg: '#FAEEDA', text: '#854F0B',  dot: '#EF9F27' },
@@ -13,26 +13,26 @@ const ESTADOS = {
   corona:       { label: 'Corona',        color: '#185FA5', bg: '#E6F1FB', text: '#185FA5',  dot: '#85B7EB' },
   implante:     { label: 'Implante',      color: '#3C3489', bg: '#EEEDFE', text: '#3C3489',  dot: '#3C3489' },
 };
- 
+
 // Permanentes FDI
 const SUP_DER = [18, 17, 16, 15, 14, 13, 12, 11];
 const SUP_IZQ = [21, 22, 23, 24, 25, 26, 27, 28];
 const INF_DER = [48, 47, 46, 45, 44, 43, 42, 41];
 const INF_IZQ = [31, 32, 33, 34, 35, 36, 37, 38];
- 
+
 // Temporales FDI
 const TEMP_SUP_DER = [55, 54, 53, 52, 51];
 const TEMP_SUP_IZQ = [61, 62, 63, 64, 65];
 const TEMP_INF_DER = [85, 84, 83, 82, 81];
 const TEMP_INF_IZQ = [71, 72, 73, 74, 75];
- 
+
 // ── SVG de un diente ─────────────────────────────────────────────────────
- 
+
 function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, onClick, pequeño }) {
   const w = pequeño ? 28 : 34;
   const h = pequeño ? 36 : 44;
   const est = datos?.estado ? ESTADOS[datos.estado] : null;
- 
+
   const fillColor   = est ? est.bg    : '#F7FDFD';
   const strokeColor = seleccionado
     ? '#0B4F5E'
@@ -40,13 +40,11 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, onClick, pe
       ? '#3ECFCF'
       : est ? est.color : '#C7E8E8';
   const strokeWidth = seleccionado || multiSeleccionado ? 2 : 1;
- 
-  // Forma del diente según tipo
+
   const esMolar    = [6, 7, 8].includes(numero % 10) || [16, 17, 18, 26, 27, 28, 36, 37, 38, 46, 47, 48].includes(numero);
   const esCanino   = [3].includes(numero % 10) || [13, 23, 33, 43].includes(numero);
   const esIncisivo = [1, 2].includes(numero % 10);
- 
-  // Símbolo interno
+
   function Simbolo() {
     if (!est || datos.estado === 'sano') return null;
     if (datos.estado === 'ausente')      return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 12 : 16} fill={est.color} fontWeight="bold">×</text>;
@@ -57,7 +55,7 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, onClick, pe
     if (datos.estado === 'implante')     return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 8 : 10} fill={est.color}>⬡</text>;
     return null;
   }
- 
+
   return (
     <div
       onClick={() => onClick(numero)}
@@ -73,24 +71,19 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, onClick, pe
         className={`transition-all duration-150 ${!seleccionado && !multiSeleccionado ? 'group-hover:scale-110' : 'scale-110'}`}
       >
         {esMolar ? (
-          // Molar — cuadrado con esquinas redondeadas
           <rect x={2} y={4} width={w-4} height={h-8} rx={5} ry={5}
             fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
         ) : esCanino ? (
-          // Canino — triangular con punta
           <path d={`M${w/2} 2 L${w-3} ${h-6} Q${w/2} ${h-2} 3 ${h-6} Z`}
             fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
         ) : esIncisivo ? (
-          // Incisivo — rectangular con base plana
           <rect x={3} y={3} width={w-6} height={h-7} rx={4} ry={6}
             fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
         ) : (
-          // Premolar — óvalo
           <ellipse cx={w/2} cy={h/2} rx={(w-6)/2} ry={(h-8)/2}
             fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
         )}
         <Simbolo />
-        {/* Anillo de selección */}
         {(seleccionado || multiSeleccionado) && (
           <rect x={0} y={0} width={w} height={h} rx={6}
             fill="none" stroke={seleccionado ? '#0B4F5E' : '#3ECFCF'}
@@ -103,9 +96,9 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, onClick, pe
     </div>
   );
 }
- 
+
 // ── Fila de dientes ───────────────────────────────────────────────────────
- 
+
 function FilaDientes({ dientes, odontograma, seleccionado, multiSel, onClickDiente, pequeño }) {
   return (
     <div className="flex items-end gap-1 justify-center">
@@ -123,25 +116,24 @@ function FilaDientes({ dientes, odontograma, seleccionado, multiSel, onClickDien
     </div>
   );
 }
- 
+
 // ── Panel de edición del diente seleccionado ──────────────────────────────
- 
+
 function PanelEdicion({ numero, datos, onChange, onCerrar }) {
   const [local, setLocal] = useState({
     estado: datos?.estado || 'sano',
     notas:  datos?.notas  || '',
   });
- 
+
   const est = ESTADOS[local.estado];
- 
+
   function guardar() {
     onChange(numero, local);
     onCerrar();
   }
- 
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header del panel */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-teal-soft bg-teal-panel flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-[11px] text-white font-bold">
@@ -157,16 +149,14 @@ function PanelEdicion({ numero, datos, onChange, onCerrar }) {
           <X size={14} />
         </button>
       </div>
- 
+
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {/* Estado actual visual */}
         <div className="flex items-center gap-2 mb-4 p-2.5 rounded-lg border"
           style={{ backgroundColor: est.bg, borderColor: est.color }}>
           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: est.color }} />
           <span className="text-[12px] font-medium" style={{ color: est.text }}>{est.label}</span>
         </div>
- 
-        {/* Selector de estado */}
+
         <div className="mb-4">
           <label className="block text-[10px] font-semibold text-teal-muted uppercase tracking-[0.8px] mb-2">
             Estado del diente
@@ -196,8 +186,7 @@ function PanelEdicion({ numero, datos, onChange, onCerrar }) {
             ))}
           </div>
         </div>
- 
-        {/* Notas */}
+
         <div className="mb-4">
           <label className="block text-[10px] font-semibold text-teal-muted uppercase tracking-[0.8px] mb-2">
             Notas clínicas
@@ -215,8 +204,7 @@ function PanelEdicion({ numero, datos, onChange, onCerrar }) {
           />
         </div>
       </div>
- 
-      {/* Botón guardar */}
+
       <div className="px-4 py-3 border-t border-teal-soft flex-shrink-0">
         <button type="button" onClick={guardar}
           className="w-full flex items-center justify-center gap-2 py-2.5 text-[12px] text-white font-semibold font-sans bg-primary rounded-xl border-none cursor-pointer hover:bg-primary-light transition-colors">
@@ -227,27 +215,40 @@ function PanelEdicion({ numero, datos, onChange, onCerrar }) {
     </div>
   );
 }
- 
+
 // ── Modal principal ───────────────────────────────────────────────────────
- 
+
 /**
  * @param {boolean}  props.isOpen
  * @param {function} props.onClose
  * @param {object}   props.odontograma    - { [numero]: { estado, notas } }
- * @param {function} props.onGuardar      - Callback con odontograma actualizado
- * @param {string}   props.nombrePaciente - Para el título
+ * @param {function} props.onGuardar      - Callback ASYNC con odontograma actualizado
+ * @param {string}   props.nombrePaciente
  */
 export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, onGuardar, nombrePaciente = '' }) {
-  const [local, setLocal]         = useState({ ...odontograma });
-  const [seleccionado, setSelec]  = useState(null);   // un diente
-  const [multiSel, setMultiSel]   = useState([]);     // múltiples
-  const [modoMulti, setModoMulti] = useState(false);
+  const [local, setLocal]               = useState({ ...odontograma });
+  const [seleccionado, setSelec]        = useState(null);
+  const [multiSel, setMultiSel]         = useState([]);
+  const [modoMulti, setModoMulti]       = useState(false);
   const [estadoMasivo, setEstadoMasivo] = useState('caries');
   const [vistaLingual, setVistaLingual] = useState(false);
- 
-  // Sincronizar cuando cambian las props
-  useState(() => { setLocal({ ...odontograma }); }, [odontograma]);
- 
+  const [guardando, setGuardando]       = useState(false); // ✅ estado de carga
+  const [error, setError]               = useState(null);  // ✅ estado de error
+
+  // ✅ FIX: useEffect (no useState) para sincronizar cuando cambia el prop
+  useEffect(() => {
+    setLocal({ ...odontograma });
+  }, [odontograma]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelec(null);
+      setMultiSel([]);
+      setModoMulti(false);
+      setError(null);
+    }
+  }, [isOpen]);
+
   const handleClickDiente = useCallback((numero) => {
     if (modoMulti) {
       setMultiSel((prev) =>
@@ -259,11 +260,11 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
       setMultiSel([]);
     }
   }, [modoMulti]);
- 
+
   function actualizarDiente(numero, datos) {
     setLocal((prev) => ({ ...prev, [numero]: datos }));
   }
- 
+
   function aplicarMasivo() {
     if (!multiSel.length) return;
     setLocal((prev) => {
@@ -276,34 +277,43 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
     setMultiSel([]);
     setModoMulti(false);
   }
- 
+
   function limpiarTodo() {
     setLocal({});
     setSelec(null);
     setMultiSel([]);
   }
- 
-  function guardarYCerrar() {
-    onGuardar(local);
-    onClose();
+
+  // ✅ FIX: guardarYCerrar ahora es async y espera a que el padre termine
+  async function guardarYCerrar() {
+    setGuardando(true);
+    setError(null);
+    try {
+      await onGuardar(local); // el padre hace el fetch y puede lanzar error
+      onClose();
+    } catch (err) {
+      console.error('Error guardando odontograma:', err);
+      setError('No se pudieron guardar los cambios. Intenta de nuevo.');
+    } finally {
+      setGuardando(false);
+    }
   }
- 
+
   if (!isOpen) return null;
- 
+
   const dientesConEstado = Object.keys(local).filter(
     (k) => local[k]?.estado && local[k].estado !== 'sano'
   ).length;
- 
-  // Props comunes para FilaDientes
+
   const filaProps = { odontograma: local, seleccionado, multiSel, onClickDiente: handleClickDiente };
- 
+
   return (
     <div
       className="fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && !guardando && onClose()}
     >
       <div className="bg-white rounded-2xl w-full max-w-[1100px] h-[90vh] flex flex-col border border-teal-border shadow-2xl overflow-hidden">
- 
+
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 py-4 bg-primary flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -319,15 +329,13 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
               </span>
             )}
           </div>
- 
+
           <div className="flex items-center gap-2">
-            {/* Toggle vista */}
             <button type="button" onClick={() => setVistaLingual((v) => !v)}
               className="text-[11px] text-white/70 border border-white/20 rounded-lg px-3 py-1.5 hover:bg-white/10 transition-colors cursor-pointer font-sans bg-transparent">
               Vista: {vistaLingual ? 'Lingual' : 'Vestibular'}
             </button>
- 
-            {/* Modo multi-selección */}
+
             <button type="button" onClick={() => { setModoMulti((v) => !v); setSelec(null); setMultiSel([]); }}
               className={[
                 'text-[11px] border rounded-lg px-3 py-1.5 transition-colors cursor-pointer font-sans',
@@ -337,26 +345,34 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
               ].join(' ')}>
               {modoMulti ? '✓ Multi-selección' : 'Multi-selección'}
             </button>
- 
+
             <button type="button" onClick={limpiarTodo}
               className="text-[11px] text-white/70 border border-white/20 rounded-lg px-3 py-1.5 hover:bg-white/10 transition-colors cursor-pointer font-sans bg-transparent flex items-center gap-1.5">
               <RotateCcw size={12} /> Limpiar todo
             </button>
- 
-            <button type="button" onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors cursor-pointer border-none">
+
+            <button type="button" onClick={onClose} disabled={guardando}
+              className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-white/25 transition-colors cursor-pointer border-none disabled:opacity-50">
               <X size={16} />
             </button>
           </div>
         </div>
- 
+
         {/* ── Body ── */}
         <div className="flex flex-1 overflow-hidden">
- 
-          {/* Área del odontograma */}
+
           <div className="flex-1 overflow-y-auto px-6 py-5">
- 
-            {/* Banner modo multi */}
+
+            {/* ✅ Banner de error */}
+            {error && (
+              <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-[12px] text-red-600 flex-1">{error}</p>
+                <button type="button" onClick={() => setError(null)} className="text-red-400 hover:text-red-600 border-none bg-transparent cursor-pointer">
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+
             {modoMulti && (
               <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-status-blueBg border border-status-blueMid rounded-xl">
                 <Info size={15} className="text-status-blue flex-shrink-0" />
@@ -380,7 +396,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
                 )}
               </div>
             )}
- 
+
             {/* ── ARCADA SUPERIOR ── */}
             <div className="border border-teal-border rounded-2xl overflow-hidden mb-4">
               <div className="bg-teal-panel px-4 py-2 border-b border-teal-soft flex items-center justify-between">
@@ -390,9 +406,8 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
                   <span>Izquierdo →</span>
                 </div>
               </div>
- 
+
               <div className="px-4 py-4 space-y-3">
-                {/* Vestibular superior */}
                 {!vistaLingual && (
                   <>
                     <p className="text-[9px] text-center text-teal-muted uppercase tracking-[1.5px]">Vestibular</p>
@@ -407,15 +422,13 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
                     </div>
                   </>
                 )}
- 
-                {/* Separador */}
+
                 <div className="flex items-center gap-2">
                   <div className="flex-1 border-t border-dashed border-teal-border" />
                   <span className="text-[9px] text-teal-muted font-medium px-2 uppercase tracking-wide">Lingual</span>
                   <div className="flex-1 border-t border-dashed border-teal-border" />
                 </div>
- 
-                {/* Lingual superior */}
+
                 {vistaLingual && (
                   <>
                     <div className="flex justify-center gap-12">
@@ -432,7 +445,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
                 )}
               </div>
             </div>
- 
+
             {/* ── ARCADA INFERIOR ── */}
             <div className="border border-teal-border rounded-2xl overflow-hidden">
               <div className="bg-teal-panel px-4 py-2 border-b border-teal-soft flex items-center justify-between">
@@ -442,9 +455,8 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
                   <span>Izquierdo →</span>
                 </div>
               </div>
- 
+
               <div className="px-4 py-4 space-y-3">
-                {/* Lingual inferior */}
                 {!vistaLingual && (
                   <>
                     <p className="text-[9px] text-center text-teal-muted uppercase tracking-[1.5px]">Lingual</p>
@@ -459,14 +471,13 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
                     </div>
                   </>
                 )}
- 
-                {/* Separador */}
+
                 <div className="flex items-center gap-2">
                   <div className="flex-1 border-t border-dashed border-teal-border" />
                   <span className="text-[9px] text-teal-muted font-medium px-2 uppercase tracking-wide">Vestibular</span>
                   <div className="flex-1 border-t border-dashed border-teal-border" />
                 </div>
- 
+
                 {vistaLingual && (
                   <>
                     <div className="flex justify-center gap-1">
@@ -483,7 +494,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
                 )}
               </div>
             </div>
- 
+
             {/* ── Leyenda ── */}
             <div className="mt-4 flex flex-wrap items-center gap-3 px-1">
               <span className="text-[10px] text-teal-muted uppercase tracking-[0.8px] font-medium mr-1">Leyenda:</span>
@@ -499,7 +510,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
               </div>
             </div>
           </div>
- 
+
           {/* ── Panel lateral de edición ── */}
           <div className={[
             'border-l border-teal-border transition-all duration-200 flex-shrink-0 flex flex-col',
@@ -515,24 +526,26 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
             )}
           </div>
         </div>
- 
+
         {/* ── Footer ── */}
         <div className="flex items-center justify-between px-6 py-3 border-t border-teal-soft bg-teal-panel flex-shrink-0">
           <p className="text-[11px] text-teal-muted">
             Haz clic en un diente para editarlo · Los cambios se guardan al presionar <strong className="text-primary">Guardar odontograma</strong>
           </p>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onClose}
-              className="px-4 py-2 text-[12px] text-primary font-sans bg-white border border-teal-border rounded-xl cursor-pointer hover:bg-teal-info transition-colors">
+            <button type="button" onClick={onClose} disabled={guardando}
+              className="px-4 py-2 text-[12px] text-primary font-sans bg-white border border-teal-border rounded-xl cursor-pointer hover:bg-teal-info transition-colors disabled:opacity-50">
               Cancelar
             </button>
-            <button type="button" onClick={guardarYCerrar}
-              className="flex items-center gap-2 px-4 py-2 text-[12px] text-white font-semibold font-sans bg-primary rounded-xl border-none cursor-pointer hover:bg-primary-light transition-colors">
+            {/* ✅ Botón con estado de carga */}
+            <button type="button" onClick={guardarYCerrar} disabled={guardando}
+              className="flex items-center gap-2 px-4 py-2 text-[12px] text-white font-semibold font-sans bg-primary rounded-xl border-none cursor-pointer hover:bg-primary-light transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
               <Save size={14} />
-              Guardar odontograma
+              {guardando ? 'Guardando…' : 'Guardar odontograma'}
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );

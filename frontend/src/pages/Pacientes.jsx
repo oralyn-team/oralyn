@@ -1,6 +1,6 @@
 // src/pages/Pacientes.jsx
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/Appcontext';
 
 import Sidebar       from '../components/layout/Sidebar';
 import Topbar        from '../components/layout/Topbar';
