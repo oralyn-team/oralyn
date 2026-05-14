@@ -12,7 +12,10 @@ export default function CitaTabla({ citas, onEditar, onEliminar, onCambiarEstado
 
   const filtradas = citas.filter((c) => {
     const t = busqueda.toLowerCase();
-    const coincideTexto  = c.pacienteNombre.toLowerCase().includes(t) || c.motivo.toLowerCase().includes(t) || c.doctor.toLowerCase().includes(t);
+    const coincideTexto =
+      (c.pacienteNombre || '').toLowerCase().includes(t) ||
+      (c.motivo || '').toLowerCase().includes(t) ||
+      (c.doctor || '').toLowerCase().includes(t);
     const coincideEstado = filtro === 'Todas' || c.estado === filtro;
     return coincideTexto && coincideEstado;
   });

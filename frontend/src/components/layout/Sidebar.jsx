@@ -8,10 +8,8 @@ const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard',      path: '/dashboard'     },
   { icon: Users,           label: 'Pacientes',      path: '/pacientes'     },
   { icon: CalendarDays,    label: 'Citas',           path: '/citas'         },
-  { icon: Stethoscope,     label: 'Tratamientos',   path: '/tratamientos'  },
+  { icon: Stethoscope,     label: 'Consentimientos',   path: '/consentimientos'  },
   { icon: ClipboardList,   label: 'Historias',       path: '/historias'     },
-  { icon: Receipt,         label: 'Facturación',    path: '/facturacion'   },
-  { icon: Settings,        label: 'Configuración',  path: '/configuracion' },
 ];
 
 function ToothIcon() {

@@ -13,22 +13,35 @@ function IconoTipo({ tipo }) {
  * @param {boolean}  props.editable
  * @param {function} props.onChange   - Callback con la lista actualizada
  */
-export default function AdjuntosPanel({ adjuntos = [], editable = false, onChange }) {
+export default function AdjuntosPanel({
+  adjuntos = [],
+  editable = false,
+  onChange,
+  onAgregarArchivos,
+  onEliminarAdjunto,
+}) {
   const [dragging, setDragging] = useState(false);
+  const [procesando, setProcesando] = useState(false);
+  const [error, setError] = useState(null);
 
-  function getFechaHoy() {
-    const h = new Date();
-    return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`;
-  }
+  async function procesarArchivos(archivos) {
+    const files = Array.from(archivos || []);
+    if (!files.length) return;
 
-  function procesarArchivos(archivos) {
-    const nuevos = Array.from(archivos).map((file) => ({
-      id:     Date.now() + Math.random(),
-      nombre: file.name,
-      tipo:   file.type.startsWith('image/') ? 'imagen' : 'pdf',
-      fecha:  getFechaHoy(),
-    }));
-    onChange([...adjuntos, ...nuevos]);
+    setProcesando(true);
+    setError(null);
+    try {
+      if (onAgregarArchivos) {
+        await onAgregarArchivos(files);
+      } else {
+        onChange?.(adjuntos);
+      }
+    } catch (err) {
+      console.error('Error adjuntando archivos:', err);
+      setError(err.error || 'No se pudieron adjuntar los archivos.');
+    } finally {
+      setProcesando(false);
+    }
   }
 
   function handleInputChange(e) {
@@ -42,8 +55,21 @@ export default function AdjuntosPanel({ adjuntos = [], editable = false, onChang
     procesarArchivos(e.dataTransfer.files);
   }
 
-  function eliminarAdjunto(id) {
-    onChange(adjuntos.filter((a) => a.id !== id));
+  async function eliminarAdjunto(id) {
+    setProcesando(true);
+    setError(null);
+    try {
+      if (onEliminarAdjunto) {
+        await onEliminarAdjunto(id);
+      } else {
+        onChange?.(adjuntos.filter((a) => a.id !== id));
+      }
+    } catch (err) {
+      console.error('Error eliminando adjunto:', err);
+      setError(err.error || 'No se pudo eliminar el adjunto.');
+    } finally {
+      setProcesando(false);
+    }
   }
 
   return (
@@ -58,13 +84,19 @@ export default function AdjuntosPanel({ adjuntos = [], editable = false, onChang
         </div>
 
         {editable && (
-          <label className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-white font-medium font-sans bg-primary rounded-lg cursor-pointer hover:bg-primary-light transition-colors">
+          <label className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-white font-medium font-sans bg-primary rounded-lg transition-colors ${procesando ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:bg-primary-light'}`}>
             <Upload size={12} />
-            Adjuntar
-            <input type="file" accept="image/*,.pdf" multiple onChange={handleInputChange} className="hidden" />
+            {procesando ? 'Procesando...' : 'Adjuntar'}
+            <input type="file" accept="image/*,.pdf" multiple onChange={handleInputChange} className="hidden" disabled={procesando} />
           </label>
         )}
       </div>
+
+      {error && (
+        <div className="mx-4 mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-status-red">
+          {error}
+        </div>
+      )}
 
       {/* Zona de drop */}
       {editable && (
@@ -102,12 +134,13 @@ export default function AdjuntosPanel({ adjuntos = [], editable = false, onChang
               <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 {/* Simulado: en producción esto descargaría el archivo real */}
                 <button type="button"
-                  onClick={() => console.log('Descargar:', adj.nombre)}
+                  onClick={() => adj.url && window.open(adj.url, '_blank', 'noopener,noreferrer')}
+                  disabled={!adj.url}
                   className="text-[11px] text-primary border border-teal-border rounded-lg px-2.5 py-1 bg-white hover:bg-teal-soft transition-colors cursor-pointer font-sans">
                   Ver
                 </button>
                 {editable && (
-                  <button type="button" onClick={() => eliminarAdjunto(adj.id)}
+                  <button type="button" onClick={() => eliminarAdjunto(adj.id)} disabled={procesando}
                     className="p-1.5 rounded-lg bg-status-redBg text-status-red border border-status-redBg hover:bg-red-100 transition-colors cursor-pointer">
                     <Trash2 size={12} />
                   </button>

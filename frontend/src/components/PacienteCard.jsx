@@ -31,8 +31,6 @@ const CAMPOS = [
     { name: 'fecha_nacimiento',   label: 'Fecha nacimiento',type: 'date' },
     { name: 'sexo',               label: 'Sexo',            type: 'select',
       options: ['Masculino','Femenino','Otro'] },
-    { name: 'estado_civil',       label: 'Estado civil',    type: 'select',
-      options: ['Soltero/a','Casado/a','Unión libre','Divorciado/a','Viudo/a'] },
   ]},
   { section: 'Documento', fields: [
     { name: 'tipo_documento',  label: 'Tipo documento', type: 'select',
@@ -42,23 +40,11 @@ const CAMPOS = [
   { section: 'Contacto', fields: [
     { name: 'telefono',             label: 'Teléfono',     type: 'text' },
     { name: 'correo',               label: 'Correo',       type: 'email' },
-    { name: 'direccion_residencia', label: 'Dirección',    type: 'text' },
     { name: 'municipio_ciudad',     label: 'Municipio',    type: 'text' },
-    { name: 'departamento',         label: 'Departamento', type: 'text' },
   ]},
-  { section: 'Seguro y ocupación', fields: [
-    { name: 'ocupacion',       label: 'Ocupación',       type: 'text' },
-    { name: 'rh',              label: 'RH',              type: 'text' },
-    { name: 'clase_seguro',    label: 'Clase seguro',    type: 'text' },
-    { name: 'asegurador',      label: 'Asegurador',      type: 'text' },
-    { name: 'rango_salarial',  label: 'Rango salarial',  type: 'text' },
-    { name: 'tipo_vinculacion',label: 'Tipo vinculación', type: 'text' },
-    { name: 'nombre_empresa',  label: 'Empresa',         type: 'text' },
-  ]},
-  { section: 'Acudiente', fields: [
-    { name: 'acudiente_nombre',      label: 'Nombre acudiente',      type: 'text' },
-    { name: 'acudiente_parentesco',  label: 'Parentesco',            type: 'text' },
-    { name: 'acudiente_telefono',    label: 'Teléfono acudiente',    type: 'text' },
+  { section: 'Estado', fields: [
+    { name: 'estado', label: 'Estado paciente', type: 'select',
+      options: ['Al día','Pendiente','Nuevo'] },
   ]},
 ];
 
@@ -94,8 +80,6 @@ async function abrirEditar() {
   }
 }
 
-// Reemplaza handleGuardar
-// Reemplaza handleGuardar
 async function handleGuardar() {
   setGuardando(true);
   setError('');

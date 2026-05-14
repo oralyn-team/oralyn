@@ -1,8 +1,116 @@
 // src/context/AppContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../api';
+import { calcTotales } from '../components/historias/tratamientos/helpers';
 
 const AppContext = createContext(null);
+
+function toDateInput(value) {
+  return value ? String(value).split('T')[0] : '';
+}
+
+function normalizeProcedimiento(proc = {}, index = 0) {
+  return {
+    id: proc.id ?? proc.procedimiento_id ?? `proc_${index}`,
+    aplicaEn: proc.aplicaEn ?? proc.aplica_en ?? 'general',
+    dientes: Array.isArray(proc.dientes) ? proc.dientes : [],
+    cuadrante: proc.cuadrante ?? '',
+    procedimiento: proc.procedimiento ?? proc.nombre ?? '',
+    descripcion: proc.descripcion ?? '',
+    cantidad: proc.cantidad ?? 1,
+    valorUnitario: proc.valorUnitario ?? proc.valor_unitario ?? '',
+    descuento: proc.descuento ?? 0,
+    estado: proc.estado ?? 'pendiente',
+    observaciones: proc.observaciones ?? '',
+  };
+}
+
+function normalizePago(pago = {}, index = 0) {
+  return {
+    id: pago.id ?? pago.pago_id ?? `pago_${index}`,
+    fecha: toDateInput(pago.fecha ?? pago.fecha_pago),
+    monto: pago.monto ?? '',
+    metodo: pago.metodo ?? pago.metodo_pago ?? 'Efectivo',
+    referencia: pago.referencia ?? '',
+  };
+}
+
+function normalizeMetodoPago(metodo = '') {
+  const metodos = {
+    Efectivo: 'efectivo',
+    'Transferencia bancaria': 'transferencia_bancaria',
+    'Tarjeta débito': 'tarjeta_debito',
+    'Tarjeta dÃ©bito': 'tarjeta_debito',
+    'Tarjeta crédito': 'tarjeta_credito',
+    'Tarjeta crÃ©dito': 'tarjeta_credito',
+    Nequi: 'nequi',
+    Daviplata: 'daviplata',
+    Otro: 'otro',
+  };
+
+  return metodos[metodo] ?? metodo;
+}
+
+function normalizeEvolucion(ev = {}) {
+  return {
+    id: ev.id,
+    fecha: toDateInput(ev.fecha),
+    doctor: ev.doctor ?? '',
+    motivo: ev.motivo ?? '',
+    diagnostico: ev.diagnostico ?? '',
+    procedimiento: ev.procedimiento ?? '',
+    piezasTratadas: ev.piezasTratadas ?? ev.piezas_tratadas ?? '',
+    tratamiento: ev.tratamiento ?? '',
+    estadoClinico: ev.estadoClinico ?? ev.estado_clinico ?? '',
+    recomendaciones: ev.recomendaciones ?? '',
+    proximoControl: toDateInput(ev.proximoControl ?? ev.proximo_control),
+    observaciones: ev.observaciones ?? '',
+  };
+}
+
+function evolucionToApi(ev = {}) {
+  return {
+    fecha: ev.fecha || null,
+    doctor: ev.doctor || null,
+    motivo: ev.motivo || null,
+    diagnostico: ev.diagnostico || null,
+    procedimiento: ev.procedimiento,
+    piezas_tratadas: ev.piezasTratadas || null,
+    tratamiento: ev.tratamiento || null,
+    estado_clinico: ev.estadoClinico || null,
+    recomendaciones: ev.recomendaciones || null,
+    proximo_control: ev.proximoControl || null,
+    observaciones: ev.observaciones || null,
+  };
+}
+
+function normalizeCotizacion(cotizacion = {}) {
+  if (cotizacion.info && cotizacion.procedimientos) return cotizacion;
+
+  const procedimientos = (cotizacion.procedimientos || []).map(normalizeProcedimiento);
+  const pagos = (cotizacion.pagos || []).map(normalizePago);
+  const calculated = calcTotales(procedimientos, pagos);
+  const total = Number(cotizacion.total ?? cotizacion.valor_total ?? calculated.total) || 0;
+  const totalPagado = Number(cotizacion.totalPagado ?? cotizacion.total_pagado ?? calculated.totalPagado) || 0;
+  const saldo = Number(cotizacion.saldo ?? Math.max(total - totalPagado, 0)) || 0;
+
+  return {
+    ...cotizacion,
+    info: {
+      fecha: toDateInput(cotizacion.fecha ?? cotizacion.created_at),
+      doctor: cotizacion.doctor ?? cotizacion.doctor_nombre ?? cotizacion.odontologo ?? '',
+      doctor_id: cotizacion.doctor_id ?? null,
+      tipo: cotizacion.tipo ?? cotizacion.tipo_tratamiento ?? '',
+      estado: cotizacion.estado ?? 'borrador',
+      prioridad: cotizacion.prioridad ?? 'media',
+      motivo: cotizacion.motivo ?? '',
+      observaciones: cotizacion.observaciones ?? '',
+    },
+    procedimientos,
+    pagos,
+    totales: { total, totalPagado, saldo },
+  };
+}
 
 export function AppProvider({ children }) {
   const [token, setToken]         = useState(() => localStorage.getItem('token'));
@@ -24,7 +132,8 @@ export function AppProvider({ children }) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // ── Auth ─────────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
   function guardarToken(nuevoToken) {
     localStorage.setItem('token', nuevoToken);
     setToken(nuevoToken);
@@ -37,7 +146,8 @@ export function AppProvider({ children }) {
     setHistorias([]);
   }
 
-  // ── Pacientes ────────────────────────────────────────────────────────
+  // ── Pacientes ─────────────────────────────────────────────────────────────
+
   async function recargarPacientes() {
     try {
       const data = await api.getPacientes();
@@ -58,11 +168,17 @@ export function AppProvider({ children }) {
     setHistorias((prev) => prev.filter((h) => h.pacienteId !== id));
   }
 
-  // ── Historias ────────────────────────────────────────────────────────
+  // ── Historias ─────────────────────────────────────────────────────────────
+
   async function actualizarHistoria(historiaActualizada) {
-    const { id, evoluciones, adjuntos, pacienteNombre, cedula,
-            tipoDocumento, fechaNacimiento, sexo, telefono,
-            correo, municipioCiudad, pacienteId, ...datos } = historiaActualizada;
+    const { id } = historiaActualizada;
+    const datos = { ...historiaActualizada };
+    [
+      'id', 'evoluciones', 'adjuntos', 'pacienteNombre', 'cedula',
+      'tipoDocumento', 'fechaNacimiento', 'sexo', 'telefono',
+      'correo', 'municipioCiudad', 'pacienteId',
+    ].forEach((key) => delete datos[key]);
+
     await api.actualizarHistoria(id, datos);
     setHistorias((prev) =>
       prev.map((h) => h.id === id ? historiaActualizada : h)
@@ -70,7 +186,9 @@ export function AppProvider({ children }) {
   }
 
   async function crearEvolucion(historiaId, datos) {
-    const nueva = await api.crearEvolucion(historiaId, datos);
+    const nueva = normalizeEvolucion(
+      await api.crearEvolucion(historiaId, evolucionToApi(datos))
+    );
     setHistorias((prev) => prev.map((h) =>
       h.id === historiaId
         ? { ...h, evoluciones: [...(h.evoluciones || []), nueva] }
@@ -95,12 +213,101 @@ export function AppProvider({ children }) {
     ));
   }
 
+  // ── Cotizaciones / Tratamientos ───────────────────────────────────────────
+
+  async function getCotizacionesPaciente(pacienteId) {
+    const cotizaciones = await api.getCotizacionesPaciente(pacienteId);
+    return (cotizaciones || []).map(normalizeCotizacion);
+  }
+
+  async function guardarTratamiento(data, pacienteId) {
+    const { id, accion, info, procedimientos, pagos = [] } = data;
+
+    // Adaptar estructura del modal → estructura del API
+    const body = {
+      paciente_id:      pacienteId,
+      doctor_id:        info.doctor_id        ?? null,
+      tipo_tratamiento: info.tipo             ?? null,
+      prioridad:        info.prioridad        ?? 'media',
+      estado:           accion === 'aprobar'  ? 'aprobado' : (info.estado ?? 'borrador'),
+      motivo:           info.motivo           ?? null,
+      observaciones:    info.observaciones    ?? null,
+      procedimientos:   procedimientos.map((p) => ({
+        procedimiento:  p.procedimiento,
+        descripcion:    p.descripcion         ?? null,
+        aplica_en:      p.aplicaEn            ?? 'general',  // camelCase → snake_case
+        dientes:        p.dientes             ?? [],
+        cuadrante:      p.cuadrante           ?? null,
+        cantidad:       Number(p.cantidad),
+        valor_unitario: Number(p.valorUnitario),             // camelCase → snake_case
+        descuento:      Number(p.descuento)   || 0,
+        estado:         p.estado              ?? 'pendiente',
+        observaciones:  p.observaciones       ?? null,
+        orden:          procedimientos.indexOf(p),
+      })),
+    };
+
+    // Si el id es un número real de BD (no un Date.now()) → editar, si no → crear
+    const esEdicion = Number.isInteger(id) && id < 1_000_000_000_000;
+
+    const cotizacion = esEdicion
+      ? await api.actualizarCotizacion(id, body)
+      : await api.crearCotizacion(body);
+
+    const pagosNuevos = pagos.filter((p) => typeof p.id !== 'number' && Number(p.monto) > 0);
+    await Promise.all(pagosNuevos.map((p) => api.crearPago({
+      paciente_id: pacienteId,
+      cotizacion_id: cotizacion.id,
+      monto: Number(p.monto),
+      metodo_pago: normalizeMetodoPago(p.metodo),
+      referencia: p.referencia || null,
+      concepto: info.tipo || 'Tratamiento',
+    })));
+
+    return normalizeCotizacion(cotizacion);
+  }
+
+  async function cambiarEstadoCotizacion(cotizacionId, estado) {
+    return api.cambiarEstadoCotizacion(cotizacionId, estado);
+  }
+
+  async function eliminarCotizacion(cotizacionId) {
+    return api.eliminarCotizacion(cotizacionId);
+  }
+
+  // ── Pagos ─────────────────────────────────────────────────────────────────
+
+  async function getPagosPaciente(pacienteId) {
+    return api.getPagosPaciente(pacienteId);
+  }
+
+  async function registrarPago(datos) {
+    // datos: { paciente_id, cotizacion_id?, monto, metodo_pago, referencia?, concepto? }
+    return api.crearPago(datos);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <AppContext.Provider value={{
+      // Auth
       token, guardarToken, cerrarSesion,
-      pacientes, setPacientes, agregarPaciente, eliminarPaciente, recargarPacientes,
-      historias, setHistorias, actualizarHistoria,
-      crearEvolucion, eliminarEvolucion, actualizarOdontograma,
+
+      // Pacientes
+      pacientes, setPacientes,
+      agregarPaciente, eliminarPaciente, recargarPacientes,
+
+      // Historias
+      historias, setHistorias,
+      actualizarHistoria, crearEvolucion, eliminarEvolucion, actualizarOdontograma,
+
+      // Cotizaciones
+      getCotizacionesPaciente, guardarTratamiento, cambiarEstadoCotizacion, eliminarCotizacion,
+
+      // Pagos
+      getPagosPaciente, registrarPago,
+
+      // Estado global
       loading, error,
     }}>
       {children}

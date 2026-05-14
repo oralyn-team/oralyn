@@ -13,8 +13,8 @@ export const ESTADOS_DIENTE = {
 export const DIENTES_SUPERIORES = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
 export const DIENTES_INFERIORES = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
 
-export const TIPOS_SANGRE = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
-export const SEXOS        = ['Masculino','Femenino','Otro'];
+export const TIPOS_SANGRE    = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+export const SEXOS           = ['Masculino','Femenino','Otro'];
 export const ESTADOS_CIVILES = ['Soltero/a','Casado/a','Unión libre','Divorciado/a','Viudo/a'];
 
 // Antecedentes médicos — checkbox Sí/No
@@ -33,7 +33,7 @@ export const ANTECEDENTES_MEDICOS = [
   'Trastornos emocionales',
 ];
 
-// Hábitos orales nocivos — checkbox de presencia
+// Hábitos orales nocivos
 export const HABITOS_ORALES = [
   'Mala higiene',
   'Respiración bucal',
@@ -43,33 +43,52 @@ export const HABITOS_ORALES = [
   'Otros',
 ];
 
-// Examen estomatológico — estructura con Sí/No
+// Examen estomatológico
 export const ESTRUCTURAS_ESTOMATOLOGICAS = [
-  // col 1
   'Labio inferior','Labio superior','Comisura','Mucosa oral',
   'Surcos vestibulares','Mejillas','Proceso alveolar',
-  // col 2
   'Orofaringe','Paladar','Glándulas salivares','Piso de boca',
   'Dorso de lengua','Vientre de lengua',
-  // col 3
   'Paladar blando','Paladar duro','Vientre de lengua','Parótidas',
   'G. salivales','Maxilares',
-  // col 4
   'Ruidos','Desviación','Cambio de volumen','Bloqueo mandibular',
   'Limitación de apertura','Dolor articular','Dolor muscular',
 ];
 
-// Estado inicial de antecedentes
-function initAntecedentes() {
-  return Object.fromEntries(ANTECEDENTES_MEDICOS.map((k) => [k, null])); // null = sin marcar, true = Sí, false = No
+// ── Mapping label ↔ columna DB ────────────────────────────────────────────
+// Convierte entre el formato del form { 'Hepatitis': true } y el de Prisma { hepatitis: true }
+
+export const ANTECEDENTES_DB_MAP = {
+  'Tratamiento médico con medicación':             'tratamiento_medicacion',
+  'Problemas de coagulación':                      'problemas_coagulacion',
+  'Irradiaciones':                                 'irradiaciones',
+  'Trastorno de tensión arterial':                 'tension_arterial',
+  'Sinusitis':                                     'sinusitis',
+  'Enfermedades respiratorias':                    'enf_respiratorias',
+  'Cardiopatías':                                  'cardiopatias',
+  'Diabetes':                                      'diabetes',
+  'Fiebre reumática':                              'fiebre_reumatica',
+  'Hepatitis':                                     'hepatitis',
+  'Síndrome de inmunodeficiencia adquirida (VIH)': 'vih',
+  'Trastornos emocionales':                        'trastornos_emocionales',
+};
+
+export function antecedentesFormToDb(formAntecedentes) {
+  const result = {};
+  for (const [label, col] of Object.entries(ANTECEDENTES_DB_MAP)) {
+    const val = formAntecedentes?.[label];
+    result[col] = val === true ? true : val === false ? false : null;
+  }
+  return result;
 }
 
-function initHabitos() {
-  return Object.fromEntries(HABITOS_ORALES.map((k) => [k, false]));
-}
-
-function initEstomatologico() {
-  return Object.fromEntries(ESTRUCTURAS_ESTOMATOLOGICAS.map((k) => [k, null]));
+export function antecedentesDbToForm(dbRow) {
+  if (!dbRow) return Object.fromEntries(ANTECEDENTES_MEDICOS.map((k) => [k, null]));
+  const result = {};
+  for (const [label, col] of Object.entries(ANTECEDENTES_DB_MAP)) {
+    result[label] = dbRow[col] ?? null; 
+  }
+  return result;
 }
 
 export const historiasIniciales = [];
