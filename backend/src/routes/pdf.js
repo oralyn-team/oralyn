@@ -162,4 +162,96 @@ router.get('/cotizacion/:id', async (req, res) => {
   }
 })
 
+const generarCertificadoPDF = require('../pdf/generators/generarCertificadoPDF')
+
+router.get('/certificado/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const certificado = await prisma.certificadoDental.findUnique({
+      where: { id: Number(id) },
+      include: {
+        paciente: {
+          select: {
+            nombres: true,
+            primer_apellido: true,
+            segundo_apellido: true,
+            tipo_documento: true,
+            numero_documento: true
+          }
+        }
+      }
+    })
+
+    if (!certificado) {
+      return res.status(404).json({ error: 'Certificado no encontrado' })
+    }
+
+    const pdf = await generarCertificadoPDF(certificado)
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename=certificado-${id}.pdf`
+    })
+
+    res.send(pdf)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error generando PDF' })
+  }
+})
+
+const generarRecomendacionesPDF = require('../pdf/generators/generarRecomendacionesPDF')
+
+router.get('/recomendaciones', async (req, res) => {
+  try {
+    const pdf = await generarRecomendacionesPDF()
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename=recomendaciones-postqx.pdf'
+    })
+    res.send(pdf)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error generando PDF' })
+  }
+})
+
+const generarConsentimientoPDF = require('../pdf/generators/generarConsentimientoPDF')
+
+router.get('/consentimiento/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const consentimiento = await prisma.consentimiento.findUnique({
+      where: { id: Number(id) },
+      include: {
+        paciente: {
+          select: {
+            nombres: true,
+            primer_apellido: true,
+            segundo_apellido: true,
+            tipo_documento: true,
+            numero_documento: true
+          }
+        }
+      }
+    })
+
+    if (!consentimiento) {
+      return res.status(404).json({ error: 'Consentimiento no encontrado' })
+    }
+
+    const pdf = await generarConsentimientoPDF(consentimiento)
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename=consentimiento-${consentimiento.tipo}-${id}.pdf`
+    })
+
+    res.send(pdf)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error generando PDF' })
+  }
+})
+
 module.exports = router
