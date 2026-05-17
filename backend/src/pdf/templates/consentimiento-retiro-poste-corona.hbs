@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; padding: 50px; color: #222; font-size: 12px; line-height: 1.7; }
+    .header { text-align: right; margin-bottom: 20px; font-size: 11px; }
+    h1 { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+    .declaracion { margin-bottom: 14px; }
+    .campo-linea { display: inline-block; border-bottom: 1px solid #333; min-width: 150px; margin: 0 4px; }
+    .firmas { margin-top: 60px; display: flex; justify-content: space-between; }
+    .firma { text-align: center; }
+    .firma-linea { border-top: 1px solid #333; width: 180px; margin: 0 auto 5px; }
+    .ciudad-fecha { margin-top: 30px; font-size: 12px; }
+    .ciudad-fecha span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <strong>Villavicencio-Meta. Calle 32 #38-81 Barzal Alto</strong><br>
+  Cel: 322 947 8820 · NIT. 39579364-3
+</div>
+
+<h1>CONSENTIMIENTO INFORMADO RETIRO DE POSTE Y CORONA</h1>
+
+<div class="declaracion">
+  Yo <strong>{{nombre_paciente}}</strong> como paciente declaro, por medio del presente documento,
+  estar informado del pronóstico reservado del retiro de poste/corona de la pieza
+  <strong>{{pieza_dental}}</strong> — DIAGNÓSTICO: <strong>{{diagnostico}}</strong>
+</div>
+
+<p>
+  Por tal motivo, faculto a mi operador a realizar los procedimientos a que hubiera lugar,
+  consciente de que no es un tratamiento común y que aún con un correcto y cuidadoso
+  procedimiento, este podría llevar a la fractura de la pieza, con la posibilidad de necesitar
+  posteriormente la extracción de la misma.
+</p>
+
+<p style="margin-top:12px">
+  He comprendido las explicaciones que se me han facilitado en un lenguaje claro y sencillo
+  y el odontólogo que me ha atendido me ha permitido realizar todas las observaciones y me
+  ha aclarado todas las dudas que le he planteado.
+</p>
+
+<p style="margin-top:12px">
+  Así mismo declaro estar informado de que este procedimiento tiene un costo, y que no es
+  posible un reembolso económico ante el fracaso del mismo, doy conformidad a lo expuesto
+  con firma.
+</p>
+
+<div class="ciudad-fecha">
+  Villavicencio <span>{{dia}}</span> de <span>{{mes}}</span> de <span>{{anio}}</span>
+</div>
+
+<div class="firmas">
+  <div class="firma">
+    {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Paciente</div>
+  </div>
+  <div class="firma">
+    {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Profesional</div>
+  </div>
+</div>
+
+</body>
+</html>
