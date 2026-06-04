@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Pacientes from './pages/Pacientes';
 import Citas     from './pages/Citas';
 import Historias from './pages/Historias';
+import Consentimientos from './pages/Consentimientos';
 
 export default function App() {
   return (
@@ -11,7 +12,7 @@ export default function App() {
       <Route path="/pacientes"  element={<Pacientes />} />
       <Route path="/citas"      element={<Citas />} />
       <Route path="/historias"  element={<Historias />} />
-      {/* próximos: /tratamientos  /facturacion  /dashboard */}
+      <Route path="/consentimientos" element={<Consentimientos />} />
     </Routes>
   );
 }
