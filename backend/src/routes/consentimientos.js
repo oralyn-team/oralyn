@@ -1,3 +1,4 @@
+// consentimientos.js - Rutas para gestionar consentimientos informados
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
@@ -134,6 +135,63 @@ router.patch('/:id/firmas', async (req, res) => {
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Consentimiento no encontrado' })
     }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+router.patch('/:id/anular', async (req, res) => {
+  const id = parseInt(req.params.id)
+  const { motivo_anulacion } = req.body
+
+  if (!motivo_anulacion) {
+    return res.status(400).json({ error: 'El motivo de anulación es obligatorio' })
+  }
+
+  try {
+    const consentimiento = await prisma.consentimiento.update({
+      where: { id },
+      data: {
+        anulado: true,
+        anulado_en: new Date(),
+        motivo_anulacion
+      }
+    })
+
+    res.json(consentimiento)
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Consentimiento no encontrado' })
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+router.delete('/:id', async (req, res) => {
+  const id = parseInt(req.params.id)
+
+  try {
+    const consentimiento = await prisma.consentimiento.findUnique({ where: { id } })
+
+    if (!consentimiento) {
+      return res.status(404).json({ error: 'Consentimiento no encontrado' })
+    }
+
+    if (
+      consentimiento.anulado ||
+      consentimiento.firma_paciente ||
+      consentimiento.firma_doctor ||
+      consentimiento.pdf_generado_en
+    ) {
+      return res.status(409).json({
+        error: 'Este consentimiento no se puede eliminar. Debe conservarse anulado por trazabilidad.'
+      })
+    }
+
+    await prisma.consentimiento.delete({ where: { id } })
+    res.status(204).send()
+  } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
