@@ -3,29 +3,15 @@ const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
-
 router.use(verificarToken)
 
-// POST /api/historias/:pacienteId — crear historia completa
 router.post('/:pacienteId', async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   const {
-    motivo_consulta,
-    medicamentos_actuales,
-    antecedentes_odontologicos,
-    evento_adverso,
-    evento_adverso_obs,
-    habitos_json,
-    habitos_observaciones,
-    diagnostico,
-    tratamiento_realizado,
-    observaciones,
-    recomendaciones,
-    firma_doctor,
-    firma_paciente,
-    antecedentes,
-    examen,
-    odontograma
+    motivo_consulta, medicamentos_actuales, antecedentes_odontologicos,
+    evento_adverso, evento_adverso_obs, habitos_json, habitos_observaciones,
+    diagnostico, tratamiento_realizado, observaciones, recomendaciones,
+    firma_doctor, firma_paciente, antecedentes, examen, odontograma
   } = req.body
 
   if (!motivo_consulta || !diagnostico) {
@@ -33,50 +19,34 @@ router.post('/:pacienteId', async (req, res) => {
   }
 
   try {
-    const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId } })
-    if (!paciente) {
-      return res.status(404).json({ error: 'Paciente no encontrado' })
-    }
+    const paciente = await prisma.paciente.findFirst({
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+    })
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
     const historia = await prisma.$transaction(async (tx) => {
       const h = await tx.historiaClinica.create({
         data: {
           paciente_id: pacienteId,
-          motivo_consulta,
-          medicamentos_actuales,
-          antecedentes_odontologicos,
-          evento_adverso: evento_adverso ?? false,
-          evento_adverso_obs,
-          habitos_json,
-          habitos_observaciones,
-          diagnostico,
-          tratamiento_realizado,
-          observaciones,
-          recomendaciones,
-          firma_doctor,
-          firma_paciente
+          motivo_consulta, medicamentos_actuales, antecedentes_odontologicos,
+          evento_adverso: evento_adverso ?? false, evento_adverso_obs,
+          habitos_json, habitos_observaciones, diagnostico,
+          tratamiento_realizado, observaciones, recomendaciones,
+          firma_doctor, firma_paciente
         }
       })
 
       if (antecedentes) {
-        await tx.hcAntecedentes.create({
-          data: { historia_id: h.id, ...antecedentes }
-        })
+        await tx.hcAntecedentes.create({ data: { historia_id: h.id, ...antecedentes } })
       }
 
       if (examen) {
-        await tx.hcExamenEstomatologico.create({
-          data: { historia_id: h.id, ...examen }
-        })
+        await tx.hcExamenEstomatologico.create({ data: { historia_id: h.id, ...examen } })
       }
 
       if (odontograma) {
         await tx.hcOdontograma.create({
-          data: {
-            historia_id: h.id,
-            dientes_json: odontograma.dientes_json,
-            observaciones: odontograma.observaciones
-          }
+          data: { historia_id: h.id, dientes_json: odontograma.dientes_json, observaciones: odontograma.observaciones }
         })
       }
 
@@ -90,21 +60,18 @@ router.post('/:pacienteId', async (req, res) => {
   }
 })
 
-// GET /api/historias/:pacienteId — listar historias de un paciente
 router.get('/:pacienteId', async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
-
   try {
+    const paciente = await prisma.paciente.findFirst({
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+    })
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
+
     const historias = await prisma.historiaClinica.findMany({
       where: { paciente_id: pacienteId },
       orderBy: { fecha_atencion: 'desc' },
-      select: {
-        id: true,
-        fecha_atencion: true,
-        motivo_consulta: true,
-        diagnostico: true,
-        tratamiento_realizado: true
-      }
+      select: { id: true, fecha_atencion: true, motivo_consulta: true, diagnostico: true, tratamiento_realizado: true }
     })
     res.json(historias)
   } catch (error) {
@@ -113,28 +80,24 @@ router.get('/:pacienteId', async (req, res) => {
   }
 })
 
-// GET /api/historias/detalle/:id — ver historia completa
 router.get('/detalle/:id', async (req, res) => {
   const id = parseInt(req.params.id)
-
   try {
     const historia = await prisma.historiaClinica.findUnique({
       where: { id },
-     include: {
-  paciente: true,
-  antecedentes: true,
-  examen: true,
-  odontogramas: {
-    orderBy: { creado_en: 'desc' }
-  },
-  evoluciones: {
-    orderBy: { fecha: 'desc' }
-  }
-}
+      include: {
+        paciente: true,
+        antecedentes: true,
+        examen: true,
+        odontogramas: { orderBy: { creado_en: 'desc' } },
+        evoluciones: { orderBy: { fecha: 'desc' } }
+      }
     })
 
-    if (!historia) {
-      return res.status(404).json({ error: 'Historia clínica no encontrada' })
+    if (!historia) return res.status(404).json({ error: 'Historia clínica no encontrada' })
+
+    if (historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
     }
 
     res.json(historia)
@@ -144,13 +107,21 @@ router.get('/detalle/:id', async (req, res) => {
   }
 })
 
-// PUT /api/historias/:id — editar historia
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
   const datos = req.body
 
   try {
-    const historia = await prisma.historiaClinica.update({
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id },
+      include: { paciente: { select: { consultorio_id: true } } }
+    })
+
+    if (!historia || historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(404).json({ error: 'Historia no encontrada' })
+    }
+
+    const actualizada = await prisma.historiaClinica.update({
       where: { id },
       data: {
         motivo_consulta: datos.motivo_consulta,
@@ -168,28 +139,16 @@ router.put('/:id', async (req, res) => {
         firma_paciente: datos.firma_paciente
       }
     })
-    res.json(historia)
+    res.json(actualizada)
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Historia no encontrada' })
-    }
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
-// POST /api/historias/:historiaId/evoluciones — agregar evolución
 router.post('/:historiaId/evoluciones', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
-  const {
-    fecha,
-    diente,
-    cavidad,
-    tipo_consulta,
-    procedimiento_realizado,
-    firma_odontologo,
-    firma_paciente
-  } = req.body
+  const { fecha, diente, cavidad, tipo_consulta, procedimiento_realizado, firma_odontologo, firma_paciente } = req.body
 
   if (!procedimiento_realizado) {
     return res.status(400).json({ error: 'El procedimiento realizado es obligatorio' })
@@ -197,9 +156,11 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
 
   try {
     const historia = await prisma.historiaClinica.findUnique({
-      where: { id: historiaId }
+      where: { id: historiaId },
+      include: { paciente: { select: { consultorio_id: true } } }
     })
-    if (!historia) {
+
+    if (!historia || historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
       return res.status(404).json({ error: 'Historia no encontrada' })
     }
 
@@ -207,15 +168,10 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
       data: {
         historia_id: historiaId,
         fecha: fecha ? new Date(fecha) : new Date(),
-        diente,
-        cavidad,
-        tipo_consulta,
-        procedimiento_realizado,
-        firma_odontologo,
-        firma_paciente
+        diente, cavidad, tipo_consulta,
+        procedimiento_realizado, firma_odontologo, firma_paciente
       }
     })
-
     res.status(201).json(evolucion)
   } catch (error) {
     console.error(error)
@@ -223,11 +179,18 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
   }
 })
 
-// GET /api/historias/:historiaId/evoluciones — listar evoluciones
 router.get('/:historiaId/evoluciones', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
-
   try {
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id: historiaId },
+      include: { paciente: { select: { consultorio_id: true } } }
+    })
+
+    if (!historia || historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(404).json({ error: 'Historia no encontrada' })
+    }
+
     const evoluciones = await prisma.hojaEvolucion.findMany({
       where: { historia_id: historiaId },
       orderBy: { fecha: 'desc' }
