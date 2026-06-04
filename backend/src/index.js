@@ -12,6 +12,7 @@ const consentimientosRoutes = require('./routes/consentimientos')
 const dashboardRoutes = require('./routes/dashboard')
 const pdfRoutes = require('./routes/pdf')
 const certificadosRoutes = require('./routes/certificados')
+const configuracionRoutes = require('./routes/configuracion')
 
 
 const app = express()
@@ -35,6 +36,7 @@ app.use('/api/consentimientos', consentimientosRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/pdf', pdfRoutes)
 app.use('/api/certificados', certificadosRoutes)
+app.use('/api/configuracion', configuracionRoutes)
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })
@@ -46,4 +48,5 @@ app.use(errorHandler)
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`)
 })
+
 

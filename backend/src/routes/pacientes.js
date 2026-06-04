@@ -9,6 +9,7 @@ router.use(verificarToken)
 
 // POST /api/pacientes — crear paciente
 router.post('/', async (req, res) => {
+  //console.log(req.usuario)
   const {
     primer_apellido, segundo_apellido, nombres,
     tipo_documento, numero_documento, fecha_nacimiento,
@@ -24,26 +25,46 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const existe = await prisma.paciente.findUnique({
-      where: { numero_documento }
+      const existe = await prisma.paciente.findFirst({
+  where: {
+    consultorio_id: req.usuario.consultorio_id,
+    numero_documento
+  }
+
     })
     if (existe) {
       return res.status(400).json({ error: 'Ya existe un paciente con ese documento' })
     }
 
     const paciente = await prisma.paciente.create({
-      data: {
-        primer_apellido, segundo_apellido, nombres,
-        tipo_documento, numero_documento,
-        fecha_nacimiento: new Date(fecha_nacimiento),
-        sexo, estado_civil, direccion_residencia, telefono,
-        correo, departamento, municipio_ciudad, ocupacion,
-        rh, clase_seguro, asegurador, rango_salarial,
-        tipo_vinculacion, nombre_empresa,
-        acudiente_nombre, acudiente_parentesco, acudiente_telefono
-      }
-    })
+  data: {
+    consultorio_id: req.usuario.consultorio_id,
 
+    primer_apellido,
+    segundo_apellido,
+    nombres,
+    tipo_documento,
+    numero_documento,
+    fecha_nacimiento: new Date(fecha_nacimiento),
+    sexo,
+    estado_civil,
+    direccion_residencia,
+    telefono,
+    correo,
+    departamento,
+    municipio_ciudad,
+    ocupacion,
+    rh,
+    clase_seguro,
+    asegurador,
+    rango_salarial,
+    tipo_vinculacion,
+    nombre_empresa,
+    acudiente_nombre,
+    acudiente_parentesco,
+    acudiente_telefono
+  }
+})
     res.status(201).json(paciente)
   } catch (error) {
     console.error(error)
@@ -55,6 +76,9 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const pacientes = await prisma.paciente.findMany({
+      where: {
+  consultorio_id: req.usuario.consultorio_id
+},
       orderBy: { primer_apellido: 'asc' },
       select: {
         id: true,
@@ -129,25 +153,29 @@ router.get('/buscar', async (req, res) => {
 
   try {
     const pacientes = await prisma.paciente.findMany({
-      where: {
-        OR: [
-          { nombres: { contains: q, mode: 'insensitive' } },
-          { primer_apellido: { contains: q, mode: 'insensitive' } },
-          { numero_documento: { contains: q, mode: 'insensitive' } }
-        ]
-      },
-      orderBy: { primer_apellido: 'asc' },
-      select: {
-        id: true,
-        primer_apellido: true,
-        segundo_apellido: true,
-        nombres: true,
-        tipo_documento: true,
-        numero_documento: true,
-        telefono: true,
-        municipio_ciudad: true
-      }
-    })
+  where: {
+    consultorio_id: req.usuario.consultorio_id,
+
+    OR: [
+      { nombres: { contains: q, mode: 'insensitive' } },
+      { primer_apellido: { contains: q, mode: 'insensitive' } },
+      { numero_documento: { contains: q, mode: 'insensitive' } }
+    ]
+  },
+  orderBy: {
+    primer_apellido: 'asc'
+  },
+  select: {
+    id: true,
+    primer_apellido: true,
+    segundo_apellido: true,
+    nombres: true,
+    tipo_documento: true,
+    numero_documento: true,
+    telefono: true,
+    municipio_ciudad: true
+  }
+})
     res.json(pacientes)
   } catch (error) {
     console.error(error)
@@ -160,19 +188,27 @@ router.get('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
-    const paciente = await prisma.paciente.findUnique({
-      where: { id },
-      include: {
-        historias: {
-          orderBy: { fecha_atencion: 'desc' },
-          take: 5
-        },
-        citas: {
-          orderBy: { fecha_hora: 'desc' },
-          take: 5
-        }
-      }
-    })
+
+   const paciente = await prisma.paciente.findFirst({
+  where: {
+    id,
+    consultorio_id: req.usuario.consultorio_id
+  },
+  include: {
+    historias: {
+      orderBy: {
+        fecha_atencion: 'desc'
+      },
+      take: 5
+    },
+    citas: {
+      orderBy: {
+        fecha_hora: 'desc'
+      },
+      take: 5
+    }
+  }
+})
 
     if (!paciente) {
       return res.status(404).json({ error: 'Paciente no encontrado' })
@@ -195,6 +231,20 @@ router.put('/:id', async (req, res) => {
   }
 
   try {
+    const existe = await prisma.paciente.findFirst({
+  where: {
+    id,
+    consultorio_id: req.usuario.consultorio_id
+  }
+})
+
+if (!existe) {
+  return res.status(404).json({
+    error: 'Paciente no encontrado'
+  })
+}
+
+delete datos.consultorio_id
     const paciente = await prisma.paciente.update({
       where: { id },
       data: datos
@@ -215,6 +265,18 @@ router.delete('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
+    const existe = await prisma.paciente.findFirst({
+  where: {
+    id,
+    consultorio_id: req.usuario.consultorio_id
+  }
+})
+
+if (!existe) {
+  return res.status(404).json({
+    error: 'Paciente no encontrado'
+  })
+}
     await prisma.paciente.delete({
       where: { id }
     })

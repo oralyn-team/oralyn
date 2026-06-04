@@ -3,10 +3,8 @@ const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
-
 router.use(verificarToken)
 
-// POST /api/cotizaciones — crear cotización
 router.post('/', async (req, res) => {
   const { paciente_id, items, descuento, observaciones } = req.body
 
@@ -15,10 +13,10 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const paciente = await prisma.paciente.findUnique({ where: { id: paciente_id } })
-    if (!paciente) {
-      return res.status(404).json({ error: 'Paciente no encontrado' })
-    }
+    const paciente = await prisma.paciente.findFirst({
+      where: { id: paciente_id, consultorio_id: req.usuario.consultorio_id }
+    })
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.valor), 0)
     const descuentoValor = Number(descuento) || 0
@@ -26,6 +24,7 @@ router.post('/', async (req, res) => {
 
     const cotizacion = await prisma.cotizacion.create({
       data: {
+        consultorio_id: req.usuario.consultorio_id,
         paciente_id,
         subtotal,
         descuento: descuentoValor,
@@ -42,7 +41,6 @@ router.post('/', async (req, res) => {
       },
       include: { items: true }
     })
-
     res.status(201).json(cotizacion)
   } catch (error) {
     console.error(error)
@@ -50,13 +48,11 @@ router.post('/', async (req, res) => {
   }
 })
 
-// GET /api/cotizaciones/paciente/:pacienteId — cotizaciones del paciente
 router.get('/paciente/:pacienteId', async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
-
   try {
     const cotizaciones = await prisma.cotizacion.findMany({
-      where: { paciente_id: pacienteId },
+      where: { paciente_id: pacienteId, consultorio_id: req.usuario.consultorio_id },
       orderBy: { fecha: 'desc' },
       include: { items: true }
     })
@@ -67,26 +63,24 @@ router.get('/paciente/:pacienteId', async (req, res) => {
   }
 })
 
-// PATCH /api/cotizaciones/:id/estado — aprobar o rechazar
 router.patch('/:id/estado', async (req, res) => {
   const id = parseInt(req.params.id)
   const { estado } = req.body
 
   const estadosValidos = ['borrador', 'aprobada', 'rechazada', 'pagada']
   if (!estado || !estadosValidos.includes(estado)) {
-    return res.status(400).json({ error: 'Estado no válido. Valores aceptados: borrador, aprobada, rechazada, pagada' })
+    return res.status(400).json({ error: 'Estado no válido' })
   }
 
   try {
-    const cotizacion = await prisma.cotizacion.update({
-      where: { id },
-      data: { estado }
+    const existe = await prisma.cotizacion.findFirst({
+      where: { id, consultorio_id: req.usuario.consultorio_id }
     })
+    if (!existe) return res.status(404).json({ error: 'Cotización no encontrada' })
+
+    const cotizacion = await prisma.cotizacion.update({ where: { id }, data: { estado } })
     res.json(cotizacion)
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Cotización no encontrada' })
-    }
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }

@@ -9,7 +9,7 @@ const router = express.Router()
 router.post('/registro', async (req, res) => {
   const { email, password, nombre, nit, registro } = req.body
 
-  if (!email || !password || !nombre || !nit) {
+  if (!email || !password || !nombre) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' })
   }
 
@@ -21,9 +21,15 @@ router.post('/registro', async (req, res) => {
 
     const password_hash = await bcrypt.hash(password, 10)
 
-    const usuario = await prisma.usuario.create({
-      data: { email, password_hash, nombre, nit, registro }
-    })
+  const usuario = await prisma.usuario.create({
+  data: {
+    consultorio_id: 1,
+    email,
+    password_hash,
+    nombre,
+    registro
+  }
+})
 
     res.status(201).json({
       mensaje: 'Usuario creado correctamente',
@@ -45,6 +51,8 @@ router.post('/login', async (req, res) => {
 
   try {
     const usuario = await prisma.usuario.findUnique({ where: { email } })
+    console.log(usuario)
+    
     if (!usuario) {
       return res.status(401).json({ error: 'Credenciales incorrectas' })
     }
@@ -55,10 +63,15 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: usuario.id, email: usuario.email, nombre: usuario.nombre },
-      process.env.JWT_SECRET,
-      { expiresIn: '8h' }
-    )
+  {
+    id: usuario.id,
+    consultorio_id: usuario.consultorio_id,
+    email: usuario.email,
+    nombre: usuario.nombre
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: '8h' }
+)
 
     res.json({
       token,
