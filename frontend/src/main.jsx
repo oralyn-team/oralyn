@@ -7,6 +7,7 @@ import Login from './pages/login'
 import Pacientes from './pages/Pacientes'
 import Historias from './pages/Historias'
 import Citas from './pages/Citas'
+import Consentimientos from './pages/Consentimientos'
 
 import './index.css'
 
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/pacientes" element={<PrivateRoute><Pacientes /></PrivateRoute>} />
           <Route path="/historias" element={<PrivateRoute><Historias /></PrivateRoute>} />
           <Route path="/citas" element={<PrivateRoute><Citas /></PrivateRoute>} />
+          <Route path="/consentimientos" element={<PrivateRoute><Consentimientos /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </AppProvider>

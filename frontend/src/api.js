@@ -74,4 +74,24 @@ export const api = {
   // Pagos
   getPagosPaciente: (pacienteId) => request(`/pagos/paciente/${pacienteId}`),
   crearPago:        (data)       => request('/pagos', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Consentimientos
+  getConsentimientosPaciente: (pacienteId) => request(`/consentimientos/paciente/${pacienteId}`),
+  getConsentimiento:          (id)         => request(`/consentimientos/${id}`),
+  crearConsentimiento:        (data)       => request('/consentimientos', { method: 'POST', body: JSON.stringify(data) }),
+  actualizarFirmasConsentimiento: (id, data) =>
+    request(`/consentimientos/${id}/firmas`, { method: 'PATCH', body: JSON.stringify(data) }),
+  anularConsentimiento:       (id, motivo_anulacion) =>
+    request(`/consentimientos/${id}/anular`, { method: 'PATCH', body: JSON.stringify({ motivo_anulacion }) }),
+  eliminarConsentimiento:     (id)         => request(`/consentimientos/${id}`, { method: 'DELETE' }),
+
+  // Certificados dentales
+  getCertificadosPaciente: (pacienteId) => request(`/certificados/paciente/${pacienteId}`),
+  crearCertificado:       (data)       => request('/certificados', { method: 'POST', body: JSON.stringify(data) }),
+  anularCertificado:      (id, motivo_anulacion) =>
+    request(`/certificados/${id}/anular`, { method: 'PATCH', body: JSON.stringify({ motivo_anulacion }) }),
+  eliminarCertificado:    (id)         => request(`/certificados/${id}`, { method: 'DELETE' }),
+
+  // PDFs
+  getPdfUrl: (tipo, id = '') => `${BASE_URL}/pdf/${tipo}${id ? `/${id}` : ''}`,
 }
