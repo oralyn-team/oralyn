@@ -1,3 +1,4 @@
+//certificados.js - Rutas para gestionar certificados dentales
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
@@ -38,6 +39,58 @@ router.get('/paciente/:pacienteId', async (req, res) => {
       orderBy: { fecha_expedicion: 'desc' }
     })
     res.json(certificados)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+router.patch('/:id/anular', async (req, res) => {
+  const id = parseInt(req.params.id)
+  const { motivo_anulacion } = req.body
+
+  if (!motivo_anulacion) {
+    return res.status(400).json({ error: 'El motivo de anulación es obligatorio' })
+  }
+
+  try {
+    const certificado = await prisma.certificadoDental.update({
+      where: { id },
+      data: {
+        anulado: true,
+        anulado_en: new Date(),
+        motivo_anulacion
+      }
+    })
+
+    res.json(certificado)
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Certificado no encontrado' })
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+router.delete('/:id', async (req, res) => {
+  const id = parseInt(req.params.id)
+
+  try {
+    const certificado = await prisma.certificadoDental.findUnique({ where: { id } })
+
+    if (!certificado) {
+      return res.status(404).json({ error: 'Certificado no encontrado' })
+    }
+
+    if (certificado.anulado) {
+      return res.status(409).json({
+        error: 'Este certificado ya fue anulado y debe conservarse por trazabilidad.'
+      })
+    }
+
+    await prisma.certificadoDental.delete({ where: { id } })
+    res.status(204).send()
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })

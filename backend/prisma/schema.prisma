@@ -397,8 +397,6 @@ model Cita {
   @@index([paciente_id])
 }
 
-// ─── CONSENTIMIENTOS ────────────────────────────────────────
-
 model Consentimiento {
   id                        Int                @id @default(autoincrement())
   paciente_id               Int
@@ -414,12 +412,12 @@ model Consentimiento {
   firma_doctor              String?
   pdf_generado_en           DateTime?
 
+  anulado                   Boolean            @default(false)
+  anulado_en                DateTime?
+  motivo_anulacion          String?
+
   @@index([paciente_id])
 }
-
-
-
-// ─── CERTIFICADOS DENTALES ──────────────────────────────────
 
 model CertificadoDental {
   id               Int      @id @default(autoincrement())
@@ -431,6 +429,10 @@ model CertificadoDental {
   ciudad           String   @default("Villavicencio")
   fecha_expedicion DateTime
   creado_en        DateTime @default(now())
+
+  anulado          Boolean  @default(false)
+  anulado_en       DateTime?
+  motivo_anulacion String?
 
   @@index([paciente_id])
 }

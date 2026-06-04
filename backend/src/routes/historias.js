@@ -168,8 +168,8 @@ router.get('/detalle/:id', async (req, res) => {
   try {
     const historia = await prisma.historiaClinica.findUnique({
       where: { id },
-<<<<<<< HEAD
       include: {
+        paciente: true,
         antecedentes: true,
         examen: true,
         odontogramas: { orderBy: { creado_en: 'desc' } },
@@ -177,19 +177,6 @@ router.get('/detalle/:id', async (req, res) => {
         adjuntos: { orderBy: { creado_en: 'desc' } },
 
       }
-=======
-     include: {
-  paciente: true,
-  antecedentes: true,
-  examen: true,
-  odontogramas: {
-    orderBy: { creado_en: 'desc' }
-  },
-  evoluciones: {
-    orderBy: { fecha: 'desc' }
-  }
-}
->>>>>>> e53c12b13befe55b9a46716617d0eaada26d8941
     })
 
     if (!historia) return res.status(404).json({ error: 'Historia clínica no encontrada' })
