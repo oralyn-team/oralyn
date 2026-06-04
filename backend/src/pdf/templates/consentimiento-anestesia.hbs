@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; padding: 50px; color: #222; font-size: 12px; line-height: 1.7; }
+    .header { text-align: right; margin-bottom: 20px; font-size: 11px; }
+    h1 { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+    h2 { font-size: 12px; font-weight: bold; margin-top: 14px; margin-bottom: 6px; }
+    ul { padding-left: 20px; margin: 0; }
+    ul li { margin-bottom: 4px; }
+    .declaracion { margin-bottom: 14px; }
+    .firmas { margin-top: 50px; display: flex; justify-content: space-between; }
+    .firma { text-align: center; }
+    .firma-linea { border-top: 1px solid #333; width: 180px; margin: 0 auto 5px; }
+    .firma-sub { font-size: 11px; color: #555; }
+    .ciudad-fecha { margin-top: 30px; font-size: 12px; }
+    .ciudad-fecha span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <strong>Villavicencio-Meta. Calle 32 #38-81 Barzal Alto</strong><br>
+  Cel: 322 947 8820 · NIT. 39579364-3
+</div>
+
+<h1>CONSENTIMIENTO INFORMADO (ANESTESIA)</h1>
+
+<div class="declaracion">
+  Yo <strong>{{nombre_paciente}}</strong> mayor de edad identificado(a) con C.C. <strong>{{cc_paciente}}</strong>
+  actuando en nombre propio, en pleno uso de mis facultades, libre y consciente, declaro que el profesional
+  me ha informado y explicado:
+</div>
+
+<h2>BENEFICIOS:</h2>
+<ul>
+  <li>Disminución del dolor</li>
+  <li>Disminución del sangrado</li>
+</ul>
+
+<h2>RIESGOS:</h2>
+<ul>
+  <li>Hipersensibilidad a los componentes (tipo anidicos caracterizado por eritema)</li>
+  <li>Bronco-espasmo (depresión respiratoria) puede desencadenar crisis asmática</li>
+  <li>Sudoración y náuseas</li>
+  <li>Síncope oro estático (cambio postural brusco)</li>
+  <li>Hipotensión</li>
+  <li>Palidez cutánea</li>
+  <li>Hipotonia generalizada</li>
+  <li>Shock anafiláctico acompañado por taquicardia e hipertensión pulmonar y urticaria</li>
+  <li>Parestesias parciales o totales</li>
+  <li>Trismo posterior a la anestesia</li>
+  <li>Hematomas e inflamación</li>
+  <li>Las ingestas de alimentos durante los efectos de la anestesia pueden producir lesiones en tejidos blandos por mordeduras involuntarias del paciente</li>
+  <li>Ruptura de agujas por movimientos bruscos del paciente (especialmente pediátricos) por movimientos súbitos</li>
+</ul>
+
+<h2>TRATAMIENTO ALTERNATIVO:</h2>
+<ul>
+  <li>Sedación</li>
+  <li>Anestesia tópica</li>
+</ul>
+
+<div style="margin-top:14px">
+  Doy mi consentimiento para realizar el tratamiento pertinente PUESTO QUE ES POR MI PROPIO INTERÉS,
+  con el buen entendimiento que puedo retirar ese consentimiento por escrito cuando así lo desee.
+</div>
+
+<div class="ciudad-fecha">
+  Ciudad <span>{{ciudad}}</span> Fecha <span>{{fecha}}</span>
+</div>
+
+<div class="firmas">
+  <div class="firma">
+    {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma paciente / acudiente</div>
+    <div class="firma-sub">C.C. {{cc_paciente}}</div>
+  </div>
+  <div class="firma">
+    {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Profesional</div>
+    <div class="firma-sub">C.C. {{cc_profesional}}</div>
+  </div>
+</div>
+
+</body>
+</html>
