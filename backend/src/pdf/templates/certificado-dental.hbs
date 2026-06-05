@@ -17,9 +17,10 @@
 <body>
 
 <div class="header">
-  <strong>Villavicencio-Meta. Calle 32 #38-81 Barzal Alto</strong><br>
-  Cel: 322 947 8820<br>
-  NIT. 39579364-3
+  <strong>{{config.nombre_consultorio}}</strong><br>
+  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+  {{config.direccion}}<br>
+  Cel: {{config.telefono}} · NIT. {{config.nit}}
 </div>
 
 <h1>CERTIFICADO DENTAL</h1>
@@ -40,9 +41,9 @@
   <img src="{{firma_doctor}}" alt="Firma" style="height:70px;display:block;margin-bottom:4px"/>
   {{/if}}
   <div class="firma-linea"></div>
-  <div class="firma-nombre"><strong>Rocío Murillo</strong></div>
-  <div class="firma-cargo">Odontóloga</div>
-  <div class="firma-cargo">Reg. 3989</div>
+  <div class="firma-nombre"><strong>{{config.nombre_profesional}}</strong></div>
+<div class="firma-cargo">Odontólogo</div>
+<div class="firma-cargo">Reg. {{config.registro_profesional}}</div>
 </div>
 
 </body>
