@@ -18,6 +18,9 @@ const configuracionRoutes = require('./routes/configuracion')
 const app = express()
 const PORT = process.env.PORT || 3000
 
+const NODE_ENV = process.env.NODE_ENV || 'development'
+console.log(`Entorno: ${NODE_ENV}`)
+
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
