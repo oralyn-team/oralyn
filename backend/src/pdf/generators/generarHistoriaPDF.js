@@ -1,6 +1,6 @@
 const generarPDF = require('../helpers/generarPDF')
 
-async function generarHistoriaPDF(historia) {
+async function generarHistoriaPDF(historia, consultorio_id) {
   const p = historia.paciente
 
   const nombreCompleto = p
@@ -13,6 +13,7 @@ async function generarHistoriaPDF(historia) {
 
   return await generarPDF({
     template: 'historia-clinica',
+    consultorio_id,
     data: {
       paciente: {
         nombre_completo: nombreCompleto,

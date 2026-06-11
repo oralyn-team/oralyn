@@ -2,44 +2,39 @@ const generarPDF = require('../helpers/generarPDF')
 
 const KEYS = {
   detartraje_curetraje: 'detartraje',
-  superficie_retina:    'superficie',
-  incrustaciones:       'incrustaciones',
-  carillas:             'carillas',
+  superficie_retina: 'superficie',
+  incrustaciones: 'incrustaciones',
+  carillas: 'carillas',
   tratamiento_conducto: 'conducto',
-  exodoncia:            'exodoncia',
-  cirugia:              'cirugia',
-  nucleo:               'nucleo',
-  corona:               'corona',
-  blanqueamiento_dental:'blanqueamiento'
+  exodoncia: 'exodoncia',
+  cirugia: 'cirugia',
+  nucleo: 'nucleo',
+  corona: 'corona',
+  blanqueamiento_dental: 'blanqueamiento'
 }
 
-async function generarCotizacionPDF(cotizacion) {
+async function generarCotizacionPDF(cotizacion, consultorio_id) {
   const p = cotizacion.paciente
-  const nombreCompleto = p
-    ? `${p.nombres} ${p.primer_apellido} ${p.segundo_apellido ?? ''}`.trim()
-    : 'No registrado'
+  const nombreCompleto = p ? `${p.nombres} ${p.primer_apellido} ${p.segundo_apellido ?? ''}`.trim() : 'No registrado'
 
   const fecha = new Date(cotizacion.fecha)
-  const dia   = fecha.getDate().toString().padStart(2, '0')
-  const mes   = fecha.toLocaleString('es-CO', { month: 'long' })
-  const anio  = fecha.getFullYear()
+  const dia = fecha.getDate().toString().padStart(2, '0')
+  const mes = fecha.toLocaleString('es-CO', { month: 'long' })
+  const anio = fecha.getFullYear()
 
-  // Inicializar todos los tratamientos vacíos
   const data = {
     nombre_completo: nombreCompleto,
-    doctor: 'Rocío Murillo',
+    doctor: '',
     dia, mes, anio,
-    subtotal:  Number(cotizacion.subtotal).toLocaleString('es-CO'),
+    subtotal: Number(cotizacion.subtotal).toLocaleString('es-CO'),
     descuento: Number(cotizacion.descuento).toLocaleString('es-CO'),
   }
 
-  // Poner vacíos por defecto
   Object.values(KEYS).forEach(k => {
     data[`${k}_num`] = ''
     data[`${k}_val`] = ''
   })
 
-  // Llenar con los items reales
   cotizacion.items.forEach(item => {
     const key = KEYS[item.tipo_item]
     if (key) {
@@ -48,7 +43,7 @@ async function generarCotizacionPDF(cotizacion) {
     }
   })
 
-  return await generarPDF({ template: 'cotizacion', data })
+  return await generarPDF({ template: 'cotizacion', consultorio_id, data })
 }
 
 module.exports = generarCotizacionPDF

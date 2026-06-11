@@ -23,8 +23,10 @@
 <body>
 
 <div class="header">
-  <strong>Villavicencio-Meta. Calle 32 #38-81 Barzal Alto</strong><br>
-  Cel: 322 947 8820 · NIT. 39579364-3
+   <strong>{{config.nombre_consultorio}}</strong><br>
+  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+  {{config.direccion}}<br>
+  Cel: {{config.telefono}} · NIT. {{config.nit}}
 </div>
 
 <h1>CONSENTIMIENTO INFORMADO DE REHABILITACIÓN</h1>
@@ -33,7 +35,7 @@
   Yo <strong>{{nombre_paciente}}</strong> identificado con cédula de ciudadanía No. <strong>{{cc_paciente}}</strong>,
   mayor de edad, en calidad de paciente / representante legal. Por medio de la presente constancia,
   en pleno y normal uso de mis facultades mentales, otorgo en forma libre mi consentimiento al
-  DOCTOR(A) <strong>Rocío Murillo</strong> para que en ejercicio legal de su profesión se me practique
+  DOCTOR(A) <strong>{{config.nombre_profesional}}</strong> para que en ejercicio legal de su profesión se me practique
   el procedimiento de rehabilitación oral.
 </div>
 

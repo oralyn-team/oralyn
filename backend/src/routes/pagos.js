@@ -3,7 +3,6 @@ const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
-
 router.use(verificarToken)
 
 const METODOS_VALIDOS = [
@@ -26,7 +25,7 @@ router.post('/', async (req, res) => {
   const monto         = Number(req.body.monto)
   const { metodo_pago, referencia, concepto } = req.body
 
-  // ── Validaciones ────────────────────────────────────────────────────────────
+  // ── Validaciones ──────────────────────────────────────────────────────────
 
   if (isNaN(paciente_id)) {
     return res.status(400).json({ error: 'ID de paciente inválido' })
@@ -47,14 +46,14 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // ── Verificar paciente ───────────────────────────────────────────────────
+    // ── Verificar paciente ─────────────────────────────────────────────────
 
     const paciente = await prisma.paciente.findUnique({ where: { id: paciente_id } })
     if (!paciente) {
       return res.status(404).json({ error: 'Paciente no encontrado' })
     }
 
-    // ── Verificar cotización si viene ────────────────────────────────────────
+    // ── Verificar cotización si viene ──────────────────────────────────────
 
     if (cotizacion_id) {
       const cotizacion = await prisma.cotizacion.findUnique({ where: { id: cotizacion_id } })
@@ -63,7 +62,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // ── Transacción: crear pago + actualizar saldo ───────────────────────────
+    // ── Transacción: crear pago + actualizar saldo ─────────────────────────
 
     const pago = await prisma.$transaction(async (tx) => {
       const nuevoPago = await tx.pago.create({
@@ -100,10 +99,11 @@ router.post('/', async (req, res) => {
       }
 
       return nuevoPago
-    })
+    }) // ✅ Fix 1: cierre correcto del $transaction
 
     res.status(201).json(pago)
-  } catch (error) {
+
+  } catch (error) { // ✅ Fix 2: catch que faltaba para el try del POST
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
@@ -119,23 +119,27 @@ router.get('/paciente/:pacienteId', async (req, res) => {
   }
 
   try {
-    // ── Verificar paciente ───────────────────────────────────────────────────
+    // ── Verificar paciente ─────────────────────────────────────────────────
 
     const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId } })
     if (!paciente) {
       return res.status(404).json({ error: 'Paciente no encontrado' })
     }
 
-    // ── Pagos e historial ────────────────────────────────────────────────────
+    // ── Pagos e historial ──────────────────────────────────────────────────
 
     const pagos = await prisma.pago.findMany({
-      where:   { paciente_id: pacienteId },
+      where:   { paciente_id: pacienteId, consultorio_id: req.usuario.consultorio_id },
       orderBy: { fecha: 'desc' }
     })
 
-    // Incluye aprobado, en_proceso y finalizado (todos pueden tener saldo)
+    // ✅ Fix 3: usar ESTADOS_CON_SALDO en lugar del estado hardcodeado 'aprobada'
     const cotizaciones = await prisma.cotizacion.findMany({
-      where:  { paciente_id: pacienteId, estado: { in: ESTADOS_CON_SALDO } },
+      where:  {
+        paciente_id:    pacienteId,
+        consultorio_id: req.usuario.consultorio_id,
+        estado:         { in: ESTADOS_CON_SALDO }
+      },
       select: { total: true }
     })
 

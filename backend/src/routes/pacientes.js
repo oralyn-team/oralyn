@@ -3,8 +3,6 @@ const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
-
-// Todas las rutas requieren token
 router.use(verificarToken)
 
 // POST /api/pacientes — crear paciente
@@ -24,17 +22,22 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    const existe = await prisma.paciente.findUnique({
-      where: { numero_documento }
+    const existe = await prisma.paciente.findFirst({
+      where: {
+        consultorio_id: req.usuario.consultorio_id,
+        numero_documento
+      }
     })
 
     if (existe) {
       return res.status(400).json({ error: 'Ya existe un paciente con ese documento' })
     }
 
+    // ✅ Fix 1: transacción limpia con consultorio_id incluido, sin el create duplicado de abajo
     const paciente = await prisma.$transaction(async (tx) => {
       const nuevoPaciente = await tx.paciente.create({
         data: {
+          consultorio_id: req.usuario.consultorio_id, // ✅ Fix 2: campo agregado
           primer_apellido,
           segundo_apellido,
           nombres,
@@ -94,6 +97,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const pacientes = await prisma.paciente.findMany({
+      where: { consultorio_id: req.usuario.consultorio_id },
       orderBy: { primer_apellido: 'asc' },
       select: {
         id: true,
@@ -114,7 +118,6 @@ router.get('/', async (req, res) => {
           take: 1
         },
         cotizaciones: {
-          // FIX: el enum EstadoCotizacion es 'aprobado', no 'aprobada'
           where: { estado: 'aprobado' },
           select: { total: true }
         },
@@ -176,6 +179,7 @@ router.get('/buscar', async (req, res) => {
   try {
     const pacientes = await prisma.paciente.findMany({
       where: {
+        consultorio_id: req.usuario.consultorio_id,
         OR: [
           { nombres: { contains: q, mode: 'insensitive' } },
           { primer_apellido: { contains: q, mode: 'insensitive' } },
@@ -194,6 +198,7 @@ router.get('/buscar', async (req, res) => {
         municipio_ciudad: true
       }
     })
+
     res.json(pacientes)
   } catch (error) {
     console.error(error)
@@ -206,17 +211,11 @@ router.get('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
-    const paciente = await prisma.paciente.findUnique({
-      where: { id },
+    const paciente = await prisma.paciente.findFirst({
+      where: { id, consultorio_id: req.usuario.consultorio_id },
       include: {
-        historias: {
-          orderBy: { fecha_atencion: 'desc' },
-          take: 5
-        },
-        citas: {
-          orderBy: { fecha_hora: 'desc' },
-          take: 5
-        }
+        historias: { orderBy: { fecha_atencion: 'desc' }, take: 5 },
+        citas:     { orderBy: { fecha_hora: 'desc' },     take: 5 }
       }
     })
 
@@ -234,19 +233,23 @@ router.get('/:id', async (req, res) => {
 // PUT /api/pacientes/:id — editar
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
-  const {
-    historias,
-    citas,
-    creado_en,
-    id: bodyId,
-    ...datos
-  } = req.body
+  const { historias, citas, creado_en, id: bodyId, ...datos } = req.body
 
   if (datos.fecha_nacimiento) {
     datos.fecha_nacimiento = new Date(datos.fecha_nacimiento)
   }
 
   try {
+    const existe = await prisma.paciente.findFirst({
+      where: { id, consultorio_id: req.usuario.consultorio_id }
+    })
+
+    if (!existe) {
+      return res.status(404).json({ error: 'Paciente no encontrado' })
+    }
+
+    delete datos.consultorio_id // ✅ evita que el cliente cambie el consultorio
+
     const paciente = await prisma.paciente.update({
       where: { id },
       data: datos
@@ -267,9 +270,15 @@ router.delete('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
-    await prisma.paciente.delete({
-      where: { id }
+    const existe = await prisma.paciente.findFirst({
+      where: { id, consultorio_id: req.usuario.consultorio_id }
     })
+
+    if (!existe) {
+      return res.status(404).json({ error: 'Paciente no encontrado' })
+    }
+
+    await prisma.paciente.delete({ where: { id } })
     res.status(200).json({ message: 'Paciente eliminado correctamente' })
   } catch (error) {
     if (error.code === 'P2025') {
