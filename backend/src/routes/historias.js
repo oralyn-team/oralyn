@@ -5,7 +5,6 @@ const verificarToken = require('../middlewares/auth')
 const router = express.Router()
 router.use(verificarToken)
 
-// POST /api/historias/:pacienteId — crear historia completa
 router.post('/:pacienteId', async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   const {
@@ -22,7 +21,6 @@ router.post('/:pacienteId', async (req, res) => {
     recomendaciones,
     firma_doctor,
     firma_paciente,
-    // Campos adicionales
     departamento,
     estado_civil,
     direccion,
@@ -34,7 +32,6 @@ router.post('/:pacienteId', async (req, res) => {
     tipo_sangre,
     rh,
     alergias,
-    // Nested
     antecedentes,
     examen,
     odontograma,
@@ -45,7 +42,9 @@ router.post('/:pacienteId', async (req, res) => {
   }
 
   try {
-    const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId } })
+    const paciente = await prisma.paciente.findFirst({
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+    })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
     const historia = await prisma.$transaction(async (tx) => {
@@ -115,11 +114,14 @@ router.post('/:pacienteId', async (req, res) => {
   }
 })
 
-// GET /api/historias/:pacienteId — listar historias de un paciente
 router.get('/:pacienteId', async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
-
   try {
+    const paciente = await prisma.paciente.findFirst({
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+    })
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
+
     const historias = await prisma.historiaClinica.findMany({
       where: { paciente_id: pacienteId },
       orderBy: { fecha_atencion: 'desc' },
@@ -164,22 +166,24 @@ router.get('/:pacienteId', async (req, res) => {
 // GET /api/historias/detalle/:id — ver historia completa con nested
 router.get('/detalle/:id', async (req, res) => {
   const id = parseInt(req.params.id)
-
   try {
     const historia = await prisma.historiaClinica.findUnique({
       where: { id },
       include: {
-        paciente: true,
+        paciente:     true,
         antecedentes: true,
-        examen: true,
+        examen:       true,
         odontogramas: { orderBy: { creado_en: 'desc' } },
         evoluciones:  { orderBy: { fecha: 'desc' } },
-        adjuntos: { orderBy: { creado_en: 'desc' } },
-
+        adjuntos:     { orderBy: { creado_en: 'desc' } },
       }
     })
 
     if (!historia) return res.status(404).json({ error: 'Historia clínica no encontrada' })
+
+    if (historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
 
     res.json(historia)
   } catch (error) {
@@ -195,7 +199,6 @@ router.put('/:id', async (req, res) => {
 
   try {
     const historia = await prisma.$transaction(async (tx) => {
-
       const h = await tx.historiaClinica.update({
         where: { id },
         data: {
@@ -227,40 +230,12 @@ router.put('/:id', async (req, res) => {
       })
 
       if (antecedentes && Object.keys(antecedentes).length > 0) {
+        // ✅ Fix 1: usar datos dinámicos del body, no valores hardcodeados
         await tx.hcAntecedentes.upsert({
-  where: {
-    historia_id: id
-  },
-  update: {
-    tratamiento_medicacion: false,
-    problemas_coagulacion: false,
-    irradiaciones: false,
-    tension_arterial: false,
-    sinusitis: false,
-    enf_respiratorias: false,
-    cardiopatias: false,
-    diabetes: false,
-    fiebre_reumatica: true,
-    hepatitis: true,
-    vih: false,
-    trastornos_emocionales: false
-  },
-  create: {
-    historia_id: 1,
-    tratamiento_medicacion: false,
-    problemas_coagulacion: false,
-    irradiaciones: false,
-    tension_arterial: false,
-    sinusitis: false,
-    enf_respiratorias: false,
-    cardiopatias: false,
-    diabetes: false,
-    fiebre_reumatica: true,
-    hepatitis: true,
-    vih: false,
-    trastornos_emocionales: false
-  }
-})
+          where:  { historia_id: id },
+          update: { ...antecedentes },
+          create: { historia_id: id, ...antecedentes },
+        })
       }
 
       if (examen) {
@@ -281,18 +256,14 @@ router.put('/:id', async (req, res) => {
       return h
     })
 
-    res.json(historia)
+    res.json(historia) // ✅ Fix 2: eliminado el res.json(actualizada) duplicado e inexistente
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Historia no encontrada' })
-    }
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
 // POST /api/historias/:historiaId/evoluciones
-// FIX: campos actualizados para coincidir con el modelo HojaEvolucion del schema
 router.post('/:historiaId/evoluciones', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
   const {
@@ -309,7 +280,6 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
     observaciones,
   } = req.body
 
-  // FIX: el campo obligatorio real es 'procedimiento', no 'procedimiento_realizado'
   if (!procedimiento) {
     return res.status(400).json({ error: 'El procedimiento es obligatorio' })
   }
@@ -320,21 +290,20 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
 
     const evolucion = await prisma.hojaEvolucion.create({
       data: {
-        historia_id:    historiaId,
-        fecha:          fecha ? new Date(fecha) : new Date(),
-        doctor:         doctor         ?? null,
-        motivo:         motivo         ?? null,
-        diagnostico:    diagnostico    ?? null,
+        historia_id:     historiaId,
+        fecha:           fecha ? new Date(fecha) : new Date(),
+        doctor:          doctor          ?? null,
+        motivo:          motivo          ?? null,
+        diagnostico:     diagnostico     ?? null,
         procedimiento,
         piezas_tratadas: piezas_tratadas ?? null,
-        tratamiento:    tratamiento    ?? null,
-        estado_clinico: estado_clinico ?? null,
+        tratamiento:     tratamiento     ?? null,
+        estado_clinico:  estado_clinico  ?? null,
         recomendaciones: recomendaciones ?? null,
         proximo_control: proximo_control ? new Date(proximo_control) : null,
-        observaciones:  observaciones  ?? null,
+        observaciones:   observaciones   ?? null,
       }
     })
-
     res.status(201).json(evolucion)
   } catch (error) {
     console.error(error)
@@ -345,10 +314,18 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
 // GET /api/historias/:historiaId/evoluciones
 router.get('/:historiaId/evoluciones', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
-
   try {
+    const historia = await prisma.historiaClinica.findUnique({
+      where:   { id: historiaId },
+      include: { paciente: { select: { consultorio_id: true } } }
+    })
+
+    if (!historia || historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(404).json({ error: 'Historia no encontrada' })
+    }
+
     const evoluciones = await prisma.hojaEvolucion.findMany({
-      where: { historia_id: historiaId },
+      where:   { historia_id: historiaId },
       orderBy: { fecha: 'desc' }
     })
     res.json(evoluciones)
@@ -372,14 +349,14 @@ router.put('/:historiaId/odontograma', async (req, res) => {
     if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
 
     const existente = await prisma.hcOdontograma.findFirst({
-      where: { historia_id: historiaId },
+      where:   { historia_id: historiaId },
       orderBy: { creado_en: 'desc' }
     })
 
     const odontograma = existente
       ? await prisma.hcOdontograma.update({
           where: { id: existente.id },
-          data: { dientes_json, observaciones }
+          data:  { dientes_json, observaciones }
         })
       : await prisma.hcOdontograma.create({
           data: { historia_id: historiaId, dientes_json, observaciones }
@@ -392,23 +369,15 @@ router.put('/:historiaId/odontograma', async (req, res) => {
   }
 })
 
-// PUT /api/historias/:historiaId/evoluciones/:evolucionId — editar evolución
+// PUT /api/historias/:historiaId/evoluciones/:evolucionId
 router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
-  const historiaId = parseInt(req.params.historiaId)
+  const historiaId  = parseInt(req.params.historiaId)
   const evolucionId = parseInt(req.params.evolucionId)
 
   const {
-    fecha,
-    doctor,
-    motivo,
-    diagnostico,
-    procedimiento,
-    piezas_tratadas,
-    tratamiento,
-    estado_clinico,
-    recomendaciones,
-    proximo_control,
-    observaciones,
+    fecha, doctor, motivo, diagnostico, procedimiento,
+    piezas_tratadas, tratamiento, estado_clinico,
+    recomendaciones, proximo_control, observaciones,
   } = req.body
 
   if (isNaN(historiaId) || isNaN(evolucionId)) {
@@ -423,17 +392,17 @@ router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
     const evolucion = await prisma.hojaEvolucion.update({
       where: { id: evolucionId },
       data: {
-        fecha: fecha ? new Date(fecha) : new Date(),
-        doctor: doctor ?? null,
-        motivo: motivo ?? null,
-        diagnostico: diagnostico ?? null,
+        fecha:           fecha ? new Date(fecha) : new Date(),
+        doctor:          doctor          ?? null,
+        motivo:          motivo          ?? null,
+        diagnostico:     diagnostico     ?? null,
         procedimiento,
         piezas_tratadas: piezas_tratadas ?? null,
-        tratamiento: tratamiento ?? null,
-        estado_clinico: estado_clinico ?? null,
+        tratamiento:     tratamiento     ?? null,
+        estado_clinico:  estado_clinico  ?? null,
         recomendaciones: recomendaciones ?? null,
         proximo_control: proximo_control ? new Date(proximo_control) : null,
-        observaciones: observaciones ?? null,
+        observaciones:   observaciones   ?? null,
       }
     })
 
@@ -453,7 +422,7 @@ router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
 
 // DELETE /api/historias/:historiaId/evoluciones/:evolucionId
 router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
-  const historiaId = parseInt(req.params.historiaId)
+  const historiaId  = parseInt(req.params.historiaId)
   const evolucionId = parseInt(req.params.evolucionId)
 
   if (isNaN(historiaId) || isNaN(evolucionId)) {
@@ -461,9 +430,7 @@ router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
   }
 
   try {
-    const evolucion = await prisma.hojaEvolucion.findUnique({
-      where: { id: evolucionId }
-    })
+    const evolucion = await prisma.hojaEvolucion.findUnique({ where: { id: evolucionId } })
 
     if (!evolucion) {
       return res.status(404).json({ error: 'Evolución no encontrada' })
@@ -474,7 +441,6 @@ router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
     }
 
     await prisma.hojaEvolucion.delete({ where: { id: evolucionId } })
-
     res.status(204).send()
   } catch (error) {
     console.error(error)
@@ -492,10 +458,9 @@ router.get('/:historiaId/adjuntos', async (req, res) => {
 
   try {
     const adjuntos = await prisma.hcAdjunto.findMany({
-      where: { historia_id: historiaId },
+      where:   { historia_id: historiaId },
       orderBy: { creado_en: 'desc' }
     })
-
     res.json(adjuntos)
   } catch (error) {
     console.error(error)
@@ -506,16 +471,7 @@ router.get('/:historiaId/adjuntos', async (req, res) => {
 // POST /api/historias/:historiaId/adjuntos
 router.post('/:historiaId/adjuntos', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
-
-  const {
-    nombre,
-    nombre_archivo,
-    tipo,
-    mime_type,
-    tamano_bytes,
-    contenido_base64,
-    url,
-  } = req.body
+  const { nombre, nombre_archivo, tipo, mime_type, tamano_bytes, contenido_base64, url } = req.body
 
   if (isNaN(historiaId)) {
     return res.status(400).json({ error: 'ID de historia inválido' })
@@ -526,23 +482,18 @@ router.post('/:historiaId/adjuntos', async (req, res) => {
   }
 
   try {
-    const historia = await prisma.historiaClinica.findUnique({
-      where: { id: historiaId }
-    })
-
-    if (!historia) {
-      return res.status(404).json({ error: 'Historia no encontrada' })
-    }
+    const historia = await prisma.historiaClinica.findUnique({ where: { id: historiaId } })
+    if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
 
     const adjunto = await prisma.hcAdjunto.create({
       data: {
-        historia_id: historiaId,
-        nombre_archivo: nombre_archivo ?? nombre,
-        tipo: tipo ?? null,
-        mime_type: mime_type ?? null,
-        tamano_bytes: tamano_bytes ? Number(tamano_bytes) : null,
+        historia_id:      historiaId,
+        nombre_archivo:   nombre_archivo ?? nombre,
+        tipo:             tipo           ?? null,
+        mime_type:        mime_type      ?? null,
+        tamano_bytes:     tamano_bytes   ? Number(tamano_bytes) : null,
         contenido_base64: contenido_base64 ?? null,
-        url: url ?? null,
+        url:              url            ?? null,
       }
     })
 
@@ -556,16 +507,14 @@ router.post('/:historiaId/adjuntos', async (req, res) => {
 // DELETE /api/historias/:historiaId/adjuntos/:adjuntoId
 router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
-  const adjuntoId = parseInt(req.params.adjuntoId)
+  const adjuntoId  = parseInt(req.params.adjuntoId)
 
   if (isNaN(historiaId) || isNaN(adjuntoId)) {
     return res.status(400).json({ error: 'ID inválido' })
   }
 
   try {
-    const adjunto = await prisma.hcAdjunto.findUnique({
-      where: { id: adjuntoId }
-    })
+    const adjunto = await prisma.hcAdjunto.findUnique({ where: { id: adjuntoId } })
 
     if (!adjunto) {
       return res.status(404).json({ error: 'Adjunto no encontrado' })
@@ -576,13 +525,11 @@ router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
     }
 
     await prisma.hcAdjunto.delete({ where: { id: adjuntoId } })
-
     res.status(204).send()
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
-
 
 module.exports = router

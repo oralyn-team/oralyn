@@ -6,7 +6,6 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 // ─── ENUMS ──────────────────────────────────────────────────
 
 enum EstadoCita {
@@ -53,27 +52,56 @@ enum TipoItem {
   otro
 }
 
+// ─── CONFIGURACIÓN DEL CONSULTORIO ──────────────────────────
+
+model Configuracion {
+  id                   Int      @id @default(autoincrement())
+  nombre_consultorio   String
+  nombre_profesional   String
+  registro_profesional String?
+  nit                  String?
+  direccion            String?
+  telefono             String?
+  ciudad               String   @default("Villavicencio")
+  email                String?
+  creado_en            DateTime @default(now())
+
+  usuarios        Usuario[]
+  pacientes       Paciente[]
+  citas           Cita[]
+  cotizaciones    Cotizacion[]
+  pagos           Pago[]
+  consentimientos Consentimiento[]
+  certificados    CertificadoDental[]
+}
+
 // ─── USUARIOS ───────────────────────────────────────────────
 
 model Usuario {
-  id            Int      @id @default(autoincrement())
-  email         String   @unique
-  password_hash String
-  nombre        String
-  nit           String
-  registro      String?
-  creado_en     DateTime @default(now())
+  id               Int            @id @default(autoincrement())
+  consultorio_id   Int
+  consultorio      Configuracion  @relation(fields: [consultorio_id], references: [id])
+  email            String         @unique
+  password_hash    String
+  nombre           String
+  registro         String?
+  creado_en        DateTime       @default(now())
 }
 
 // ─── PACIENTES ──────────────────────────────────────────────
 
 model Paciente {
   id                   Int           @id @default(autoincrement())
+  consultorio_id       Int
+  consultorio          Configuracion @relation(fields: [consultorio_id], references: [id])
+
   primer_apellido      String
   segundo_apellido     String?
   nombres              String
+
   tipo_documento       TipoDocumento
-  numero_documento     String        @unique
+  numero_documento     String
+
   fecha_nacimiento     DateTime
   sexo                 Sexo
   estado_civil         String?
@@ -92,7 +120,7 @@ model Paciente {
   acudiente_nombre     String?
   acudiente_parentesco String?
   acudiente_telefono   String?
-  creado_en            DateTime      @default(now())
+  creado_en            DateTime @default(now())
 
   historias       HistoriaClinica[]
   citas           Cita[]
@@ -100,6 +128,9 @@ model Paciente {
   pagos           Pago[]
   consentimientos Consentimiento[]
   certificados    CertificadoDental[]
+
+  @@unique([consultorio_id, numero_documento])
+  @@index([consultorio_id])
 }
 
 // ─── HISTORIA CLÍNICA ───────────────────────────────────────
@@ -204,7 +235,6 @@ model HcOdontograma {
   @@index([historia_id])
 }
 
-
 // ─── HOJA DE EVOLUCIÓN ──────────────────────────────────────
 
 model HojaEvolucion {
@@ -238,6 +268,7 @@ model HcAdjunto {
   id               Int      @id @default(autoincrement())
   historia_id      Int
 
+<<<<<<< HEAD
   nombre_archivo   String
   tipo             String?
   mime_type        String?
@@ -245,11 +276,32 @@ model HcAdjunto {
   contenido_base64 String?  @db.Text
   url              String?
   creado_en        DateTime @default(now())
+=======
+model Cita {
+  id                 Int           @id @default(autoincrement())
+  consultorio_id     Int
+  consultorio        Configuracion @relation(fields: [consultorio_id], references: [id])
+  paciente_id        Int
+  paciente           Paciente      @relation(fields: [paciente_id], references: [id])
+  fecha_hora         DateTime
+  procedimiento      String
+  codigo_cups        String?
+  codigo_cie10       String?
+  valor_cobrado      Decimal?      @db.Decimal(10, 2)
+  estado             EstadoCita    @default(pendiente)
+  causas_no_atencion String?
+  creado_en          DateTime      @default(now())
+>>>>>>> origin/dev
 
   historia         HistoriaClinica @relation(fields: [historia_id], references: [id], onDelete: Cascade)
 
+<<<<<<< HEAD
   @@index([historia_id])
   @@map("hc_adjuntos")
+=======
+  @@index([consultorio_id])
+  @@index([paciente_id])
+>>>>>>> origin/dev
 }
 
 
@@ -296,6 +348,7 @@ enum MetodoPago {
 // ─── PLAN DE TRATAMIENTO / COTIZACIÓN ───────────────────────
 
 model Cotizacion {
+<<<<<<< HEAD
   id               Int                  @id @default(autoincrement())
   paciente_id      Int
   paciente         Paciente             @relation(fields: [paciente_id], references: [id])
@@ -320,7 +373,23 @@ model Cotizacion {
 
   procedimientos   ProcedimientoCotizacion[]
   pagos            Pago[]
+=======
+  id             Int              @id @default(autoincrement())
+  consultorio_id Int
+  consultorio    Configuracion    @relation(fields: [consultorio_id], references: [id])
+  paciente_id    Int
+  paciente       Paciente         @relation(fields: [paciente_id], references: [id])
+  fecha          DateTime         @default(now())
+  descuento      Decimal          @default(0) @db.Decimal(10, 2)
+  subtotal       Decimal          @db.Decimal(12, 2)
+  total          Decimal          @db.Decimal(12, 2)
+  estado         EstadoCotizacion @default(borrador)
+  observaciones  String?
 
+  items          CotizacionItem[]
+>>>>>>> origin/dev
+
+  @@index([consultorio_id])
   @@index([paciente_id])
   @@index([doctor_id])
 }
@@ -358,6 +427,7 @@ model ProcedimientoCotizacion {
 // ─── PAGOS ──────────────────────────────────────────────────
 
 model Pago {
+<<<<<<< HEAD
   id            Int        @id @default(autoincrement())
   paciente_id   Int
   paciente      Paciente   @relation(fields: [paciente_id], references: [id])
@@ -393,12 +463,27 @@ model Cita {
   causas_no_atencion String?
   creado_en          DateTime   @default(now())
   certificados       CertificadoDental[]
+=======
+  id             Int           @id @default(autoincrement())
+  consultorio_id Int
+  consultorio    Configuracion @relation(fields: [consultorio_id], references: [id])
+  paciente_id    Int
+  paciente       Paciente      @relation(fields: [paciente_id], references: [id])
+  fecha          DateTime      @default(now())
+  monto          Decimal       @db.Decimal(10, 2)
+  metodo_pago    MetodoPago
+  concepto       String?
+  creado_en      DateTime      @default(now())
+>>>>>>> origin/dev
 
+  @@index([consultorio_id])
   @@index([paciente_id])
 }
 
 model Consentimiento {
   id                        Int                @id @default(autoincrement())
+  consultorio_id            Int
+  consultorio               Configuracion      @relation(fields: [consultorio_id], references: [id])
   paciente_id               Int
   paciente                  Paciente           @relation(fields: [paciente_id], references: [id])
   tipo                      TipoConsentimiento
@@ -412,28 +497,38 @@ model Consentimiento {
   firma_doctor              String?
   pdf_generado_en           DateTime?
 
+<<<<<<< HEAD
   anulado                   Boolean            @default(false)
   anulado_en                DateTime?
   motivo_anulacion          String?
 
+=======
+  @@index([consultorio_id])
+>>>>>>> origin/dev
   @@index([paciente_id])
 }
 
 model CertificadoDental {
-  id               Int      @id @default(autoincrement())
+  id               Int           @id @default(autoincrement())
+  consultorio_id   Int
+  consultorio      Configuracion @relation(fields: [consultorio_id], references: [id])
   paciente_id      Int
-  paciente         Paciente @relation(fields: [paciente_id], references: [id])
+  paciente         Paciente      @relation(fields: [paciente_id], references: [id])
   cita_id          Int?
-  cita             Cita?    @relation(fields: [cita_id], references: [id])
+  cita             Cita?         @relation(fields: [cita_id], references: [id])
   tipo_cita_texto  String
-  ciudad           String   @default("Villavicencio")
+  ciudad           String        @default("Villavicencio")
   fecha_expedicion DateTime
-  creado_en        DateTime @default(now())
+  creado_en        DateTime      @default(now())
 
+<<<<<<< HEAD
   anulado          Boolean  @default(false)
   anulado_en       DateTime?
   motivo_anulacion String?
 
+=======
+  @@index([consultorio_id])
+>>>>>>> origin/dev
   @@index([paciente_id])
 }
 

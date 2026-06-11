@@ -56,6 +56,7 @@ router.post('/', async (req, res) => {
  
     const cotizacion = await prisma.cotizacion.create({
       data: {
+        consultorio_id: req.usuario.consultorio_id,
         paciente_id,
         doctor_id:       doctor_id       ?? null,
         tipo_tratamiento: tipo_tratamiento ?? null,
@@ -94,8 +95,8 @@ router.get('/paciente/:pacienteId', async (req, res) => {
       
     const cotizaciones = await prisma.cotizacion.findMany({
       where: { paciente_id: pacienteId },
-      orderBy: { creado_en: 'desc' },    // FIX: era 'fecha', el campo es 'creado_en'
-      include: { procedimientos: true }  // FIX: era 'items'
+      orderBy: { creado_en: 'desc' },  
+      include: { procedimientos: true }  
     })
     res.json(cotizaciones)
   } catch (error) {
@@ -152,15 +153,14 @@ router.patch('/:id/estado', async (req, res) => {
   }
  
   try {
-    const cotizacion = await prisma.cotizacion.update({
-      where: { id },
-      data: { estado }
+    const existe = await prisma.cotizacion.findFirst({
+      where: { id, consultorio_id: req.usuario.consultorio_id }
     })
+    if (!existe) return res.status(404).json({ error: 'Cotización no encontrada' })
+
+    const cotizacion = await prisma.cotizacion.update({ where: { id }, data: { estado } })
     res.json(cotizacion)
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Cotización no encontrada' })
-    }
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }

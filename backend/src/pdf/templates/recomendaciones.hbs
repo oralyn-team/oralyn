@@ -19,12 +19,14 @@ h1 { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px
 <div class="header">
   <div></div>
   <div class="consultorio">
-    <strong>Villavicencio-Meta. Calle 32 #38-81 Barzal Alto</strong><br>
-    Cel: 322 947 8820
+    <strong>{{config.nombre_consultorio}}</strong><br>
+  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+  {{config.direccion}}<br>
+  Cel: {{config.telefono}} · NIT. {{config.nit}}
   </div>
 </div>
 
-<div class="nombre-consultorio">RM DIENTES FELICES</div>
+<div class="nombre-consultorio">{{config.nombre_consultorio}}</div>
 
 <h1>RECOMENDACIONES</h1>
 

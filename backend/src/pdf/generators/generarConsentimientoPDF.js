@@ -1,16 +1,16 @@
 const generarPDF = require('../helpers/generarPDF')
 
 const TEMPLATES = {
-  anestesia:           'consentimiento-anestesia',
-  cirugia_oral:        'consentimiento-cirugia-oral',
+  anestesia: 'consentimiento-anestesia',
+  cirugia_oral: 'consentimiento-cirugia-oral',
   retiro_poste_corona: 'consentimiento-retiro-poste-corona',
-  rehabilitacion:      'consentimiento-rehabilitacion',
-  higiene_oral:        'consentimiento-higiene-oral'
+  rehabilitacion: 'consentimiento-rehabilitacion',
+  higiene_oral: 'consentimiento-higiene-oral'
 }
 
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
-async function generarConsentimientoPDF(consentimiento) {
+async function generarConsentimientoPDF(consentimiento, consultorio_id) {
   const p = consentimiento.paciente
   const nombreCompleto = p
     ? `${p.nombres} ${p.primer_apellido} ${p.segundo_apellido ?? ''}`.trim()
@@ -31,24 +31,20 @@ async function generarConsentimientoPDF(consentimiento) {
     dia, mes, anio,
     firma_paciente: consentimiento.firma_paciente || null,
     firma_doctor: consentimiento.firma_doctor || null,
-    // campos específicos rehabilitación
     protesis_removible: campos.protesis_removible || false,
-    protesis_total:     campos.protesis_total || false,
-    sobredentadura:     campos.sobredentadura || false,
-    diente_unico:       campos.diente_unico || false,
-    protesis_fija:      campos.protesis_fija || false,
-    protesis_hibrida:   campos.protesis_hibrida || false,
-    // campos específicos retiro poste
-    pieza_dental:  campos.pieza_dental || '___',
-    diagnostico:   campos.diagnostico || '___'
+    protesis_total: campos.protesis_total || false,
+    sobredentadura: campos.sobredentadura || false,
+    diente_unico: campos.diente_unico || false,
+    protesis_fija: campos.protesis_fija || false,
+    protesis_hibrida: campos.protesis_hibrida || false,
+    pieza_dental: campos.pieza_dental || '___',
+    diagnostico: campos.diagnostico || '___'
   }
 
   const template = TEMPLATES[consentimiento.tipo]
-  if (!template) {
-    throw new Error(`Tipo de consentimiento no válido: ${consentimiento.tipo}`)
-  }
+  if (!template) throw new Error(`Tipo de consentimiento no válido: ${consentimiento.tipo}`)
 
-  return await generarPDF({ template, data })
+  return await generarPDF({ template, consultorio_id, data })
 }
 
 module.exports = generarConsentimientoPDF

@@ -3,11 +3,11 @@ const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
-
 router.use(verificarToken)
 
-// GET /api/dashboard — resumen general
 router.get('/', async (req, res) => {
+  const consultorioId = req.usuario.consultorio_id
+
   try {
     const hoy = new Date()
     const inicioDia = new Date(hoy)
@@ -15,35 +15,30 @@ router.get('/', async (req, res) => {
     const finDia = new Date(hoy)
     finDia.setHours(23, 59, 59, 999)
 
-    // Citas del día
     const citasHoy = await prisma.cita.findMany({
       where: {
+        consultorio_id: consultorioId,
         fecha_hora: { gte: inicioDia, lte: finDia }
       },
       orderBy: { fecha_hora: 'asc' },
       include: {
         paciente: {
-          select: {
-            id: true,
-            nombres: true,
-            primer_apellido: true,
-            segundo_apellido: true,
-            telefono: true
-          }
+          select: { id: true, nombres: true, primer_apellido: true, segundo_apellido: true, telefono: true }
         }
       }
     })
 
-    // Total pacientes registrados
-    const totalPacientes = await prisma.paciente.count()
+    const totalPacientes = await prisma.paciente.count({
+      where: { consultorio_id: consultorioId }
+    })
 
-    // Pacientes con saldo pendiente
     const cotizacionesAprobadas = await prisma.cotizacion.findMany({
-      where: { estado: 'aprobada' },
+      where: { consultorio_id: consultorioId, estado: 'aprobada' },
       select: { paciente_id: true, total: true }
     })
 
     const pagos = await prisma.pago.findMany({
+      where: { consultorio_id: consultorioId },
       select: { paciente_id: true, monto: true }
     })
 
@@ -56,12 +51,10 @@ router.get('/', async (req, res) => {
     })
 
     const pacientesConDeuda = Object.entries(saldosPorPaciente)
-      .filter(([_, saldo]) => saldo > 0)
-      .length
+      .filter(([_, saldo]) => saldo > 0).length
 
-    // Citas por estado hoy
     const pendientes = citasHoy.filter(c => c.estado === 'pendiente').length
-    const atendidas = citasHoy.filter(c => c.estado === 'asistio').length
+    const atendidas  = citasHoy.filter(c => c.estado === 'asistio').length
     const canceladas = citasHoy.filter(c => c.estado === 'cancelada').length
 
     res.json({
