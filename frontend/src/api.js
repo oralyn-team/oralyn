@@ -95,4 +95,11 @@ export const api = {
 
   // PDFs
   getPdfUrl: (tipo, id = '') => `${BASE_URL}/pdf/${tipo}${id ? `/${id}` : ''}`,
+
+  // Dashboard
+  getDashboard: () => request('/dashboard'),
+
+  // Configuración
+  getConfiguracion: () => request('/configuracion'),
+  actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
 }
