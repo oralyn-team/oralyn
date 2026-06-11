@@ -4,10 +4,12 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/Appcontext'
 import Login from './pages/login'
+import Dashboard from './pages/Dashboard'
 import Pacientes from './pages/Pacientes'
 import Historias from './pages/Historias'
 import Citas from './pages/Citas'
 import Consentimientos from './pages/Consentimientos'
+import Configuracion from './pages/Configuracion'
 
 import './index.css'
 
@@ -22,10 +24,13 @@ createRoot(document.getElementById('root')).render(
       <AppProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Pacientes /></PrivateRoute>} />
           <Route path="/historias" element={<PrivateRoute><Historias /></PrivateRoute>} />
           <Route path="/citas" element={<PrivateRoute><Citas /></PrivateRoute>} />
           <Route path="/consentimientos" element={<PrivateRoute><Consentimientos /></PrivateRoute>} />
+          <Route path="/configuracion" element={<PrivateRoute><Configuracion /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </AppProvider>
