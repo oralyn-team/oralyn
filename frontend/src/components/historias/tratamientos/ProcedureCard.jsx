@@ -194,7 +194,8 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
     set('aplicaEn', val);
     set('dientes', []);
     set('cuadrante', '');
-  }
+    if (val !== 'dientes') set('cantidad', 1);
+}
 
   return (
     <div
@@ -313,7 +314,10 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
                   <FieldLabel>Dientes tratados</FieldLabel>
                   <TeethPicker
                     selected={proc.dientes || []}
-                    onChange={(val) => set('dientes', val)}
+                    onChange={(val) => {
+                      set('dientes', val);
+                      set('cantidad', val.length || 1);
+                      }}
                   />
                 </div>
               )}
@@ -361,9 +365,14 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
                   min="1"
                   value={proc.cantidad}
                   onChange={(e) => set('cantidad', e.target.value)}
-                  className={`${input} text-center ${error.cantidad ? inputErr : ''}`}
-                />
+                  readOnly={proc.aplicaEn === 'dientes'}
+                  className={`${input} text-center ${error.cantidad ? inputErr : ''} 
+                  ${proc.aplicaEn === 'dientes' ? 'bg-teal-soft text-teal-muted cursor-default' : ''}`}
+                  />
                 <ErrMsg msg={error.cantidad} />
+                {proc.aplicaEn === 'dientes' && (
+                  <p className="text-[10px] text-teal-muted mt-0.5">Auto · {proc.dientes?.length || 0} diente(s)</p>
+                  )}
               </div>
 
               <div>

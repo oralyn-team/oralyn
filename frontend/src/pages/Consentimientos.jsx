@@ -63,11 +63,12 @@ function puedeEliminar(documento) {
 
 function DocumentoCard({
   icon: Icon,
+  tipo,
+  documentoId,
   title,
   subtitle,
   fecha,
   estado,
-  pdfUrl,
   anulado,
   motivoAnulacion,
   puedeEliminarDocumento,
@@ -115,20 +116,19 @@ function DocumentoCard({
       </div>
 
       <div className="flex items-center justify-end gap-2 mt-3">
-        <a
-          href={pdfUrl}
-          target="_blank"
-          rel="noreferrer"
-          className={[
-            'inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-colors no-underline',
-            anulado
-              ? 'text-status-red border-red-200 hover:bg-red-100'
-              : 'text-primary border-teal-border hover:bg-teal-soft',
-          ].join(' ')}
+        <button
+        type="button"
+        onClick={() => api.verPDF(tipo, documentoId)}
+        className={[
+          'inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-colors',
+          anulado
+            ? 'text-status-red border-red-200 hover:bg-red-100'
+            : 'text-primary border-teal-border hover:bg-teal-soft',
+        ].join(' ')}
         >
           <FileText size={12} />
           Ver PDF
-        </a>
+          </button>
         {!anulado && (
           <button
             type="button"
@@ -632,7 +632,8 @@ export default function Consentimientos() {
                                 subtitle={consentimiento.ciudad || 'Villavicencio'}
                                 fecha={formatoFecha(consentimiento.fecha)}
                                 estado={anulado ? 'Anulado' : (consentimiento.pdf_generado_en ? 'PDF generado' : 'Registrado')}
-                                pdfUrl={api.getPdfUrl('consentimiento', consentimiento.id)}
+                                tipo="consentimiento"           
+                                documentoId={consentimiento.id} 
                                 anulado={anulado}
                                 motivoAnulacion={consentimiento.motivo_anulacion}
                                 puedeEliminarDocumento={puedeEliminar(consentimiento)}
@@ -667,7 +668,8 @@ export default function Consentimientos() {
                                 subtitle={certificado.ciudad || 'Villavicencio'}
                                 fecha={formatoFecha(certificado.fecha_expedicion)}
                                 estado={anulado ? 'Anulado' : 'Emitido'}
-                                pdfUrl={api.getPdfUrl('certificado', certificado.id)}
+                                tipo="certificado"
+                                documentoId={certificado.id}
                                 anulado={anulado}
                                 motivoAnulacion={certificado.motivo_anulacion}
                                 puedeEliminarDocumento={puedeEliminar(certificado)}
