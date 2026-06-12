@@ -34,6 +34,7 @@ export function getToday() {
 
 // ─── IDs ──────────────────────────────────────────────────────────────────────
 
+// Sufijo random de 4 chars para evitar colisiones si se crean dos en el mismo ms
 export const newProcId = () => `proc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 export const newPagoId = () => `pago_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
@@ -53,9 +54,9 @@ export function calcSubtotalProc(proc) {
  * @returns {{ total, totalPagado, saldo }}
  */
 export function calcTotales(procedimientos, pagos) {
-  const total      = procedimientos.reduce((s, p) => s + calcSubtotalProc(p), 0);
+  const total       = procedimientos.reduce((s, p) => s + calcSubtotalProc(p), 0);
   const totalPagado = pagos.reduce((s, p) => s + (Number(p.monto) || 0), 0);
-  const saldo      = Math.max(total - totalPagado, 0);
+  const saldo       = Math.max(total - totalPagado, 0);
   return { total, totalPagado, saldo };
 }
 
@@ -83,36 +84,51 @@ export function resumirAplicacion(proc) {
   }
 }
 
+// ─── Mapeo de método de pago → enum del backend ───────────────────────────────
+
+export function mapMetodoPago(label = '') {
+  const map = {
+    'Efectivo':               'efectivo',
+    'Transferencia bancaria': 'transferencia_bancaria',
+    'Tarjeta débito':         'tarjeta_debito',
+    'Tarjeta crédito':        'tarjeta_credito',
+    'Nequi':                  'nequi',
+    'Daviplata':              'daviplata',
+    'Otro':                   'otro',
+  };
+  return map[label] ?? 'otro';
+}
+
 // ─── Estado vacío ─────────────────────────────────────────────────────────────
 
-export const PROC_VACIO = (id = newProcId()) => ({
-  id,
-  aplicaEn:    'general',
-  dientes:     [],
-  cuadrante:   '',
+export const PROC_VACIO = () => ({
+  id:            newProcId(),   // siempre con sufijo random, nunca duplica
+  aplicaEn:      'general',
+  dientes:       [],
+  cuadrante:     '',
   procedimiento: '',
-  descripcion: '',
-  cantidad:    1,
+  descripcion:   '',
+  cantidad:      1,
   valorUnitario: '',
-  descuento:   0,
-  estado:      'pendiente',
+  descuento:     0,
+  estado:        'pendiente',
   observaciones: '',
 });
 
-export const PAGO_VACIO = (id = newPagoId()) => ({
-  id,
-  fecha:       getToday(),
-  monto:       '',
-  metodo:      'Efectivo',
-  referencia:  '',
+export const PAGO_VACIO = () => ({
+  id:         newPagoId(),      // usa newPagoId() con sufijo random, no Date.now() solo
+  fecha:      getToday(),
+  monto:      '',
+  metodo:     'Efectivo',
+  referencia: '',
 });
 
 export const FORM_VACIO = {
-  fecha:     '',
-  doctor:    '',
-  tipo:      '',
-  estado:    'borrador',
-  prioridad: 'media',
-  motivo:    '',
+  fecha:        '',
+  doctor:       '',
+  tipo:         '',
+  estado:       'borrador',
+  prioridad:    'media',
+  motivo:       '',
   observaciones: '',
 };

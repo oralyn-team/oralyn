@@ -221,51 +221,60 @@ export function AppProvider({ children }) {
   }
 
   async function guardarTratamiento(data, pacienteId) {
-    const { id, accion, info, procedimientos, pagos = [] } = data;
+  const { id, accion, info, procedimientos, pagos = [] } = data;
 
-    // Adaptar estructura del modal → estructura del API
-    const body = {
-      paciente_id:      pacienteId,
-      doctor_id:        info.doctor_id        ?? null,
-      tipo_tratamiento: info.tipo             ?? null,
-      prioridad:        info.prioridad        ?? 'media',
-      estado:           accion === 'aprobar'  ? 'aprobado' : (info.estado ?? 'borrador'),
-      motivo:           info.motivo           ?? null,
-      observaciones:    info.observaciones    ?? null,
-      procedimientos:   procedimientos.map((p) => ({
-        procedimiento:  p.procedimiento,
-        descripcion:    p.descripcion         ?? null,
-        aplica_en:      p.aplicaEn            ?? 'general',  // camelCase → snake_case
-        dientes:        p.dientes             ?? [],
-        cuadrante:      p.cuadrante           ?? null,
-        cantidad:       Number(p.cantidad),
-        valor_unitario: Number(p.valorUnitario),             // camelCase → snake_case
-        descuento:      Number(p.descuento)   || 0,
-        estado:         p.estado              ?? 'pendiente',
-        observaciones:  p.observaciones       ?? null,
-        orden:          procedimientos.indexOf(p),
-      })),
+  // procedimientos llegan en camelCase desde el form (sin mapear)
+  const procedimientosBody = procedimientos.map((p, index) => {
+    const cantidad      = Number(p.cantidad      ?? p.cantidad)      || 1;
+    const valorUnitario = Number(p.valorUnitario ?? p.valor_unitario) || 0;
+    const descuento     = Number(p.descuento)    || 0;
+    return {
+      procedimiento:  p.procedimiento,
+      descripcion:    p.descripcion          ?? null,
+      aplica_en:      p.aplicaEn ?? p.aplica_en ?? 'general',
+      dientes:        p.dientes              ?? [],
+      cuadrante:      p.cuadrante            || null,
+      cantidad,
+      valor_unitario: valorUnitario,
+      descuento,
+      estado:         p.estado               ?? 'pendiente',
+      observaciones:  p.observaciones        || null,
+      orden:          index,
     };
+  });
 
-    // Si el id es un número real de BD (no un Date.now()) → editar, si no → crear
-    const esEdicion = Number.isInteger(id) && id < 1_000_000_000_000;
+  // pagos llegan con metodo (label) desde el form
+  const pagosBody = pagos
+    .filter((p) => Number(p.monto) > 0)
+    .map((p) => ({
+      id:          p.id,         // back lo usa para distinguir nuevos vs existentes en PUT
+      fecha:       p.fecha       ?? null,
+      monto:       Number(p.monto),
+      metodo_pago: normalizeMetodoPago(p.metodo ?? p.metodo_pago),
+      referencia:  p.referencia  || null,
+    }));
 
-    const cotizacion = esEdicion
-      ? await api.actualizarCotizacion(id, body)
-      : await api.crearCotizacion(body);
+  const body = {
+    paciente_id:      pacienteId,
+    doctor_id:        info.doctor_id        ?? null,
+    tipo_tratamiento: info.tipo             ?? null,
+    prioridad:        info.prioridad        ?? 'media',
+    estado:           accion === 'aprobar'  ? 'aprobado' : (info.estado ?? 'borrador'),
+    motivo:           info.motivo           ?? null,
+    observaciones:    info.observaciones    ?? null,
+    procedimientos:   procedimientosBody,
+    pagos:            pagosBody,            // ← van dentro del body, no por separado
+  };
 
-    const pagosNuevos = pagos.filter((p) => typeof p.id !== 'number' && Number(p.monto) > 0);
-    await Promise.all(pagosNuevos.map((p) => api.crearPago({
-      paciente_id: pacienteId,
-      cotizacion_id: cotizacion.id,
-      monto: Number(p.monto),
-      metodo_pago: normalizeMetodoPago(p.metodo),
-      referencia: p.referencia || null,
-      concepto: info.tipo || 'Tratamiento',
-    })));
+  // id null → crear, id número real → editar
+  const esEdicion = Number.isInteger(id) && id > 0;
 
-    return normalizeCotizacion(cotizacion);
-  }
+  const cotizacion = esEdicion
+    ? await api.actualizarCotizacion(id, body)
+    : await api.crearCotizacion(body);
+
+  return normalizeCotizacion(cotizacion);
+}
 
   async function cambiarEstadoCotizacion(cotizacionId, estado) {
     return api.cambiarEstadoCotizacion(cotizacionId, estado);

@@ -22,7 +22,7 @@ export default function Login() {
   try {
     const { token } = await api.login(form.email, form.password)
     guardarToken(token)      
-    navigate('/pacientes')
+    navigate('/dashboard')
   } catch {
     setError(true)
   } finally {

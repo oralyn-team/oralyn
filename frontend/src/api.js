@@ -5,6 +5,57 @@ function getToken() {
   return localStorage.getItem('token')
 }
 
+async function verPDF(tipo, id) {
+  let url;
+
+  switch (tipo) {
+    case 'consentimiento':
+      url = `${BASE_URL}/pdf/consentimiento/${id}`;
+      break;
+
+    case 'certificado':
+      url = `${BASE_URL}/pdf/certificado/${id}`;
+      break;
+
+    default:
+      throw new Error(`Tipo de PDF no soportado: ${tipo}`);
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(error);
+    throw new Error('Error al obtener el PDF');
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  window.open(objectUrl, '_blank');
+}
+
+async function verHistoriaPDF(historiaId) {
+  const url = `${BASE_URL}/pdf/historia/${historiaId}`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al obtener el PDF');
+  }
+
+  const blob = await response.blob();
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -13,24 +64,48 @@ async function request(path, options = {}) {
       Authorization: `Bearer ${getToken()}`,
       ...options.headers,
     },
-  })
+  });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}))
-    throw { status: res.status, ...error }
+    const error = await res.json().catch(() => ({}));
+    throw { status: res.status, ...error };
   }
 
-  if (res.status === 204) return null
+  if (res.status === 204) return null;
 
-  const text = await res.text()
-  return text ? JSON.parse(text) : null
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
+// Agrega esta función junto a verHistoriaPDF:
+async function verCotizacionPDF(cotizacionId) {
+  const url = `${BASE_URL}/cotizaciones/${cotizacionId}/pdf`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al obtener el PDF');
+  }
+
+  const blob = await response.blob();
+  window.open(URL.createObjectURL(blob), '_blank');
+}
 
 export const api = {
+  verPDF,
+  verHistoriaPDF,
+  verCotizacionPDF,
+
   // Auth
   login: (email, password) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+    request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
 
   // Pacientes
   getPacientes:       ()         => request('/pacientes'),
@@ -71,6 +146,7 @@ export const api = {
   actualizarCotizacion:    (id, data)   => request(`/cotizaciones/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   cambiarEstadoCotizacion: (id, estado) => request(`/cotizaciones/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ estado }) }),
   eliminarCotizacion:      (id)         => request(`/cotizaciones/${id}`, { method: 'DELETE' }),
+  verCotizacionPDF:        (id)         => verCotizacionPDF(id),
 
   // Pagos
   getPagosPaciente: (pacienteId) => request(`/pagos/paciente/${pacienteId}`),
@@ -93,6 +169,11 @@ export const api = {
     request(`/certificados/${id}/anular`, { method: 'PATCH', body: JSON.stringify({ motivo_anulacion }) }),
   eliminarCertificado:    (id)         => request(`/certificados/${id}`, { method: 'DELETE' }),
 
-  // PDFs
-  getPdfUrl: (tipo, id = '') => `${BASE_URL}/pdf/${tipo}${id ? `/${id}` : ''}`,
+
+  // Dashboard
+  getDashboard: () => request('/dashboard'),
+
+  // Configuración
+  getConfiguracion: () => request('/configuracion'),
+  actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
 }

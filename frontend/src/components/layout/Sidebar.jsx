@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { icon: CalendarDays,    label: 'Citas',           path: '/citas'         },
   { icon: Stethoscope,     label: 'Consentimientos',   path: '/consentimientos'  },
   { icon: ClipboardList,   label: 'Historias',       path: '/historias'     },
+  { icon: Settings,        label: 'Ajustes',         path: '/configuracion' },
 ];
 
 function ToothIcon() {
