@@ -202,9 +202,10 @@ export default function Historias() {
 
         {historiaActiva ? (
           <HistoriaDetalle
-            historia={historiaActiva}
-            onVolver={handleVolver}
-            onActualizar={handleActualizar}
+          historia={historiaActiva}
+          onVolver={handleVolver}
+          onActualizar={handleActualizar}
+          onVerPDF={() => api.verHistoriaPDF(historiaActiva.id)} 
           />
         ) : (
           <main className="flex-1 overflow-y-auto px-6 py-5">
