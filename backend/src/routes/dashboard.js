@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
     })
 
     const cotizacionesAprobadas = await prisma.cotizacion.findMany({
-      where: { consultorio_id: consultorioId, estado: 'aprobada' },
+      where: { consultorio_id: consultorioId, estado: 'aprobado' },
       select: { paciente_id: true, total: true }
     })
 

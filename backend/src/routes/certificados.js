@@ -97,4 +97,45 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
+const generarCertificadoPDF = require("../pdf/generators/generarCertificadoPDF");
+
+router.get("/:id/pdf", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const certificado = await prisma.certificadoDental.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        paciente: true,
+      },
+    });
+
+    if (!certificado) {
+      return res.status(404).json({
+        error: "Certificado no encontrado",
+      });
+    }
+
+    const pdf = await generarCertificadoPDF(
+      certificado,
+      req.usuario.consultorio_id
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=certificado-${id}.pdf`
+    );
+
+    res.send(pdf);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Error generando PDF",
+    });
+  }
+});
+
 module.exports = router

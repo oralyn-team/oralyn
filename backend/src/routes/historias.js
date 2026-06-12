@@ -531,5 +531,36 @@ router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
+const generarHistoriaPDF = require('../pdf/generators/generarHistoriaPDF');
 
+router.get('/:id/pdf', async (req, res) => {
+  const id = parseInt(req.params.id)
+  try {
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id },
+      include: {
+        paciente: true,
+        antecedentes: true,
+        examen: true,
+        odontogramas: { orderBy: { creado_en: 'desc' } },
+        evoluciones: { orderBy: { fecha: 'desc' } },
+      }
+    })
+
+    if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
+
+    if (historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+
+    const pdf = await generarHistoriaPDF(historia, req.usuario.consultorio_id)
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `inline; filename=historia-${id}.pdf`)
+    res.send(pdf)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error generando PDF' })
+  }
+})
 module.exports = router

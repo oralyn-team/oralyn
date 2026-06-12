@@ -156,4 +156,46 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
+const generarConsentimientoPDF = require("../pdf/generators/generarConsentimientoPDF");
+
+router.get("/:id/pdf", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const consentimiento = await prisma.consentimiento.findFirst({
+      where: {
+        id,
+        consultorio_id: req.usuario.consultorio_id,
+      },
+      include: {
+        paciente: true,
+      },
+    });
+
+    if (!consentimiento) {
+      return res.status(404).json({
+        error: "Consentimiento no encontrado",
+      });
+    }
+
+    const pdf = await generarConsentimientoPDF(
+      consentimiento,
+      req.usuario.consultorio_id
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=consentimiento-${id}.pdf`
+    );
+
+    res.send(pdf);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Error generando PDF",
+    });
+  }
+});
+
 module.exports = router
