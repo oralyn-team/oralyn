@@ -3,148 +3,357 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: Arial; padding: 40px; color: #222; font-size: 13px; line-height: 1.6; }
-    .header { display: flex; justify-content: flex-end; margin-bottom: 20px; }
-    .consultorio { text-align: right; font-size: 12px; color: #333; }
-    .consultorio strong { font-size: 13px; }
-    .fecha-linea { margin-bottom: 8px; font-size: 13px; }
-    .fecha-linea span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
-    .doctor-linea { margin-bottom: 6px; font-size: 13px; }
-    .doctor-linea span { display: inline-block; border-bottom: 1px solid #333; min-width: 200px; margin-left: 4px; }
-    .divider { border-top: 1px solid #333; margin: 16px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .header-tabla { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 4px; padding: 0 4px; }
-    .fila-tratamiento { display: flex; align-items: center; margin-bottom: 6px; font-size: 13px; }
-    .fila-tratamiento .nombre { flex: 1; display: flex; align-items: center; gap: 6px; }
-    .fila-tratamiento .numero { width: 80px; border-bottom: 1px solid #333; margin: 0 16px; }
-    .fila-tratamiento .valor { width: 120px; display: flex; align-items: center; gap: 4px; }
-    .fila-tratamiento .valor span { flex: 1; border-bottom: 1px solid #333; }
-    .otros-section { margin-top: 8px; }
-    .otros-linea { display: flex; align-items: center; margin-bottom: 8px; }
-    .otros-linea .label { min-width: 60px; font-size: 13px; }
-    .otros-linea .linea { flex: 1; border-bottom: 1px solid #333; margin-right: 16px; }
-    .otros-linea .valor { width: 120px; border-bottom: 1px solid #333; }
-    .totales-section { margin-top: 8px; }
-    .total-linea { display: flex; align-items: center; margin-bottom: 8px; }
-    .total-linea .label { min-width: 120px; font-weight: bold; font-size: 13px; }
-    .total-linea .linea { width: 150px; border-bottom: 1px solid #333; margin-left: auto; }
-    .firma-section { margin-top: 80px; text-align: center; }
-    .firma-linea { border-top: 1px solid #333; width: 200px; margin: 0 auto 6px; }
-    .firma-label { font-weight: bold; font-size: 13px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      color: #222;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* ── Encabezado ─────────────────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+
+    .consultorio {
+      text-align: right;
+      font-size: 12px;
+      color: #333;
+    }
+
+    .consultorio strong {
+      font-size: 14px;
+    }
+
+    /* ── Fecha y paciente ───────────────────────────────────── */
+    .fecha-linea {
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .fecha-linea span {
+      display: inline-block;
+      border-bottom: 1px solid #333;
+      min-width: 80px;
+      margin: 0 4px;
+      text-align: center;
+    }
+
+    .dato-linea {
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .dato-linea span {
+      display: inline-block;
+      border-bottom: 1px solid #333;
+      min-width: 220px;
+      margin-left: 4px;
+    }
+
+    /* ── Divisor ────────────────────────────────────────────── */
+    .divider {
+      border-top: 1px solid #333;
+      margin: 16px 0;
+    }
+
+    /* ── Cabecera de tabla ──────────────────────────────────── */
+    .header-tabla {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 6px;
+      padding: 0 4px;
+    }
+
+    /* ── Filas de procedimiento ─────────────────────────────── */
+    .fila-tratamiento {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .fila-tratamiento .nombre {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .fila-tratamiento .nombre-text {
+      flex: 1;
+    }
+
+    .fila-tratamiento .nombre-text .desc {
+      font-size: 11px;
+      color: #555;
+      font-style: italic;
+    }
+
+    .fila-tratamiento .nombre-text .aplicacion {
+      font-size: 11px;
+      color: #777;
+    }
+
+    .fila-tratamiento .numero {
+      width: 80px;
+      border-bottom: 1px solid #333;
+      margin: 0 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .fila-tratamiento .valor {
+      width: 130px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .fila-tratamiento .valor span {
+      flex: 1;
+      border-bottom: 1px solid #333;
+      text-align: right;
+    }
+
+    /* ── Totales ────────────────────────────────────────────── */
+    .divider-light {
+      border-top: 1px dashed #aaa;
+      margin: 12px 0;
+    }
+
+    .totales-section {
+      margin-top: 10px;
+    }
+
+    .total-linea {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .total-linea .label {
+      min-width: 140px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .total-linea .linea {
+      width: 160px;
+      border-bottom: 1px solid #333;
+      margin-left: auto;
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    /* ── Pagos ──────────────────────────────────────────────── */
+    .pagos-section {
+      margin-top: 14px;
+    }
+
+    .pago-linea {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 13px;
+      gap: 12px;
+    }
+
+    .pago-linea .metodo {
+      min-width: 170px;
+      border-bottom: 1px solid #333;
+    }
+
+    .pago-linea .fecha-pago {
+      min-width: 130px;
+      border-bottom: 1px solid #333;
+      color: #555;
+      font-size: 12px;
+    }
+
+    .pago-linea .monto-pago {
+      width: 130px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .pago-linea .monto-pago span {
+      flex: 1;
+      border-bottom: 1px solid #333;
+      text-align: right;
+    }
+
+    /* ── Observaciones ──────────────────────────────────────── */
+    .obs-section {
+      margin-top: 14px;
+      font-size: 12px;
+    }
+
+    .obs-label {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .obs-linea {
+      border-bottom: 1px solid #ccc;
+      min-height: 18px;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    /* ── Firma ──────────────────────────────────────────────── */
+    .firma-section {
+      margin-top: 60px;
+      text-align: center;
+    }
+
+    .firma-linea {
+      border-top: 1px solid #333;
+      width: 200px;
+      margin: 0 auto 6px;
+    }
+
+    .firma-label {
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    .firma-sub {
+      font-size: 11px;
+      color: #555;
+    }
+
+    /* ── Estado badge ───────────────────────────────────────── */
+    .estado-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1px solid currentColor;
+    }
   </style>
 </head>
 <body>
 
+<!-- ── Encabezado consultorio ───────────────────────────────── -->
 <div class="header">
   <div class="consultorio">
     <strong>{{config.nombre_consultorio}}</strong><br>
-  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
-  {{config.direccion}}<br>
-  Cel: {{config.telefono}} · NIT. {{config.nit}}
+    {{config.nombre_profesional}}{{#if config.registro_profesional}} · Reg. {{config.registro_profesional}}{{/if}}<br>
+    {{#if config.direccion}}{{config.direccion}}<br>{{/if}}
+    {{#if config.telefono}}Cel: {{config.telefono}}{{/if}}{{#if config.nit}} · NIT. {{config.nit}}{{/if}}
   </div>
 </div>
 
+<!-- ── Fecha y datos del paciente ───────────────────────────── -->
 <div class="fecha-linea">
-  Villavicencio <span>{{dia}}</span> de <span>{{mes}}</span> de <span>{{anio}}</span>
+  {{config.ciudad}} <span>{{dia}}</span> de <span>{{mes}}</span> de <span>{{anio}}</span>
+  &nbsp;&nbsp;
+  <span class="estado-badge" style="color:{{estado_color}}; border-color:{{estado_color}};">
+    {{estado_label}}
+  </span>
 </div>
-<div class="doctor-linea">
-  El Doctor(a) de <span>{{doctor}}</span>
+
+<div class="dato-linea">
+  Tipo de tratamiento: <span>{{tipo_tratamiento}}</span>
 </div>
-<div class="doctor-linea">
-  Atendió a <span>{{nombre_completo}}</span>
+<div class="dato-linea">
+  Atendió a: <span>{{nombre_completo}}</span>
+  {{#if documento}}&nbsp;&nbsp; C.C.: <span>{{documento}}</span>{{/if}}
 </div>
+{{#if motivo}}
+<div class="dato-linea">
+  Motivo: <span>{{motivo}}</span>
+</div>
+{{/if}}
 
 <div class="divider"></div>
 
+<!-- ── Tabla de procedimientos ──────────────────────────────── -->
 <div class="header-tabla">
-  <span>TRATAMIENTO</span>
-  <span style="margin-right:80px">N.°</span>
+  <span>PROCEDIMIENTO</span>
+  <span style="margin-right: 96px;">CANT.</span>
   <span>VALOR</span>
 </div>
 
+{{#each procedimientos}}
 <div class="fila-tratamiento">
-  <div class="nombre">➤ DETARTRAJE-CURETRAJE</div>
-  <div class="numero">{{detartraje_num}}</div>
-  <div class="valor">$ <span>{{detartraje_val}}</span></div>
+  <div class="nombre">
+    ➤
+    <div class="nombre-text">
+      <div>{{procedimiento}}{{#if tieneDescuento}} <small style="color:#d97706;">(Dto. {{descuento}})</small>{{/if}}</div>
+      {{#if descripcion}}<div class="desc">{{descripcion}}</div>{{/if}}
+      <div class="aplicacion">{{aplicacion}}</div>
+    </div>
+  </div>
+  <div class="numero">{{cantidad}}</div>
+  <div class="valor">$ <span>{{subtotal}}</span></div>
 </div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ SUPERFICIE DE RETINA</div>
-  <div class="numero">{{superficie_num}}</div>
-  <div class="valor">$ <span>{{superficie_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ INCRUSTACIONES</div>
-  <div class="numero">{{incrustaciones_num}}</div>
-  <div class="valor">$ <span>{{incrustaciones_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ CARILLAS</div>
-  <div class="numero">{{carillas_num}}</div>
-  <div class="valor">$ <span>{{carillas_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ TRATAMIENTO DE CONDUCTO</div>
-  <div class="numero">{{conducto_num}}</div>
-  <div class="valor">$ <span>{{conducto_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ EXODONCIAS</div>
-  <div class="numero">{{exodoncia_num}}</div>
-  <div class="valor">$ <span>{{exodoncia_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ CIRUGIAS</div>
-  <div class="numero">{{cirugia_num}}</div>
-  <div class="valor">$ <span>{{cirugia_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ NUCLEOS</div>
-  <div class="numero">{{nucleo_num}}</div>
-  <div class="valor">$ <span>{{nucleo_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ CORONAS</div>
-  <div class="numero">{{corona_num}}</div>
-  <div class="valor">$ <span>{{corona_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ BLANQUEAMIENTO DENTAL</div>
-  <div class="numero">{{blanqueamiento_num}}</div>
-  <div class="valor">$ <span>{{blanqueamiento_val}}</span></div>
-</div>
+{{/each}}
 
-<div class="otros-section">
-  <div class="otros-linea">
-    <span class="label">OTROS:</span>
-    <span class="linea"></span>
-    <span class="valor"></span>
-  </div>
-  <div class="otros-linea">
-    <span class="label"></span>
-    <span class="linea"></span>
-    <span class="valor"></span>
-  </div>
-  <div class="otros-linea">
-    <span class="label"></span>
-    <span class="linea"></span>
-    <span class="valor"></span>
-  </div>
-</div>
+<div class="divider-light"></div>
 
+<!-- ── Totales ───────────────────────────────────────────────── -->
 <div class="totales-section">
   <div class="total-linea">
-    <span class="label">PRESUPUESTO</span>
-    <span class="linea">{{subtotal}}</span>
+    <span class="label">PRESUPUESTO TOTAL</span>
+    <span class="linea">{{total}}</span>
+  </div>
+  {{#if tiene_pagos}}
+  <div class="total-linea">
+    <span class="label">TOTAL PAGADO</span>
+    <span class="linea">{{total_pagado}}</span>
   </div>
   <div class="total-linea">
-    <span class="label">DTO</span>
-    <span class="linea">{{descuento}}</span>
+    <span class="label">SALDO PENDIENTE</span>
+    <span class="linea">{{saldo}}</span>
   </div>
+  {{/if}}
 </div>
 
+<!-- ── Pagos registrados ─────────────────────────────────────── -->
+{{#if tiene_pagos}}
+<div class="divider"></div>
+<div class="pagos-section">
+  <div style="font-weight:bold; margin-bottom:8px;">PAGOS REGISTRADOS</div>
+  {{#each pagos}}
+  <div class="pago-linea">
+    <span class="metodo">{{metodo}}</span>
+    <span class="fecha-pago">{{fecha}}</span>
+    <div class="monto-pago">$ <span>{{monto}}</span></div>
+  </div>
+  {{/each}}
+</div>
+{{/if}}
+
+<!-- ── Observaciones ─────────────────────────────────────────── -->
+{{#if observaciones}}
+<div class="divider-light"></div>
+<div class="obs-section">
+  <div class="obs-label">OBSERVACIONES:</div>
+  <div class="obs-linea">{{observaciones}}</div>
+</div>
+{{/if}}
+
+<!-- ── Firma ──────────────────────────────────────────────────── -->
 <div class="firma-section">
   <div class="firma-linea"></div>
   <div class="firma-label">FIRMA Y SELLO</div>
+  <div class="firma-sub">{{config.nombre_profesional}}</div>
+  {{#if config.registro_profesional}}
+  <div class="firma-sub">Reg. Prof. {{config.registro_profesional}}</div>
+  {{/if}}
 </div>
 
 </body>
