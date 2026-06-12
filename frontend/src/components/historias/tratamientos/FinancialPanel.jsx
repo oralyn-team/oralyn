@@ -20,7 +20,7 @@ function StatCard({ label, value, variant = 'default', icon: Icon }) {
         </span>
         {Icon && <Icon size={12} className={variant === 'primary' ? 'text-white/60' : 'text-teal-muted'} />}
       </div>
-      <p className={`text-[20px] font-bold leading-none tabular-nums ${variant === 'primary' ? 'text-white' : ''}`}>
+      <p className={`text-[14px] font-bold leading-tight tabular-nums truncate ${variant === 'primary' ? 'text-white' : ''}`}>
         {value}
       </p>
     </div>
