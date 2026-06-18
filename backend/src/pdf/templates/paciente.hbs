@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; padding: 40px; color: #222; line-height: 1.6; }
+    h1 { text-align: center; color: #1a3a5c; margin-bottom: 8px; }
+    .subtitulo { text-align: center; color: #666; margin-bottom: 30px; font-size: 14px; }
+    h2 { margin-top: 24px; border-bottom: 1px solid #ddd; padding-bottom: 4px; color: #2e6da4; font-size: 14px; text-transform: uppercase; }
+    .fila { display: flex; gap: 40px; margin-bottom: 8px; }
+    .campo { margin-bottom: 8px; font-size: 14px; flex: 1; }
+    .label { font-weight: bold; color: #444; }
+  </style>
+</head>
+<body>
+
+<h1>{{config.nombre_consultorio}} — Odontología Integral</h1>
+<p class="subtitulo">{{config.nombre_profesional}} · Reg. {{config.registro_profesional}} · NIT {{config.nit}} · Cel. {{config.telefono}} · {{config.direccion}}</p>
+
+<h2>Información del Paciente</h2>
+
+<div class="fila">
+  <div class="campo"><span class="label">Nombre completo:</span> {{nombre_completo}}</div>
+  <div class="campo"><span class="label">Documento:</span> {{tipo_documento}} {{numero_documento}}</div>
+</div>
+<div class="fila">
+  <div class="campo"><span class="label">Fecha de nacimiento:</span> {{fecha_nacimiento}}</div>
+  <div class="campo"><span class="label">Sexo:</span> {{sexo}}</div>
+  <div class="campo"><span class="label">Estado civil:</span> {{estado_civil}}</div>
+</div>
+<div class="fila">
+  <div class="campo"><span class="label">Teléfono:</span> {{telefono}}</div>
+  <div class="campo"><span class="label">Correo:</span> {{correo}}</div>
+</div>
+<div class="fila">
+  <div class="campo"><span class="label">Municipio:</span> {{municipio_ciudad}}</div>
+  <div class="campo"><span class="label">Dirección:</span> {{direccion_residencia}}</div>
+</div>
+<div class="fila">
+  <div class="campo"><span class="label">EPS / Asegurador:</span> {{asegurador}}</div>
+  <div class="campo"><span class="label">RH:</span> {{rh}}</div>
+</div>
+
+{{#if acudiente_nombre}}
+<h2>Acudiente</h2>
+<div class="fila">
+  <div class="campo"><span class="label">Nombre:</span> {{acudiente_nombre}}</div>
+  <div class="campo"><span class="label">Parentesco:</span> {{acudiente_parentesco}}</div>
+  <div class="campo"><span class="label">Teléfono:</span> {{acudiente_telefono}}</div>
+</div>
+{{/if}}
+
+</body>
+</html>

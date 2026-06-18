@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; padding: 40px; color: #222; line-height: 1.6; font-size: 13px; }
+    h1 { text-align: center; color: #1a3a5c; margin-bottom: 4px; }
+    .subtitulo { text-align: center; color: #666; margin-bottom: 30px; font-size: 12px; }
+    h2 { margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 4px; color: #2e6da4; font-size: 13px; text-transform: uppercase; }
+    .fila { display: flex; gap: 30px; margin-bottom: 6px; }
+    .campo { margin-bottom: 6px; flex: 1; }
+    .label { font-weight: bold; color: #444; }
+    .texto { margin-top: 4px; padding: 8px; background: #f9f9f9; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+    th { background: #1a3a5c; color: white; padding: 6px 8px; text-align: left; }
+    td { padding: 5px 8px; border-bottom: 1px solid #eee; }
+    .firma-box { margin-top: 40px; display: flex; justify-content: space-around; }
+    .firma { text-align: center; }
+    .firma img { height: 60px; }
+    .firma-linea { border-top: 1px solid #333; width: 200px; margin: 8px auto 4px; }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+      font-family: Arial;
+      }
+    table td {
+      vertical-align: top;
+      }
+    .odonto-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      }
+  </style>
+</head>
+<body>
+
+<h1>Historia Clínica de Atención Odontológica</h1>
+<p class="subtitulo">{{config.nombre_profesional}} · Reg. {{config.registro_profesional}} · NIT {{config.nit}} · Cel. {{config.telefono}} · {{config.direccion}}</p>
+
+<h2>I. Identificación del Paciente</h2>
+<div class="fila">
+  <div class="campo"><span class="label">Nombre:</span> {{paciente.nombre_completo}}</div>
+  <div class="campo"><span class="label">Documento:</span> {{paciente.tipo_documento}} {{paciente.numero_documento}}</div>
+</div>
+<div class="fila">
+  <div class="campo"><span class="label">Fecha nacimiento:</span> {{paciente.fecha_nacimiento}}</div>
+  <div class="campo"><span class="label">Sexo:</span> {{paciente.sexo}}</div>
+  <div class="campo"><span class="label">Municipio:</span> {{paciente.municipio_ciudad}}</div>
+</div>
+<div class="fila">
+  <div class="campo"><span class="label">Fecha atención:</span> {{fecha_atencion}}</div>
+  <div class="campo"><span class="label">Evento adverso:</span> {{evento_adverso}}</div>
+</div>
+
+<h2>II. Información Complementaria</h2>
+
+<table>
+  <tr>
+    <td><b>Departamento</b></td>
+    <td>{{departamento}}</td>
+
+    <td><b>Estado civil</b></td>
+    <td>{{estado_civil}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Dirección</b></td>
+    <td>{{direccion}}</td>
+
+    <td><b>Ocupación</b></td>
+    <td>{{ocupacion}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Acudiente</b></td>
+    <td>{{acudiente}}</td>
+
+    <td><b>Parentesco</b></td>
+    <td>{{parentesco}}</td>
+  </tr>
+</table>
+
+<h2>III. Información de Afiliación</h2>
+
+<table>
+  <tr>
+    <td><b>EPS</b></td>
+    <td>{{eps}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Tipo afiliación</b></td>
+    <td>{{tipo_afiliacion}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Tipo de sangre</b></td>
+    <td>{{tipo_sangre}} {{rh}}</td>
+  </tr>
+</table>
+
+<h2>IV. Motivo de Consulta</h2>
+<div class="texto">{{motivo_consulta}}</div>
+
+{{#if alergias}}
+<div class="campo" style="margin-top:8px">
+  <span class="label">Alergias:</span>
+  {{alergias}}
+</div>
+{{/if}}
+
+{{#if evento_adverso_obs}}
+<div class="campo">
+  <span class="label">Observaciones evento adverso:</span>
+  {{evento_adverso_obs}}
+</div>
+{{/if}}
+
+{{#if medicamentos_actuales}}
+<div class="campo" style="margin-top:8px"><span class="label">Medicamentos actuales:</span> {{medicamentos_actuales}}</div>
+{{/if}}
+
+{{#if antecedentes_odontologicos}}
+<div class="campo"><span class="label">Antecedentes odontológicos:</span> {{antecedentes_odontologicos}}</div>
+{{/if}}
+
+{{#if habitos_json}}
+<h2>V. Hábitos</h2>
+
+<div class="texto">
+  {{#if habitos.length}}
+<ul>
+  {{#each habitos}}
+    <li>{{this}}</li>
+  {{/each}}
+</ul>
+{{/if}}
+</div>
+
+{{#if habitos_observaciones}}
+<div class="campo">
+  <span class="label">Observaciones:</span>
+  {{habitos_observaciones}}
+</div>
+{{/if}}
+
+{{/if}}
+
+{{#if antecedentes}}
+<h2>VI. Antecedentes Médicos</h2>
+<table>
+  <tr><th>Condición</th><th>Sí/No</th><th>Observaciones</th></tr>
+  <tr><td>Tratamiento con medicación</td><td>{{antecedentes.tratamiento_medicacion}}</td><td>{{antecedentes.tratamiento_med_obs}}</td></tr>
+  <tr><td>Reacciones alérgicas</td><td>{{antecedentes.reacciones_alergicas}}</td><td>{{antecedentes.alergias_obs}}</td></tr>
+  <tr><td>Problemas de coagulación</td><td>{{antecedentes.problemas_coagulacion}}</td><td>{{antecedentes.coagulacion_obs}}</td></tr>
+  <tr><td>Irradiaciones</td><td>{{antecedentes.irradiaciones}}</td><td>{{antecedentes.irradiaciones_obs}}</td></tr>
+  <tr><td>Tensión arterial</td><td>{{antecedentes.tension_arterial}}</td><td>{{antecedentes.tension_obs}}</td></tr>
+  <tr><td>Sinusitis</td><td>{{antecedentes.sinusitis}}</td><td>{{antecedentes.sinusitis_obs}}</td></tr>
+  <tr><td>Enfermedades respiratorias</td><td>{{antecedentes.enf_respiratorias}}</td><td>{{antecedentes.respiratorias_obs}}</td></tr>
+  <tr><td>Cardiopatías</td><td>{{antecedentes.cardiopatias}}</td><td>{{antecedentes.cardiopatias_obs}}</td></tr>
+  <tr><td>Diabetes</td><td>{{antecedentes.diabetes}}</td><td>{{antecedentes.diabetes_obs}}</td></tr>
+  <tr><td>Fiebre reumática</td><td>{{antecedentes.fiebre_reumatica}}</td><td>{{antecedentes.fiebre_obs}}</td></tr>
+  <tr><td>Hepatitis</td><td>{{antecedentes.hepatitis}}</td><td>{{antecedentes.hepatitis_obs}}</td></tr>
+  <tr><td>VIH</td><td>{{antecedentes.vih}}</td><td>{{antecedentes.vih_obs}}</td></tr>
+  <tr><td>Trastornos emocionales</td><td>{{antecedentes.trastornos_emocionales}}</td><td>{{antecedentes.emocionales_obs}}</td></tr>
+  {{#if antecedentes.observaciones_generales}}
+<div class="campo" style="margin-top:8px">
+  <span class="label">Observaciones generales:</span>
+  <div class="texto">
+    {{antecedentes.observaciones_generales}}
+  </div>
+</div>
+{{/if}}
+</table>
+{{/if}}
+
+{{#if examen}}
+
+<h2>VII. Examen Estomatológico</h2>
+
+{{#if examen.estructuras_json}}
+<div class="campo">
+  <span class="label">Estructuras evaluadas</span>
+  <div class="texto">
+    {{#if examen.estructuras_json.length}}
+<h3>Estructuras evaluadas</h3>
+
+<ul>
+  {{#each examen.estructuras_json}}
+    <li>{{this}}</li>
+  {{/each}}
+</ul>
+{{/if}}
+  </div>
+</div>
+{{/if}}
+
+{{#if examen.observaciones}}
+<div class="campo">
+  <span class="label">Observaciones</span>
+  <div class="texto">
+    {{examen.observaciones}}
+  </div>
+</div>
+{{/if}}
+
+{{/if}}
+
+<h2>VIII. Diagnóstico y Tratamiento</h2>
+<div class="campo"><span class="label">Diagnóstico:</span>
+  <div class="texto">{{diagnostico}}</div>
+</div>
+{{#if tratamiento_realizado}}
+<div class="campo"><span class="label">Tratamiento realizado:</span>
+  <div class="texto">{{tratamiento_realizado}}</div>
+</div>
+{{/if}}
+{{#if observaciones}}
+<div class="campo"><span class="label">Observaciones:</span>
+  <div class="texto">{{observaciones}}</div>
+</div>
+{{/if}}
+{{#if recomendaciones}}
+<div class="campo"><span class="label">Recomendaciones:</span>
+  <div class="texto">{{recomendaciones}}</div>
+</div>
+{{/if}}
+
+{{#if odontograma}}
+<h2>IX. Odontograma</h2>
+
+{{#if odontograma.resumen}}
+<div class="odonto-resumen">
+  {{#each odontograma.resumen}}
+  <span class="odonto-badge"><b>{{total}}</b> {{estado}}</span>
+  {{/each}}
+</div>
+{{/if}}
+
+{{#if odontograma.tiene_hallazgos}}
+<table class="odonto-tabla" style="width:100%; border-collapse:collapse; margin-top:4px;">
+  <tr>
+    <th style="width:70px;">Diente</th>
+    <th style="width:110px;">Condición</th>
+    <th>Notas clínicas</th>
+  </tr>
+  {{#each odontograma.filas}}
+  <tr>
+    <td style="font-weight:bold; text-align:center;">{{numero}}</td>
+    <td>{{estado}}</td>
+    <td class="odonto-notas">{{#if notas}}{{notas}}{{else}}—{{/if}}</td>
+  </tr>
+  {{/each}}
+</table>
+{{else}}
+<p style="font-size:12px; color:#666; font-style:italic;">Sin hallazgos registrados.</p>
+{{/if}}
+
+{{#if odontograma_observaciones}}
+<div class="campo" style="margin-top:8px;">
+  <span class="label">Observaciones del odontograma:</span>
+  <div class="texto">{{odontograma_observaciones}}</div>
+</div>
+{{/if}}
+
+{{/if}}
+
+<div class="firma-box">
+  <div class="firma">
+    {{#if firma_doctor}}
+    <img src="{{firma_doctor}}" alt="Firma doctor"/>
+    {{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Profesional</div>
+  </div>
+  <div class="firma">
+    {{#if firma_paciente}}
+    <img src="{{firma_paciente}}" alt="Firma paciente"/>
+    {{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Paciente o Representante</div>
+  </div>
+</div>
+
+</body>
+</html>
