@@ -24,7 +24,7 @@ createRoot(document.getElementById('root')).render(
       <AppProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<PrivateRoute><Navigate to="/dashboard" replace /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Pacientes /></PrivateRoute>} />
           <Route path="/historias" element={<PrivateRoute><Historias /></PrivateRoute>} />
