@@ -14,16 +14,23 @@ const pdfRoutes = require('./routes/pdf')
 const certificadosRoutes = require('./routes/certificados')
 const configuracionRoutes = require('./routes/configuracion')
 
-
 const app = express()
 
 const NODE_ENV = process.env.NODE_ENV || 'development'
 console.log(`Entorno: ${NODE_ENV}`)
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'https://oralyn.vercel.app'
+]
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }))
 
 app.use(express.json())
@@ -45,13 +52,12 @@ app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })
 })
 
-const PORT = process.env.PORT || 3000
-
 const errorHandler = require('./middlewares/errorHandler')
 app.use(errorHandler)
+
+const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`)
 })
-
 
