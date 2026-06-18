@@ -18,6 +18,23 @@
     .firma { text-align: center; }
     .firma img { height: 60px; }
     .firma-linea { border-top: 1px solid #333; width: 200px; margin: 8px auto 4px; }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+      font-family: Arial;
+      }
+    table td {
+      vertical-align: top;
+      }
+    .odonto-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      }
   </style>
 </head>
 <body>
@@ -40,8 +57,69 @@
   <div class="campo"><span class="label">Evento adverso:</span> {{evento_adverso}}</div>
 </div>
 
-<h2>II. Motivo de Consulta</h2>
+<h2>II. Información Complementaria</h2>
+
+<table>
+  <tr>
+    <td><b>Departamento</b></td>
+    <td>{{departamento}}</td>
+
+    <td><b>Estado civil</b></td>
+    <td>{{estado_civil}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Dirección</b></td>
+    <td>{{direccion}}</td>
+
+    <td><b>Ocupación</b></td>
+    <td>{{ocupacion}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Acudiente</b></td>
+    <td>{{acudiente}}</td>
+
+    <td><b>Parentesco</b></td>
+    <td>{{parentesco}}</td>
+  </tr>
+</table>
+
+<h2>III. Información de Afiliación</h2>
+
+<table>
+  <tr>
+    <td><b>EPS</b></td>
+    <td>{{eps}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Tipo afiliación</b></td>
+    <td>{{tipo_afiliacion}}</td>
+  </tr>
+
+  <tr>
+    <td><b>Tipo de sangre</b></td>
+    <td>{{tipo_sangre}} {{rh}}</td>
+  </tr>
+</table>
+
+<h2>IV. Motivo de Consulta</h2>
 <div class="texto">{{motivo_consulta}}</div>
+
+{{#if alergias}}
+<div class="campo" style="margin-top:8px">
+  <span class="label">Alergias:</span>
+  {{alergias}}
+</div>
+{{/if}}
+
+{{#if evento_adverso_obs}}
+<div class="campo">
+  <span class="label">Observaciones evento adverso:</span>
+  {{evento_adverso_obs}}
+</div>
+{{/if}}
 
 {{#if medicamentos_actuales}}
 <div class="campo" style="margin-top:8px"><span class="label">Medicamentos actuales:</span> {{medicamentos_actuales}}</div>
@@ -51,8 +129,30 @@
 <div class="campo"><span class="label">Antecedentes odontológicos:</span> {{antecedentes_odontologicos}}</div>
 {{/if}}
 
+{{#if habitos_json}}
+<h2>V. Hábitos</h2>
+
+<div class="texto">
+  {{#if habitos.length}}
+<ul>
+  {{#each habitos}}
+    <li>{{this}}</li>
+  {{/each}}
+</ul>
+{{/if}}
+</div>
+
+{{#if habitos_observaciones}}
+<div class="campo">
+  <span class="label">Observaciones:</span>
+  {{habitos_observaciones}}
+</div>
+{{/if}}
+
+{{/if}}
+
 {{#if antecedentes}}
-<h2>III. Antecedentes Médicos</h2>
+<h2>VI. Antecedentes Médicos</h2>
 <table>
   <tr><th>Condición</th><th>Sí/No</th><th>Observaciones</th></tr>
   <tr><td>Tratamiento con medicación</td><td>{{antecedentes.tratamiento_medicacion}}</td><td>{{antecedentes.tratamiento_med_obs}}</td></tr>
@@ -68,10 +168,50 @@
   <tr><td>Hepatitis</td><td>{{antecedentes.hepatitis}}</td><td>{{antecedentes.hepatitis_obs}}</td></tr>
   <tr><td>VIH</td><td>{{antecedentes.vih}}</td><td>{{antecedentes.vih_obs}}</td></tr>
   <tr><td>Trastornos emocionales</td><td>{{antecedentes.trastornos_emocionales}}</td><td>{{antecedentes.emocionales_obs}}</td></tr>
+  {{#if antecedentes.observaciones_generales}}
+<div class="campo" style="margin-top:8px">
+  <span class="label">Observaciones generales:</span>
+  <div class="texto">
+    {{antecedentes.observaciones_generales}}
+  </div>
+</div>
+{{/if}}
 </table>
 {{/if}}
 
-<h2>Diagnóstico y Tratamiento</h2>
+{{#if examen}}
+
+<h2>VII. Examen Estomatológico</h2>
+
+{{#if examen.estructuras_json}}
+<div class="campo">
+  <span class="label">Estructuras evaluadas</span>
+  <div class="texto">
+    {{#if examen.estructuras_json.length}}
+<h3>Estructuras evaluadas</h3>
+
+<ul>
+  {{#each examen.estructuras_json}}
+    <li>{{this}}</li>
+  {{/each}}
+</ul>
+{{/if}}
+  </div>
+</div>
+{{/if}}
+
+{{#if examen.observaciones}}
+<div class="campo">
+  <span class="label">Observaciones</span>
+  <div class="texto">
+    {{examen.observaciones}}
+  </div>
+</div>
+{{/if}}
+
+{{/if}}
+
+<h2>VIII. Diagnóstico y Tratamiento</h2>
 <div class="campo"><span class="label">Diagnóstico:</span>
   <div class="texto">{{diagnostico}}</div>
 </div>
@@ -89,6 +229,45 @@
 <div class="campo"><span class="label">Recomendaciones:</span>
   <div class="texto">{{recomendaciones}}</div>
 </div>
+{{/if}}
+
+{{#if odontograma}}
+<h2>IX. Odontograma</h2>
+
+{{#if odontograma.resumen}}
+<div class="odonto-resumen">
+  {{#each odontograma.resumen}}
+  <span class="odonto-badge"><b>{{total}}</b> {{estado}}</span>
+  {{/each}}
+</div>
+{{/if}}
+
+{{#if odontograma.tiene_hallazgos}}
+<table class="odonto-tabla" style="width:100%; border-collapse:collapse; margin-top:4px;">
+  <tr>
+    <th style="width:70px;">Diente</th>
+    <th style="width:110px;">Condición</th>
+    <th>Notas clínicas</th>
+  </tr>
+  {{#each odontograma.filas}}
+  <tr>
+    <td style="font-weight:bold; text-align:center;">{{numero}}</td>
+    <td>{{estado}}</td>
+    <td class="odonto-notas">{{#if notas}}{{notas}}{{else}}—{{/if}}</td>
+  </tr>
+  {{/each}}
+</table>
+{{else}}
+<p style="font-size:12px; color:#666; font-style:italic;">Sin hallazgos registrados.</p>
+{{/if}}
+
+{{#if odontograma_observaciones}}
+<div class="campo" style="margin-top:8px;">
+  <span class="label">Observaciones del odontograma:</span>
+  <div class="texto">{{odontograma_observaciones}}</div>
+</div>
+{{/if}}
+
 {{/if}}
 
 <div class="firma-box">
