@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: #EAF6F6;
+    color: #1a3a3a;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer utilities {
+  /* Borde izquierdo de acento en stat cards — no tiene border-radius */
+  .stat-accent-left {
+    border-radius: 0;
+  }
+
+  /* Toast fade in/out */
+  @keyframes fadeInOut {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    15%  { opacity: 1; transform: translateX(-50%) translateY(0);   }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .animate-toast {
+    animation: fadeInOut 2.2s ease forwards;
+  }
+}
