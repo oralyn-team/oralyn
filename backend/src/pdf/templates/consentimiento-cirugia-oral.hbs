@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; padding: 50px; color: #222; font-size: 12px; line-height: 1.7; }
+    .header { text-align: right; margin-bottom: 20px; font-size: 11px; }
+    h1 { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+    h2 { font-size: 12px; font-weight: bold; margin-top: 14px; margin-bottom: 6px; }
+    ul { padding-left: 20px; margin: 0; }
+    ul li { margin-bottom: 4px; }
+    .declaracion { margin-bottom: 14px; }
+    .firmas { margin-top: 50px; display: flex; justify-content: space-between; }
+    .firma { text-align: center; }
+    .firma-linea { border-top: 1px solid #333; width: 180px; margin: 0 auto 5px; }
+    .firma-sub { font-size: 11px; color: #555; }
+    .ciudad-fecha { margin-top: 30px; font-size: 12px; }
+    .ciudad-fecha span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+   <strong>{{config.nombre_consultorio}}</strong><br>
+  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+  {{config.direccion}}<br>
+  Cel: {{config.telefono}} · NIT. {{config.nit}}
+</div>
+
+<h1>CONSENTIMIENTO INFORMADO (DE CIRUGÍA ORAL)</h1>
+
+<div class="declaracion">
+  Yo <strong>{{nombre_paciente}}</strong> mayor de edad identificado(a) con C.C. <strong>{{cc_paciente}}</strong>
+  actuando en nombre propio, en pleno uso de mis facultades, libre y consciente, declaro que el profesional
+  me ha informado y explicado:
+</div>
+
+<h2>VENTAJAS:</h2>
+<ul>
+  <li>Retiros focos de infección.</li>
+</ul>
+
+<h2>RIESGOS:</h2>
+<ul>
+  <li>Ruptura de la aguja por la técnica anestésica</li>
+  <li>Lesión en el nervio</li>
+  <li>Lesiones vasculares</li>
+  <li>Fractura de la parte coronal dentaria</li>
+  <li>Fractura de raíz</li>
+  <li>Lesión de tejidos blandos</li>
+  <li>Lesión a los dientes adyacentes</li>
+  <li>Fractura mandibular</li>
+  <li>Hemorragias</li>
+  <li>Hematomas</li>
+  <li>Trismo o incapacidad de abrir la boca</li>
+  <li>Edemas</li>
+  <li>Alveolitis</li>
+  <li>Pérdida de implante</li>
+</ul>
+
+<h2>RECOMENDACIONES PRE:</h2>
+<ul>
+  <li>Si el paciente presenta inflamación intra o extra oral requiere mediación antibiótica y antiinflamatoria.</li>
+  <li>Radiografía peri apical del diente o dientes afectados para descartar anquilosis posibles fracturas o dilaceraciones radiculares, entre otros.</li>
+</ul>
+
+<h2>RECOMENDACIONES POS:</h2>
+<ul>
+  <li>Tomar medicamentos a horas indicadas</li>
+  <li>No escupir, no molestar con la lengua en las áreas afectadas</li>
+  <li>Dieta blanda por 48 horas, no consumir alimentos muy calientes</li>
+  <li>No exponerse a ningún tipo de calor, ni actividades físicas ya que producen aumento de la presión sanguínea y vasodilatación.</li>
+  <li>En caso de inflamación poner hielo en la zona afectada</li>
+  <li>Se cita a la paciente a los 8 días para control posquirúrgico.</li>
+</ul>
+
+<div style="margin-top:14px">
+  Doy mi consentimiento para realizar el tratamiento pertinente PUESTO QUE ES POR MI PROPIO INTERÉS,
+  con el buen entendimiento que puedo retirar ese consentimiento por escrito cuando así lo desee.
+</div>
+
+<div class="ciudad-fecha">
+  Ciudad <span>{{ciudad}}</span> Fecha <span>{{fecha}}</span>
+</div>
+
+<div class="firmas">
+  <div class="firma">
+    {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma paciente / acudiente</div>
+    <div class="firma-sub">C.C. {{cc_paciente}}</div>
+  </div>
+  <div class="firma">
+    {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Profesional</div>
+    <div class="firma-sub">C.C. {{cc_profesional}}</div>
+  </div>
+</div>
+
+</body>
+</html>

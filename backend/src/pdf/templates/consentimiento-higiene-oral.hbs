@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial; padding: 50px; color: #222; font-size: 12px; line-height: 1.7; }
+    .header { text-align: right; margin-bottom: 20px; font-size: 11px; }
+    h1 { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+    ol { padding-left: 20px; margin: 0; }
+    ol li { margin-bottom: 6px; }
+    .declaracion { margin-bottom: 14px; }
+    .firmas { margin-top: 50px; display: flex; justify-content: space-between; }
+    .firma { text-align: center; }
+    .firma-linea { border-top: 1px solid #333; width: 180px; margin: 0 auto 5px; }
+    .ciudad-fecha { margin-top: 30px; font-size: 12px; }
+    .ciudad-fecha span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+   <strong>{{config.nombre_consultorio}}</strong><br>
+  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+  {{config.direccion}}<br>
+  Cel: {{config.telefono}} · NIT. {{config.nit}}
+</div>
+
+<h1>CONSENTIMIENTO INFORMADO DE HIGIENE ORAL</h1>
+
+<div class="declaracion">
+  Yo <strong>{{nombre_paciente}}</strong> identificado con cédula de ciudadanía No. <strong>{{cc_paciente}}</strong>,
+  mayor de edad, en calidad de paciente / representante legal.
+</div>
+
+<p>
+  DECLARO Que el profesional en odontología {{config.nombre_profesional}} me ha explicado que es conveniente en mi situación proceder
+  a realizar un tratamiento para detartraje (limpieza bucodental), dándome la siguiente información:
+</p>
+
+<p style="margin-top:10px">
+  El propósito principal es eliminar el sarro acumulado sobre los dientes y por sobre el nivel de las encías
+  permitiendo realizar una correcta técnica de higiene oral.
+</p>
+
+<p style="margin-top:10px">
+  En caso de no eliminar el sarro no podré continuar ningún tratamiento periodontal y, dependiendo de la
+  cantidad de sarro, es posible que tampoco pueda realizarse otros tratamientos dentales.
+</p>
+
+<p style="margin-top:10px">
+  Para la limpieza el facultativo utiliza un instrumento que vibra a alta velocidad y que es refrigerado con agua.
+  Para la eliminación del sarro no existen alternativas al tratamiento propuesto. Entre los riesgos o efectos
+  secundarios del tratamiento pueden darse:
+</p>
+
+<ol style="margin-top:10px">
+  <li>Dolor en el caso de dientes con cuellos hipersensibles. En caso que este dolor sea muy intenso debe avisar al odontólogo.</li>
+  <li>Sangrado durante y/o después del procedimiento.</li>
+  <li>Puede sentir algunos dientes más móviles al finalizar el procedimiento.</li>
+  <li>Se ha advertido que el uso de artefactos eléctricos puede interferir en el funcionamiento de los marcapasos cardiacos. Si usted tiene marcapasos debe avisar al odontólogo.</li>
+</ol>
+
+<p style="margin-top:12px">
+  He comprendido lo que se me ha explicado por el facultativo de forma clara, con un lenguaje sencillo,
+  habiendo resuelto todas las dudas que se me han planteado, y la información complementaria que le he
+  solicitado. Me ha quedado claro que en cualquier momento y sin necesidad de dar ninguna explicación,
+  puedo revocar este consentimiento.
+</p>
+
+<p style="margin-top:10px">
+  Estoy satisfecho con la información recibida y comprendido el alcance y riesgos de este tratamiento,
+  y en por ello, DOY MI CONSENTIMIENTO, para que se me practique el tratamiento de periodoncia.
+</p>
+
+<div class="ciudad-fecha">
+  En Villavicencio <span>{{dia}}</span> de <span>{{mes}}</span> de <span>{{anio}}</span>
+</div>
+
+<div class="firmas">
+  <div class="firma">
+    {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Profesional</div>
+  </div>
+  <div class="firma">
+    {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+    <div class="firma-linea"></div>
+    <div>Firma Paciente o Representante</div>
+  </div>
+</div>
+
+</body>
+</html>
