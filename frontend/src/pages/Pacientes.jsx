@@ -78,10 +78,6 @@ export default function Pacientes() {
               <h2 className="text-[13px] font-medium text-primary">
                 Pacientes registrados ({pacientesFiltrados.length})
               </h2>
-              <button type="button"
-                className="text-[11px] text-primary font-sans px-3 py-[7px] bg-white border border-teal-border rounded-lg cursor-pointer hover:bg-teal-info transition-colors">
-                ⬇ Exportar
-              </button>
             </div>
 
             <div className="flex items-center gap-2.5 px-5 py-3 bg-teal-panel border-b border-teal-soft">
