@@ -1,3 +1,4 @@
+//generador de PDF para certificados dentales
 const generarPDF = require('../helpers/generarPDF')
 
 async function generarCertificadoPDF(certificado, consultorio_id) {
