@@ -137,17 +137,6 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Consentimiento no encontrado' })
     }
 
-    if (
-      consentimiento.anulado ||
-      consentimiento.firma_paciente ||
-      consentimiento.firma_doctor ||
-      consentimiento.pdf_generado_en
-    ) {
-      return res.status(409).json({
-        error: 'Este consentimiento no se puede eliminar. Debe conservarse anulado por trazabilidad.'
-      })
-    }
-
     await prisma.consentimiento.delete({ where: { id } })
     res.status(204).send()
   } catch (error) {

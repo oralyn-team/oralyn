@@ -278,7 +278,54 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Paciente no encontrado' })
     }
 
-    await prisma.paciente.delete({ where: { id } })
+    await prisma.$transaction(async (tx) => {
+      // 1. Obtener todas las historias clínicas del paciente
+      const historias = await tx.historiaClinica.findMany({
+        where: { paciente_id: id },
+        select: { id: true }
+      })
+      const historiaIds = historias.map(h => h.id)
+
+      if (historiaIds.length > 0) {
+        // Eliminar registros secundarios de la historia
+        await tx.hcAntecedentes.deleteMany({ where: { historia_id: { in: historiaIds } } })
+        await tx.hcExamenEstomatologico.deleteMany({ where: { historia_id: { in: historiaIds } } })
+        await tx.hcOdontograma.deleteMany({ where: { historia_id: { in: historiaIds } } })
+        await tx.hojaEvolucion.deleteMany({ where: { historia_id: { in: historiaIds } } })
+        await tx.recomendacionPostQx.deleteMany({ where: { historia_id: { in: historiaIds } } })
+        await tx.hcAdjunto.deleteMany({ where: { historia_id: { in: historiaIds } } })
+        
+        // Eliminar Historias Clínicas
+        await tx.historiaClinica.deleteMany({ where: { id: { in: historiaIds } } })
+      }
+
+      // 2. Eliminar Pagos
+      await tx.pago.deleteMany({ where: { paciente_id: id } })
+
+      // 3. Eliminar Cotizaciones y sus Procedimientos
+      const cotizaciones = await tx.cotizacion.findMany({
+        where: { paciente_id: id },
+        select: { id: true }
+      })
+      const cotizacionIds = cotizaciones.map(c => c.id)
+      if (cotizacionIds.length > 0) {
+        await tx.procedimientoCotizacion.deleteMany({ where: { cotizacion_id: { in: cotizacionIds } } })
+        await tx.cotizacion.deleteMany({ where: { id: { in: cotizacionIds } } })
+      }
+
+      // 4. Eliminar Certificados Dentales
+      await tx.certificadoDental.deleteMany({ where: { paciente_id: id } })
+
+      // 5. Eliminar Citas
+      await tx.cita.deleteMany({ where: { paciente_id: id } })
+
+      // 6. Eliminar Consentimientos
+      await tx.consentimiento.deleteMany({ where: { paciente_id: id } })
+
+      // 7. Finalmente, eliminar al Paciente
+      await tx.paciente.delete({ where: { id } })
+    })
+
     res.status(200).json({ message: 'Paciente eliminado correctamente' })
   } catch (error) {
     if (error.code === 'P2025') {

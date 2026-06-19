@@ -83,12 +83,6 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Certificado no encontrado' })
     }
 
-    if (certificado.anulado) {
-      return res.status(409).json({
-        error: 'Este certificado ya fue anulado y debe conservarse por trazabilidad.'
-      })
-    }
-
     await prisma.certificadoDental.delete({ where: { id } })
     res.status(204).send()
   } catch (error) {
