@@ -121,6 +121,8 @@ export default function CitaForm({
 
     if (!form.fecha)
       e.fecha = 'La fecha es obligatoria.';
+    else if (!esEdicion && form.fecha < getFechaHoy())
+      e.fecha = 'No se pueden crear citas en fechas anteriores a la actual.';
 
     if (!form.hora)
       e.hora = 'La hora es obligatoria.';
@@ -226,6 +228,7 @@ export default function CitaForm({
                 type="date"
                 name="fecha"
                 value={form.fecha}
+                min={esEdicion ? undefined : getFechaHoy()}
                 onChange={handleChange}
                 className={`${inputBase} ${
                   errs.fecha
