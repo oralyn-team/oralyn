@@ -17,6 +17,7 @@ router.post('/', async (req, res) => {
   try {
     const certificado = await prisma.certificadoDental.create({
       data: {
+        consultorio_id: req.usuario.consultorio_id,
         paciente_id,
         cita_id: cita_id || null,
         tipo_cita_texto,
