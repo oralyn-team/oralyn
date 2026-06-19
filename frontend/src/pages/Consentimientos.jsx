@@ -55,10 +55,7 @@ function estaAnulado(documento) {
 }
 
 function puedeEliminar(documento) {
-  return !documento?.pdf_generado_en
-    && !documento?.firma_paciente
-    && !documento?.firma_doctor
-    && !estaAnulado(documento);
+  return true;
 }
 
 function DocumentoCard({
@@ -129,17 +126,6 @@ function DocumentoCard({
           <FileText size={12} />
           Ver PDF
           </button>
-        {!anulado && (
-          <button
-            type="button"
-            onClick={onAnular}
-            disabled={procesando}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-amber-700 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors disabled:opacity-60"
-          >
-            <Ban size={12} />
-            Anular
-          </button>
-        )}
         {puedeEliminarDocumento && (
           <button
             type="button"
@@ -550,14 +536,32 @@ export default function Consentimientos() {
                             className={inputClass}
                           />
                         </Campo>
-                        <button
-                          type="submit"
-                          disabled={guardando === 'consentimiento'}
-                          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-70"
-                        >
-                          {guardando === 'consentimiento' ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-                          Crear consentimiento
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setConsentimientoForm({
+                              tipo: 'anestesia',
+                              ciudad: 'Villavicencio',
+                              detalle: '',
+                              nombre_paciente_declarado: nombreCompleto(pacienteSeleccionado),
+                              cc_paciente_declarado: pacienteSeleccionado?.numero_documento || '',
+                              firma_paciente: '',
+                              cc_profesional: '',
+                              firma_doctor: '',
+                            })}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-soft transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={guardando === 'consentimiento'}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-70"
+                          >
+                            {guardando === 'consentimiento' ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                            Crear consentimiento
+                          </button>
+                        </div>
                       </div>
                     </form>
 
@@ -598,14 +602,27 @@ export default function Consentimientos() {
                             Se emitira un certificado para {nombreCompleto(pacienteSeleccionado)} con el texto de atencion indicado.
                           </p>
                         </div>
-                        <button
-                          type="submit"
-                          disabled={guardando === 'certificado'}
-                          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-70"
-                        >
-                          {guardando === 'certificado' ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-                          Crear certificado
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCertificadoForm({
+                              tipo_cita_texto: '',
+                              fecha_expedicion: fechaInputHoy(),
+                              ciudad: 'Villavicencio',
+                            })}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-soft transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={guardando === 'certificado'}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-70"
+                          >
+                            {guardando === 'certificado' ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                            Crear certificado
+                          </button>
+                        </div>
                       </div>
                     </form>
                   </div>
