@@ -44,7 +44,9 @@ async function generarPDF({ template, data, consultorio_id }) {
   const compiledTemplate = handlebars.compile(source)
   const html = compiledTemplate({ ...data, config })
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] })
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+  })
   const page = await browser.newPage()
   await page.setContent(html, { waitUntil: 'domcontentloaded' })
   const pdf = await page.pdf({ format: 'A4', printBackground: true })

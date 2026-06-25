@@ -1,3 +1,4 @@
+// consentimientos.js - Rutas para gestionar consentimientos informados
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
@@ -97,5 +98,93 @@ router.patch('/:id/firmas', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
+
+router.patch('/:id/anular', async (req, res) => {
+  const id = parseInt(req.params.id)
+  const { motivo_anulacion } = req.body
+
+  if (!motivo_anulacion) {
+    return res.status(400).json({ error: 'El motivo de anulación es obligatorio' })
+  }
+
+  try {
+    const consentimiento = await prisma.consentimiento.update({
+      where: { id },
+      data: {
+        anulado: true,
+        anulado_en: new Date(),
+        motivo_anulacion
+      }
+    })
+
+    res.json(consentimiento)
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Consentimiento no encontrado' })
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+router.delete('/:id', async (req, res) => {
+  const id = parseInt(req.params.id)
+
+  try {
+    const consentimiento = await prisma.consentimiento.findUnique({ where: { id } })
+
+    if (!consentimiento) {
+      return res.status(404).json({ error: 'Consentimiento no encontrado' })
+    }
+
+    await prisma.consentimiento.delete({ where: { id } })
+    res.status(204).send()
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+const generarConsentimientoPDF = require("../pdf/generators/generarConsentimientoPDF");
+
+router.get("/:id/pdf", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+
+    const consentimiento = await prisma.consentimiento.findFirst({
+      where: {
+        id,
+        consultorio_id: req.usuario.consultorio_id,
+      },
+      include: {
+        paciente: true,
+      },
+    });
+
+    if (!consentimiento) {
+      return res.status(404).json({
+        error: "Consentimiento no encontrado",
+      });
+    }
+
+    const pdf = await generarConsentimientoPDF(
+      consentimiento,
+      req.usuario.consultorio_id
+    );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=consentimiento-${id}.pdf`
+    );
+
+    res.send(pdf);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Error generando PDF",
+    });
+  }
+});
 
 module.exports = router

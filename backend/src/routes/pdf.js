@@ -1,3 +1,4 @@
+// pdf.js - Rutas para generar PDFs de historias clínicas, cotizaciones, certificados, etc.
 const express = require('express')
 const router = express.Router()
 const prisma = require('../lib/prisma')
