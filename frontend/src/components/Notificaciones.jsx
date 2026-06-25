@@ -1,11 +1,12 @@
 // src/components/Notificaciones.jsx
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Clock, AlertTriangle, UserPlus, X, CheckCheck } from 'lucide-react';
+import { Bell, Clock, AlertTriangle, UserPlus, CalendarDays, X, CheckCheck } from 'lucide-react';
 
 const ICONOS = {
-  clock: Clock,
-  alert: AlertTriangle,
-  user:  UserPlus,
+  clock:    Clock,
+  alert:    AlertTriangle,
+  user:     UserPlus,
+  calendar: CalendarDays,
 };
 
 const ESTILOS_TIPO = {

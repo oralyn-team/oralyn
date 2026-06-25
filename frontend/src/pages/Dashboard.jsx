@@ -45,7 +45,7 @@ const ESTADOS_INFO = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { pacientes, agregarPaciente } = useApp();
+  const { pacientes, agregarPaciente, recargarPacientes } = useApp();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +147,8 @@ export default function Dashboard() {
       await api.crearCita(payload);
       setModalCita(false);
       mostrarToast('Cita agendada correctamente');
-      loadDashboardData(); // Refresh metrics & lists
+      loadDashboardData(); // Refresca métricas del dashboard
+      recargarPacientes(); // Actualiza el sistema de notificaciones
     } catch (err) {
       console.error(err);
       mostrarToast(err.error || 'No se pudo agendar la cita');

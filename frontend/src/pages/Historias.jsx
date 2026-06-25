@@ -10,13 +10,12 @@ import StatCard      from '../components/StatCard';
 import HistoriaLista from '../components/historias/HistoriaLista';
 import HistoriaDetalle from '../components/historias/HistoriaDetalle';
 
-function buildStats(historias) {
+function buildStats(historias, pacientes) {
   const conAlergia       = historias.filter((h) => h.alergias && h.alergias !== 'Ninguna conocida').length;
   const totalEvoluciones = historias.reduce((acc, h) => acc + (h.evoluciones?.length || 0), 0);
 
-  const conPagosPendientes = historias.filter((h) =>
-    h.cotizaciones?.some((c) => Number(c.saldo) > 0)
-  ).length;
+  // Cuenta pacientes con saldo pendiente usando el campo del contexto (más confiable)
+  const conPagosPendientes = pacientes.filter((p) => Number(p.saldoPendiente ?? 0) > 0).length;
 
   return [
     { label: 'Total historias',   value: historias.length,  sub: 'registradas',          accentColor: '#3ECFCF' },
@@ -192,13 +191,13 @@ export default function Historias() {
     window.history.replaceState({}, '', '/historias');
   }
 
-  const stats = buildStats(historias);
+  const stats = buildStats(historias, pacientes);
 
   return (
     <div className="flex min-h-screen bg-teal-bg font-sans">
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar pacientes={[]} />
+        <Topbar pacientes={pacientes} />
 
         {historiaActiva ? (
           <HistoriaDetalle

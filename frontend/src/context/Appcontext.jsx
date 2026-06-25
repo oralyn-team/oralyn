@@ -277,6 +277,7 @@ export function AppProvider({ children }) {
     ? await api.actualizarCotizacion(id, body)
     : await api.crearCotizacion(body);
 
+  await recargarPacientes();
   return normalizeCotizacion(cotizacion);
 }
 
@@ -296,7 +297,9 @@ export function AppProvider({ children }) {
 
   async function registrarPago(datos) {
     // datos: { paciente_id, cotizacion_id?, monto, metodo_pago, referencia?, concepto? }
-    return api.crearPago(datos);
+    const res = await api.crearPago(datos);
+    await recargarPacientes();
+    return res;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
