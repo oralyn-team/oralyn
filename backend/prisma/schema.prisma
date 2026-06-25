@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 // ─── ENUMS ──────────────────────────────────────────────────
 
 enum EstadoCita {
@@ -13,13 +14,6 @@ enum EstadoCita {
   asistio
   no_asistio
   cancelada
-}
-
-enum EstadoCotizacion {
-  borrador
-  aprobada
-  rechazada
-  pagada
 }
 
 enum Sexo {
@@ -35,12 +29,6 @@ enum TipoDocumento {
   CE
   NUIP
   PAS
-}
-
-enum MetodoPago {
-  efectivo
-  transferencia
-  tarjeta
 }
 
 enum TipoConsentimiento {
@@ -91,14 +79,14 @@ model Configuracion {
 // ─── USUARIOS ───────────────────────────────────────────────
 
 model Usuario {
-  id               Int            @id @default(autoincrement())
-  consultorio_id   Int
-  consultorio      Configuracion  @relation(fields: [consultorio_id], references: [id])
-  email            String         @unique
-  password_hash    String
-  nombre           String
-  registro         String?
-  creado_en        DateTime       @default(now())
+  id             Int           @id @default(autoincrement())
+  consultorio_id Int
+  consultorio    Configuracion @relation(fields: [consultorio_id], references: [id])
+  email          String        @unique
+  password_hash  String
+  nombre         String
+  registro       String?
+  creado_en      DateTime      @default(now())
 }
 
 // ─── PACIENTES ──────────────────────────────────────────────
@@ -166,12 +154,24 @@ model HistoriaClinica {
   recomendaciones            String?
   firma_doctor               String?
   firma_paciente             String?
+  departamento               String?
+  estado_civil               String?
+  direccion                  String?
+  ocupacion                  String?
+  acudiente                  String?
+  parentesco                 String?
+  eps                        String?
+  tipo_afiliacion            String?
+  tipo_sangre                String?
+  rh                         String?
+  alergias                   String?
 
   antecedentes           HcAntecedentes?
   examen                 HcExamenEstomatologico?
   odontogramas           HcOdontograma[]
   evoluciones            HojaEvolucion[]
   recomendaciones_postqx RecomendacionPostQx[]
+  adjuntos               HcAdjunto[]
 
   @@index([paciente_id])
 }
@@ -180,31 +180,31 @@ model HcAntecedentes {
   id                      Int             @id @default(autoincrement())
   historia_id             Int             @unique
   historia                HistoriaClinica @relation(fields: [historia_id], references: [id])
-  tratamiento_medicacion  Boolean         @default(false)
+  tratamiento_medicacion  Boolean?
   tratamiento_med_obs     String?
-  reacciones_alergicas    Boolean         @default(false)
+  reacciones_alergicas    Boolean?
   alergias_obs            String?
-  problemas_coagulacion   Boolean         @default(false)
+  problemas_coagulacion   Boolean?
   coagulacion_obs         String?
-  irradiaciones           Boolean         @default(false)
+  irradiaciones           Boolean?
   irradiaciones_obs       String?
-  tension_arterial        Boolean         @default(false)
+  tension_arterial        Boolean?
   tension_obs             String?
-  sinusitis               Boolean         @default(false)
+  sinusitis               Boolean?
   sinusitis_obs           String?
-  enf_respiratorias       Boolean         @default(false)
+  enf_respiratorias       Boolean?
   respiratorias_obs       String?
-  cardiopatias            Boolean         @default(false)
+  cardiopatias            Boolean?
   cardiopatias_obs        String?
-  diabetes                Boolean         @default(false)
+  diabetes                Boolean?
   diabetes_obs            String?
-  fiebre_reumatica        Boolean         @default(false)
+  fiebre_reumatica        Boolean?
   fiebre_obs              String?
-  hepatitis               Boolean         @default(false)
+  hepatitis               Boolean?
   hepatitis_obs           String?
-  vih                     Boolean         @default(false)
+  vih                     Boolean?
   vih_obs                 String?
-  trastornos_emocionales  Boolean         @default(false)
+  trastornos_emocionales  Boolean?
   emocionales_obs         String?
   observaciones_generales String?
 }
@@ -238,18 +238,157 @@ model HcOdontograma {
 // ─── HOJA DE EVOLUCIÓN ──────────────────────────────────────
 
 model HojaEvolucion {
-  id                      Int             @id @default(autoincrement())
-  historia_id             Int
-  historia                HistoriaClinica @relation(fields: [historia_id], references: [id])
-  fecha                   DateTime
-  diente                  String?
-  cavidad                 String?
-  tipo_consulta           String?
-  procedimiento_realizado String
-  firma_odontologo        String?
-  firma_paciente          String?
+  id              Int             @id @default(autoincrement())
+  historia_id     Int
+  historia        HistoriaClinica @relation(fields: [historia_id], references: [id])
+  fecha           DateTime
+  doctor          String?
+  motivo          String?
+  diagnostico     String?
+  procedimiento   String?
+  piezas_tratadas String?
+  tratamiento     String?
+  estado_clinico  String?
+  recomendaciones String?
+  proximo_control DateTime?
+  observaciones   String?
 
   @@index([historia_id])
+}
+
+// ✅ Fix 1: HcAdjunto — conservada versión HEAD (campos completos), eliminado
+//    el modelo Cita que estaba mezclado dentro por error del merge
+model HcAdjunto {
+  id               Int             @id @default(autoincrement())
+  historia_id      Int
+  nombre_archivo   String
+  tipo             String?
+  mime_type        String?
+  tamano_bytes     Int?
+  contenido_base64 String?         @db.Text
+  url              String?
+  creado_en        DateTime        @default(now())
+  historia         HistoriaClinica @relation(fields: [historia_id], references: [id], onDelete: Cascade)
+
+  @@index([historia_id])
+  @@map("hc_adjuntos")
+}
+
+// ─── ENUMS TRATAMIENTOS ─────────────────────────────────────
+
+enum EstadoCotizacion {
+  borrador
+  pendiente
+  aprobado
+  en_proceso
+  finalizado
+  cancelado
+}
+
+enum EstadoProcedimiento {
+  pendiente
+  en_proceso
+  realizado
+  cancelado
+}
+
+enum AplicaEn {
+  general
+  dientes
+  cuadrante
+}
+
+enum PrioridadTratamiento {
+  baja
+  media
+  alta
+}
+
+enum MetodoPago {
+  efectivo
+  transferencia_bancaria
+  tarjeta_debito
+  tarjeta_credito
+  nequi
+  daviplata
+  otro
+}
+
+// ─── PLAN DE TRATAMIENTO / COTIZACIÓN ───────────────────────
+
+// ✅ Fix 2: Cotizacion — conservada versión HEAD (campos financieros completos:
+//    total_pagado, saldo, prioridad, doctor_id, ProcedimientoCotizacion)
+model Cotizacion {
+  id               Int                  @id @default(autoincrement())
+  consultorio_id   Int
+  consultorio      Configuracion        @relation(fields: [consultorio_id], references: [id])
+  paciente_id      Int
+  paciente         Paciente             @relation(fields: [paciente_id], references: [id])
+  doctor_id        Int?
+  fecha            DateTime             @default(now())
+  tipo_tratamiento String?
+  prioridad        PrioridadTratamiento @default(media)
+  estado           EstadoCotizacion     @default(borrador)
+  motivo           String?
+  observaciones    String?
+  total            Decimal              @default(0) @db.Decimal(12, 2)
+  total_pagado     Decimal              @default(0) @db.Decimal(12, 2)
+  saldo            Decimal              @default(0) @db.Decimal(12, 2)
+  creado_en        DateTime             @default(now())
+  actualizado_en   DateTime             @default(now()) @updatedAt
+
+  procedimientos   ProcedimientoCotizacion[]
+  pagos            Pago[]
+
+  @@index([consultorio_id])
+  @@index([paciente_id])
+  @@index([doctor_id])
+}
+
+// ─── PROCEDIMIENTOS DEL TRATAMIENTO ─────────────────────────
+
+model ProcedimientoCotizacion {
+  id             Int                 @id @default(autoincrement())
+  cotizacion_id  Int
+  cotizacion     Cotizacion          @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade)
+  procedimiento  String
+  descripcion    String?
+  aplica_en      AplicaEn            @default(general)
+  dientes        Int[]
+  cuadrante      String?
+  cantidad       Int                 @default(1)
+  valor_unitario Decimal             @db.Decimal(10, 2)
+  descuento      Decimal             @default(0) @db.Decimal(5, 2)
+  subtotal       Decimal             @db.Decimal(12, 2)
+  estado         EstadoProcedimiento @default(pendiente)
+  observaciones  String?
+  orden          Int                 @default(0)
+
+  @@index([cotizacion_id])
+}
+
+// ─── PAGOS ──────────────────────────────────────────────────
+
+// ✅ Fix 3: Pago — conservada versión HEAD (con cotizacion_id, referencia,
+//    relación a Cotizacion) vs origin/dev que solo tenía campos básicos
+model Pago {
+  id            Int         @id @default(autoincrement())
+  consultorio_id Int
+  consultorio   Configuracion @relation(fields: [consultorio_id], references: [id])
+  paciente_id   Int
+  paciente      Paciente    @relation(fields: [paciente_id], references: [id])
+  cotizacion_id Int?
+  cotizacion    Cotizacion? @relation(fields: [cotizacion_id], references: [id])
+  fecha         DateTime    @default(now())
+  monto         Decimal     @db.Decimal(10, 2)
+  metodo_pago   MetodoPago
+  referencia    String?
+  concepto      String?
+  creado_en     DateTime    @default(now())
+
+  @@index([consultorio_id])
+  @@index([paciente_id])
+  @@index([cotizacion_id])
 }
 
 // ─── CITAS ──────────────────────────────────────────────────
@@ -261,72 +400,20 @@ model Cita {
   paciente_id        Int
   paciente           Paciente      @relation(fields: [paciente_id], references: [id])
   fecha_hora         DateTime
+  doctor             String?
   procedimiento      String
   codigo_cups        String?
   codigo_cie10       String?
   valor_cobrado      Decimal?      @db.Decimal(10, 2)
   estado             EstadoCita    @default(pendiente)
+  observaciones      String?
   causas_no_atencion String?
   creado_en          DateTime      @default(now())
-
   certificados       CertificadoDental[]
 
   @@index([consultorio_id])
   @@index([paciente_id])
 }
-
-// ─── COTIZACIONES ───────────────────────────────────────────
-
-model Cotizacion {
-  id             Int              @id @default(autoincrement())
-  consultorio_id Int
-  consultorio    Configuracion    @relation(fields: [consultorio_id], references: [id])
-  paciente_id    Int
-  paciente       Paciente         @relation(fields: [paciente_id], references: [id])
-  fecha          DateTime         @default(now())
-  descuento      Decimal          @default(0) @db.Decimal(10, 2)
-  subtotal       Decimal          @db.Decimal(12, 2)
-  total          Decimal          @db.Decimal(12, 2)
-  estado         EstadoCotizacion @default(borrador)
-  observaciones  String?
-
-  items          CotizacionItem[]
-
-  @@index([consultorio_id])
-  @@index([paciente_id])
-}
-
-model CotizacionItem {
-  id               Int        @id @default(autoincrement())
-  cotizacion_id    Int
-  cotizacion       Cotizacion @relation(fields: [cotizacion_id], references: [id])
-  tipo_item        TipoItem
-  descripcion_otro String?
-  numero           Int        @default(1)
-  valor            Decimal    @db.Decimal(10, 2)
-
-  @@index([cotizacion_id])
-}
-
-// ─── PAGOS ──────────────────────────────────────────────────
-
-model Pago {
-  id             Int           @id @default(autoincrement())
-  consultorio_id Int
-  consultorio    Configuracion @relation(fields: [consultorio_id], references: [id])
-  paciente_id    Int
-  paciente       Paciente      @relation(fields: [paciente_id], references: [id])
-  fecha          DateTime      @default(now())
-  monto          Decimal       @db.Decimal(10, 2)
-  metodo_pago    MetodoPago
-  concepto       String?
-  creado_en      DateTime      @default(now())
-
-  @@index([consultorio_id])
-  @@index([paciente_id])
-}
-
-// ─── CONSENTIMIENTOS ────────────────────────────────────────
 
 model Consentimiento {
   id                        Int                @id @default(autoincrement())
@@ -344,12 +431,13 @@ model Consentimiento {
   cc_profesional            String?
   firma_doctor              String?
   pdf_generado_en           DateTime?
+  anulado                   Boolean            @default(false)
+  anulado_en                DateTime?
+  motivo_anulacion          String?
 
   @@index([consultorio_id])
   @@index([paciente_id])
 }
-
-// ─── CERTIFICADOS DENTALES ──────────────────────────────────
 
 model CertificadoDental {
   id               Int           @id @default(autoincrement())
@@ -363,6 +451,9 @@ model CertificadoDental {
   ciudad           String        @default("Villavicencio")
   fecha_expedicion DateTime
   creado_en        DateTime      @default(now())
+  anulado          Boolean       @default(false)
+  anulado_en       DateTime?
+  motivo_anulacion String?
 
   @@index([consultorio_id])
   @@index([paciente_id])

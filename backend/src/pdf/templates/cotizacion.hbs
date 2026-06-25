@@ -3,148 +3,436 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: Arial; padding: 40px; color: #222; font-size: 13px; line-height: 1.6; }
-    .header { display: flex; justify-content: flex-end; margin-bottom: 20px; }
-    .consultorio { text-align: right; font-size: 12px; color: #333; }
-    .consultorio strong { font-size: 13px; }
-    .fecha-linea { margin-bottom: 8px; font-size: 13px; }
-    .fecha-linea span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
-    .doctor-linea { margin-bottom: 6px; font-size: 13px; }
-    .doctor-linea span { display: inline-block; border-bottom: 1px solid #333; min-width: 200px; margin-left: 4px; }
-    .divider { border-top: 1px solid #333; margin: 16px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    .header-tabla { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 4px; padding: 0 4px; }
-    .fila-tratamiento { display: flex; align-items: center; margin-bottom: 6px; font-size: 13px; }
-    .fila-tratamiento .nombre { flex: 1; display: flex; align-items: center; gap: 6px; }
-    .fila-tratamiento .numero { width: 80px; border-bottom: 1px solid #333; margin: 0 16px; }
-    .fila-tratamiento .valor { width: 120px; display: flex; align-items: center; gap: 4px; }
-    .fila-tratamiento .valor span { flex: 1; border-bottom: 1px solid #333; }
-    .otros-section { margin-top: 8px; }
-    .otros-linea { display: flex; align-items: center; margin-bottom: 8px; }
-    .otros-linea .label { min-width: 60px; font-size: 13px; }
-    .otros-linea .linea { flex: 1; border-bottom: 1px solid #333; margin-right: 16px; }
-    .otros-linea .valor { width: 120px; border-bottom: 1px solid #333; }
-    .totales-section { margin-top: 8px; }
-    .total-linea { display: flex; align-items: center; margin-bottom: 8px; }
-    .total-linea .label { min-width: 120px; font-weight: bold; font-size: 13px; }
-    .total-linea .linea { width: 150px; border-bottom: 1px solid #333; margin-left: auto; }
-    .firma-section { margin-top: 80px; text-align: center; }
-    .firma-linea { border-top: 1px solid #333; width: 200px; margin: 0 auto 6px; }
-    .firma-label { font-weight: bold; font-size: 13px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', serif;
+      padding: 44px 48px;
+      color: #1a1a2e;
+      font-size: 12.5px;
+      line-height: 1.6;
+      background: #fff;
+    }
+
+    /* ── Encabezado ─────────────────────────────────────────── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #1a1a2e;
+    }
+
+    .consultorio-nombre {
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 0.3px;
+      color: #1a1a2e;
+      font-family: Arial, sans-serif;
+    }
+
+    .consultorio-detalle {
+      font-size: 11px;
+      color: #555;
+      margin-top: 4px;
+      font-family: Arial, sans-serif;
+      line-height: 1.7;
+    }
+
+    .doc-label {
+      text-align: right;
+      font-family: Arial, sans-serif;
+    }
+
+    .doc-label .titulo {
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #1a1a2e;
+    }
+
+    .doc-label .subtitulo {
+      font-size: 11px;
+      color: #777;
+      margin-top: 3px;
+    }
+
+    /* ── Datos del documento ────────────────────────────────── */
+    .meta-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 24px;
+      margin-bottom: 24px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    .meta-fila {
+      display: flex;
+      gap: 6px;
+      align-items: baseline;
+    }
+
+    .meta-key {
+      color: #888;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .meta-val {
+      color: #1a1a2e;
+      font-weight: 600;
+      border-bottom: 1px solid #ccc;
+      flex: 1;
+      padding-bottom: 1px;
+    }
+
+    .meta-val.vacio {
+      min-width: 120px;
+    }
+
+    /* ── Separador sección ──────────────────────────────────── */
+    .section-title {
+      font-family: Arial, sans-serif;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #888;
+      margin-bottom: 10px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    /* ── Tabla de procedimientos ────────────────────────────── */
+    .tabla-header {
+      display: grid;
+      grid-template-columns: 1fr 60px 140px;
+      font-family: Arial, sans-serif;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #888;
+      padding: 6px 10px;
+      margin-bottom: 2px;
+    }
+
+    .tabla-header .col-num  { text-align: center; }
+    .tabla-header .col-val  { text-align: right; }
+
+    .fila-proc {
+      display: grid;
+      grid-template-columns: 1fr 60px 140px;
+      align-items: start;
+      padding: 9px 10px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    .fila-proc:nth-child(odd) {
+      background: #f8f8fb;
+    }
+
+    .proc-nombre {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .proc-desc {
+      font-size: 10.5px;
+      color: #777;
+      font-style: italic;
+      margin-top: 2px;
+    }
+
+    .proc-aplicacion {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 1px;
+    }
+
+    .proc-dto {
+      font-size: 10px;
+      color: #d97706;
+      margin-top: 1px;
+    }
+
+    .col-num {
+      text-align: center;
+      color: #555;
+      padding-top: 2px;
+    }
+
+    .col-val {
+      text-align: right;
+      font-weight: 600;
+      color: #1a1a2e;
+      padding-top: 2px;
+    }
+
+    /* ── Totales ────────────────────────────────────────────── */
+    .totales-wrap {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+      font-family: Arial, sans-serif;
+    }
+
+    .totales-inner {
+      width: 280px;
+    }
+
+    .total-fila {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .total-fila .tkey {
+      color: #666;
+    }
+
+    .total-fila .tval {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .total-fila.destacado {
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: #1a1a2e;
+      color: #fff;
+      border-radius: 4px;
+      border-bottom: none;
+    }
+
+    .total-fila.destacado .tkey {
+      color: #ccc;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .total-fila.destacado .tval {
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .total-fila.saldo-cero .tval {
+      color: #059669;
+    }
+
+    /* ── Pagos ──────────────────────────────────────────────── */
+    .pagos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .pago-card {
+      border: 1px solid #e8e8ee;
+      border-radius: 6px;
+      padding: 10px 13px;
+      font-family: Arial, sans-serif;
+    }
+
+    .pago-metodo {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #1a1a2e;
+    }
+
+    .pago-fecha {
+      font-size: 10.5px;
+      color: #999;
+      margin-top: 3px;
+    }
+
+    .pago-monto {
+      font-size: 14px;
+      font-weight: 700;
+      color: #059669;
+      margin-top: 6px;
+    }
+
+    /* ── Observaciones ──────────────────────────────────────── */
+    .obs-box {
+      background: #f8f8fb;
+      border-left: 3px solid #1a1a2e;
+      padding: 10px 14px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #444;
+      border-radius: 0 4px 4px 0;
+      margin-top: 10px;
+    }
+
+    /* ── Separadores ────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid #e5e5e5;
+      margin: 22px 0;
+    }
+
+    /* ── Firma ──────────────────────────────────────────────── */
+    .firma-section {
+      margin-top: 56px;
+      display: flex;
+      justify-content: flex-end;
+      font-family: Arial, sans-serif;
+    }
+
+    .firma-inner {
+      text-align: center;
+      width: 200px;
+    }
+
+    .firma-linea {
+      border-top: 1px solid #1a1a2e;
+      margin-bottom: 8px;
+    }
+
+    .firma-nombre {
+      font-size: 12px;
+      font-weight: bold;
+      color: #1a1a2e;
+    }
+
+    .firma-reg {
+      font-size: 10.5px;
+      color: #777;
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
 
+<!-- ── Encabezado ───────────────────────────────────────────── -->
 <div class="header">
-  <div class="consultorio">
-    <strong>{{config.nombre_consultorio}}</strong><br>
-  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
-  {{config.direccion}}<br>
-  Cel: {{config.telefono}} · NIT. {{config.nit}}
+  <div>
+    <div class="consultorio-nombre">{{config.nombre_consultorio}}</div>
+    <div class="consultorio-detalle">
+      {{config.nombre_profesional}}{{#if config.registro_profesional}} &nbsp;·&nbsp; Reg. {{config.registro_profesional}}{{/if}}<br>
+      {{#if config.direccion}}{{config.direccion}}<br>{{/if}}
+      {{#if config.telefono}}Cel: {{config.telefono}}{{/if}}{{#if config.nit}} &nbsp;·&nbsp; NIT. {{config.nit}}{{/if}}
+    </div>
+  </div>
+  <div class="doc-label">
+    <div class="titulo">Plan de Tratamiento</div>
+    <div class="subtitulo">{{dia}} de {{mes}} de {{anio}}</div>
   </div>
 </div>
 
-<div class="fecha-linea">
-  Villavicencio <span>{{dia}}</span> de <span>{{mes}}</span> de <span>{{anio}}</span>
-</div>
-<div class="doctor-linea">
-  El Doctor(a) de <span>{{doctor}}</span>
-</div>
-<div class="doctor-linea">
-  Atendió a <span>{{nombre_completo}}</span>
-</div>
-
-<div class="divider"></div>
-
-<div class="header-tabla">
-  <span>TRATAMIENTO</span>
-  <span style="margin-right:80px">N.°</span>
-  <span>VALOR</span>
-</div>
-
-<div class="fila-tratamiento">
-  <div class="nombre">➤ DETARTRAJE-CURETRAJE</div>
-  <div class="numero">{{detartraje_num}}</div>
-  <div class="valor">$ <span>{{detartraje_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ SUPERFICIE DE RETINA</div>
-  <div class="numero">{{superficie_num}}</div>
-  <div class="valor">$ <span>{{superficie_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ INCRUSTACIONES</div>
-  <div class="numero">{{incrustaciones_num}}</div>
-  <div class="valor">$ <span>{{incrustaciones_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ CARILLAS</div>
-  <div class="numero">{{carillas_num}}</div>
-  <div class="valor">$ <span>{{carillas_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ TRATAMIENTO DE CONDUCTO</div>
-  <div class="numero">{{conducto_num}}</div>
-  <div class="valor">$ <span>{{conducto_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ EXODONCIAS</div>
-  <div class="numero">{{exodoncia_num}}</div>
-  <div class="valor">$ <span>{{exodoncia_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ CIRUGIAS</div>
-  <div class="numero">{{cirugia_num}}</div>
-  <div class="valor">$ <span>{{cirugia_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ NUCLEOS</div>
-  <div class="numero">{{nucleo_num}}</div>
-  <div class="valor">$ <span>{{nucleo_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ CORONAS</div>
-  <div class="numero">{{corona_num}}</div>
-  <div class="valor">$ <span>{{corona_val}}</span></div>
-</div>
-<div class="fila-tratamiento">
-  <div class="nombre">➤ BLANQUEAMIENTO DENTAL</div>
-  <div class="numero">{{blanqueamiento_num}}</div>
-  <div class="valor">$ <span>{{blanqueamiento_val}}</span></div>
-</div>
-
-<div class="otros-section">
-  <div class="otros-linea">
-    <span class="label">OTROS:</span>
-    <span class="linea"></span>
-    <span class="valor"></span>
+<!-- ── Datos del documento ──────────────────────────────────── -->
+<div class="meta-section">
+  <div class="meta-fila">
+    <span class="meta-key">Paciente</span>
+    <span class="meta-val">{{nombre_completo}}</span>
   </div>
-  <div class="otros-linea">
-    <span class="label"></span>
-    <span class="linea"></span>
-    <span class="valor"></span>
+  {{#if documento}}
+  <div class="meta-fila">
+    <span class="meta-key">C.C.</span>
+    <span class="meta-val">{{documento}}</span>
   </div>
-  <div class="otros-linea">
-    <span class="label"></span>
-    <span class="linea"></span>
-    <span class="valor"></span>
+  {{/if}}
+  <div class="meta-fila">
+    <span class="meta-key">Tipo de tratamiento</span>
+    <span class="meta-val{{#unless tipo_tratamiento}} vacio{{/unless}}">{{tipo_tratamiento}}</span>
+  </div>
+  {{#if motivo}}
+  <div class="meta-fila">
+    <span class="meta-key">Motivo</span>
+    <span class="meta-val">{{motivo}}</span>
+  </div>
+  {{/if}}
+</div>
+
+<!-- ── Procedimientos ───────────────────────────────────────── -->
+<div class="section-title">Procedimientos</div>
+
+<div class="tabla-header">
+  <span>Descripción</span>
+  <span class="col-num">Cant.</span>
+  <span class="col-val">Valor</span>
+</div>
+
+{{#each procedimientos}}
+<div class="fila-proc">
+  <div>
+    <div class="proc-nombre">
+      {{procedimiento}}
+    </div>
+    {{#if descripcion}}<div class="proc-desc">{{descripcion}}</div>{{/if}}
+    <div class="proc-aplicacion">{{aplicacion}}</div>
+    {{#if tieneDescuento}}<div class="proc-dto">Descuento: {{descuento}}</div>{{/if}}
+  </div>
+  <div class="col-num">{{cantidad}}</div>
+  <div class="col-val">{{subtotal}}</div>
+</div>
+{{/each}}
+
+<!-- ── Totales ───────────────────────────────────────────────── -->
+<div class="totales-wrap">
+  <div class="totales-inner">
+    <div class="total-fila destacado">
+      <span class="tkey">TOTAL PRESUPUESTO</span>
+      <span class="tval">{{total}}</span>
+    </div>
+    {{#if tiene_pagos}}
+    <div class="total-fila" style="margin-top:6px;">
+      <span class="tkey">Total pagado</span>
+      <span class="tval">{{total_pagado}}</span>
+    </div>
+    <div class="total-fila{{#if pagado_completo}} saldo-cero{{/if}}">
+      <span class="tkey">Saldo pendiente</span>
+      <span class="tval">{{saldo}}</span>
+    </div>
+    {{/if}}
   </div>
 </div>
 
-<div class="totales-section">
-  <div class="total-linea">
-    <span class="label">PRESUPUESTO</span>
-    <span class="linea">{{subtotal}}</span>
+<!-- ── Pagos ─────────────────────────────────────────────────── -->
+{{#if tiene_pagos}}
+<hr class="divider">
+<div class="section-title">Pagos registrados</div>
+<div class="pagos-grid">
+  {{#each pagos}}
+  <div class="pago-card">
+    <div class="pago-metodo">{{metodo}}</div>
+    <div class="pago-fecha">{{fecha}}</div>
+    <div class="pago-monto">{{monto}}</div>
   </div>
-  <div class="total-linea">
-    <span class="label">DTO</span>
-    <span class="linea">{{descuento}}</span>
-  </div>
+  {{/each}}
 </div>
+{{/if}}
 
+<!-- ── Observaciones ─────────────────────────────────────────── -->
+{{#if observaciones}}
+<hr class="divider">
+<div class="section-title">Observaciones</div>
+<div class="obs-box">{{observaciones}}</div>
+{{/if}}
+
+<!-- ── Firma ──────────────────────────────────────────────────── -->
 <div class="firma-section">
-  <div class="firma-linea"></div>
-  <div class="firma-label">FIRMA Y SELLO</div>
+  <div class="firma-inner">
+    <div class="firma-linea"></div>
+    <div class="firma-nombre">{{config.nombre_profesional}}</div>
+    {{#if config.registro_profesional}}
+    <div class="firma-reg">Reg. Prof. {{config.registro_profesional}}</div>
+    {{/if}}
+  </div>
 </div>
 
 </body>

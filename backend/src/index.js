@@ -16,16 +16,23 @@ const configuracionRoutes = require('./routes/configuracion')
 const adminRoutes = require('./routes/admin')
 
 const app = express()
-const PORT = process.env.PORT || 3000
 
 const NODE_ENV = process.env.NODE_ENV || 'development'
 console.log(`Entorno: ${NODE_ENV}`)
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'https://oralyn.vercel.app'
+]
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }))
+
 app.use(express.json())
 
 // Rutas
@@ -50,6 +57,8 @@ app.get('/', (req, res) => {
 
 const errorHandler = require('./middlewares/errorHandler')
 app.use(errorHandler)
+
+const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`)
