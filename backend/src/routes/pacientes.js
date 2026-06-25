@@ -96,6 +96,8 @@ router.post('/', async (req, res) => {
 // GET /api/pacientes — listar todos
 router.get('/', async (req, res) => {
   try {
+    const ahora = new Date()
+
     const pacientes = await prisma.paciente.findMany({
       where: { consultorio_id: req.usuario.consultorio_id },
       orderBy: { primer_apellido: 'asc' },
@@ -113,13 +115,12 @@ router.get('/', async (req, res) => {
         municipio_ciudad: true,
         creado_en: true,
         citas: {
-          select: { id: true, fecha_hora: true },
+          select: { id: true, fecha_hora: true, estado: true },
           orderBy: { fecha_hora: 'desc' },
-          take: 1
         },
         cotizaciones: {
-          where: { estado: 'aprobado' },
-          select: { total: true }
+          where: { estado: { not: 'cancelado' } },
+          select: { id: true, total: true, saldo: true, estado: true }
         },
         pagos: {
           select: { monto: true }
@@ -128,17 +129,32 @@ router.get('/', async (req, res) => {
     })
 
     const resultado = pacientes.map(p => {
-      const tieneCitas = p.citas.length > 0
-      const totalCotizado = p.cotizaciones.reduce((sum, c) => sum + Number(c.total), 0)
-      const totalPagado = p.pagos.reduce((sum, pg) => sum + Number(pg.monto), 0)
-      const tieneSaldo = totalCotizado - totalPagado > 0
+      const citasPasadas = p.citas.filter(c => new Date(c.fecha_hora) <= ahora)
+      const citasFuturas = p.citas.filter(c => new Date(c.fecha_hora) > ahora && c.estado === 'pendiente')
+
+      const tieneCitasPasadas = citasPasadas.length > 0
+
+      // Saldo pendiente: suma de saldos de todas las cotizaciones no canceladas
+      const totalSaldoPendiente = p.cotizaciones.reduce((sum, c) => sum + Number(c.saldo ?? 0), 0)
+      const tieneSaldo = totalSaldoPendiente > 0
+
+      // Tratamientos pendientes de pago (cotizaciones activas con saldo > 0)
+      const tratamientosPendientes = p.cotizaciones.filter(c => Number(c.saldo ?? 0) > 0).length
 
       let estado = 'Nuevo'
-      if (tieneCitas && tieneSaldo) estado = 'Pendiente'
-      else if (tieneCitas && !tieneSaldo) estado = 'Al día'
+      if (tieneCitasPasadas && tieneSaldo) estado = 'Pendiente'
+      else if (tieneCitasPasadas && !tieneSaldo) estado = 'Al día'
 
-      const ultimaVisita = p.citas[0]?.fecha_hora
-        ? p.citas[0].fecha_hora.toISOString().split('T')[0]
+      // Última cita pasada
+      const ultimaCitaPasada = citasPasadas[0]
+      const ultimaVisita = ultimaCitaPasada?.fecha_hora
+        ? new Date(ultimaCitaPasada.fecha_hora).toISOString().split('T')[0]
+        : null
+
+      // Próxima cita futura pendiente
+      const proximaCitaObj = citasFuturas.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora))[0]
+      const proximaCita = proximaCitaObj?.fecha_hora
+        ? new Date(proximaCitaObj.fecha_hora).toISOString()
         : null
 
       return {
@@ -157,7 +173,11 @@ router.get('/', async (req, res) => {
         municipio_ciudad: p.municipio_ciudad,
         creado_en: p.creado_en,
         ultimaVisita,
-        estado
+        estado,
+        saldoPendiente: totalSaldoPendiente,
+        tratamientosPendientes,
+        citasPendientes: citasFuturas.length,
+        proximaCita,
       }
     })
 
