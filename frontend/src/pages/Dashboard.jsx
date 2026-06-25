@@ -22,7 +22,7 @@ import {
   CalendarPlus, 
   Settings,
   ChevronRight,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 
 function formatTime(dateStr) {
@@ -267,7 +267,7 @@ export default function Dashboard() {
                     {citasHoy.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-5 py-12 text-center text-[12px] text-teal-muted">
-                          <div className="text-[32px] mb-1.5">📅</div>
+                          <div className="text-[32px] mb-1.5"><CalendarDays /></div>
                           No tienes citas programadas para el día de hoy.
                         </td>
                       </tr>
