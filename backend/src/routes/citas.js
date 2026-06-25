@@ -50,10 +50,16 @@ router.post('/', async (req, res) => {
   }
 })
 
+// GET /api/citas — listar citas (excluye canceladas por defecto)
 router.get('/', async (req, res) => {
-  const { fecha } = req.query
+  const { fecha, incluir_canceladas } = req.query
   try {
     let where = { consultorio_id: req.usuario.consultorio_id }
+
+    // Solo incluye canceladas si se pide explícitamente
+    if (!incluir_canceladas) {
+      where.estado = { not: 'cancelada' }
+    }
 
     if (fecha) {
       const inicio = new Date(fecha)
@@ -79,11 +85,22 @@ router.get('/', async (req, res) => {
   }
 })
 
+// GET /api/citas/paciente/:pacienteId — citas de un paciente (excluye canceladas por defecto)
 router.get('/paciente/:pacienteId', async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
+  const { incluir_canceladas } = req.query
   try {
+    let where = {
+      paciente_id: pacienteId,
+      consultorio_id: req.usuario.consultorio_id
+    }
+
+    if (!incluir_canceladas) {
+      where.estado = { not: 'cancelada' }
+    }
+
     const citas = await prisma.cita.findMany({
-      where: { paciente_id: pacienteId, consultorio_id: req.usuario.consultorio_id },
+      where,
       orderBy: { fecha_hora: 'desc' }
     })
     res.json(citas)
@@ -93,6 +110,7 @@ router.get('/paciente/:pacienteId', async (req, res) => {
   }
 })
 
+// GET /api/citas/:id — detalle de una cita
 router.get('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
   try {
@@ -112,6 +130,7 @@ router.get('/:id', async (req, res) => {
   }
 })
 
+// PATCH /api/citas/:id/estado — cambiar estado
 router.patch('/:id/estado', async (req, res) => {
   const id = parseInt(req.params.id)
   const { estado } = req.body
@@ -135,6 +154,7 @@ router.patch('/:id/estado', async (req, res) => {
   }
 })
 
+// PUT /api/citas/:id — actualizar cita
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
   const datos = req.body
@@ -156,6 +176,7 @@ router.put('/:id', async (req, res) => {
   }
 })
 
+// DELETE /api/citas/:id — soft delete (marca como cancelada)
 router.delete('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
   try {
