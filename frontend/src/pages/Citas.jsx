@@ -1,5 +1,5 @@
 // src/pages/Citas.jsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, List } from 'lucide-react';
 
 import Sidebar        from '../components/layout/Sidebar';
@@ -83,6 +83,12 @@ export default function Citas() {
     pacientes.map((p) => ({ id: p.id, nombre: nombreCompletoPaciente(p) }))
   ), [pacientes]);
 
+  // Ref para que normalizeCita siempre tenga los pacientes más recientes
+  // sin que el useEffect de carga se dispare cada vez que cambian
+  const pacientesRef = useRef(pacientes);
+  useEffect(() => { pacientesRef.current = pacientes; }, [pacientes]);
+
+  // Cargar citas solo al montar el componente
   useEffect(() => {
     let activo = true;
 
@@ -91,7 +97,7 @@ export default function Citas() {
       setError(null);
       try {
         const data = await api.getCitas();
-        if (activo) setCitas((data || []).map((cita) => normalizeCita(cita, pacientes)));
+        if (activo) setCitas((data || []).map((cita) => normalizeCita(cita, pacientesRef.current)));
       } catch (err) {
         console.error('Error cargando citas:', err);
         if (activo) setError(err.error || 'No se pudieron cargar las citas.');
@@ -102,7 +108,7 @@ export default function Citas() {
 
     cargarCitas();
     return () => { activo = false; };
-  }, [pacientes]);
+  }, []); // ← Solo se ejecuta al montar, NO cuando cambian pacientes
 
   function mostrarToast(msg) {
     setToast(msg);
