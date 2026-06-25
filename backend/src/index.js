@@ -13,6 +13,7 @@ const dashboardRoutes = require('./routes/dashboard')
 const pdfRoutes = require('./routes/pdf')
 const certificadosRoutes = require('./routes/certificados')
 const configuracionRoutes = require('./routes/configuracion')
+const adminRoutes = require('./routes/admin')
 
 const app = express()
 
@@ -29,8 +30,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+ allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }))
 
 app.use(express.json())
@@ -47,6 +47,9 @@ app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/pdf', pdfRoutes)
 app.use('/api/certificados', certificadosRoutes)
 app.use('/api/configuracion', configuracionRoutes)
+app.use('/api/admin', adminRoutes)
+
+
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })
