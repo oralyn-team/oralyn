@@ -70,7 +70,7 @@ function buildStats(citas) {
 }
 
 export default function Citas() {
-  const { pacientes } = useApp();
+  const { pacientes, recargarPacientes } = useApp();
   const [citas, setCitas] = useState([]);
   const [vista, setVista] = useState('tabla');
   const [modalOpen, setModalOpen] = useState(false);
@@ -135,6 +135,7 @@ export default function Citas() {
       mostrarToast(citaEditar ? 'Cita actualizada correctamente' : 'Cita creada correctamente');
       setModalOpen(false);
       setCitaEditar(null);
+      recargarPacientes(); // Actualiza notificaciones y contadores
     } catch (err) {
       console.error('Error guardando cita:', err);
       mostrarToast(err.error || 'No se pudo guardar la cita');
@@ -146,6 +147,7 @@ export default function Citas() {
       await api.eliminarCita(id);
       setCitas((prev) => prev.filter((c) => c.id !== id));
       mostrarToast('Cita eliminada');
+      recargarPacientes();
     } catch (err) {
       console.error('Error eliminando cita:', err);
       mostrarToast(err.error || 'No se pudo eliminar la cita');
@@ -157,6 +159,7 @@ export default function Citas() {
       const actualizada = await api.cambiarEstadoCita(id, ESTADO_UI_TO_API[nuevoEstado]);
       setCitas((prev) => prev.map((c) => c.id === id ? normalizeCita(actualizada, pacientes) : c));
       mostrarToast(`Estado actualizado: ${nuevoEstado}`);
+      recargarPacientes();
     } catch (err) {
       console.error('Error cambiando estado:', err);
       mostrarToast(err.error || 'No se pudo actualizar el estado');
@@ -170,7 +173,7 @@ export default function Citas() {
       <Sidebar />
 
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar pacientes={[]} />
+        <Topbar pacientes={pacientes} />
 
         <main className="flex-1 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-4 gap-3 mb-5">
