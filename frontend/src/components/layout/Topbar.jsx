@@ -1,12 +1,14 @@
 // src/components/layout/Topbar.jsx
-import { Bell } from 'lucide-react';
+import { useApp } from '../../context/Appcontext';
 import Notificaciones from '../Notificaciones';
 import { useNotificaciones } from '../../hooks/useNotificaciones';
 
 /**
- * @param {Array} props.pacientes - Lista de pacientes desde Pacientes.jsx
+ * Topbar obtiene pacientes del contexto global automáticamente.
+ * La prop pacientes se mantiene por compatibilidad pero ya no es necesaria.
  */
-export default function Topbar({ pacientes = [] }) {
+export default function Topbar() {
+  const { pacientes = [] } = useApp();
   const notificaciones = useNotificaciones(pacientes);
 
   return (
