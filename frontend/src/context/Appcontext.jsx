@@ -127,7 +127,11 @@ export function AppProvider({ children }) {
       .then((data) => setPacientes(data))
       .catch((err) => {
         console.error('Error cargando pacientes:', err);
-        setError('No se pudieron cargar los pacientes');
+        if (err.status === 401 || err.status === 403) {
+          cerrarSesion();
+        } else {
+          setError('No se pudieron cargar los pacientes');
+        }
       })
       .finally(() => setLoading(false));
   }, [token]);
