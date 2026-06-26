@@ -45,11 +45,12 @@ const ESTADOS_INFO = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { pacientes, agregarPaciente, recargarPacientes } = useApp();
+  const { pacientes, agregarPaciente, recargarPacientes, configuracion } = useApp();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
 
   // Modals status
   const [modalPaciente, setModalPaciente] = useState(false);
@@ -215,7 +216,7 @@ export default function Dashboard() {
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-primary to-primary-light rounded-xl p-5 text-white mb-5 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h1 className="font-display text-[22px] tracking-wide">¡Hola, Dra. Murillo!</h1>
+              <h1 className="font-display text-[22px] tracking-wide">¡Hola, {configuracion?.nombre_profesional || 'Doctor'}!</h1>
               <p className="text-[11px] text-teal-light mt-0.5 max-w-lg">
                 Este es el resumen de tu consultorio odontológico para el día de hoy. Puedes ver tus citas programadas y gestionar estados rápidamente.
               </p>
