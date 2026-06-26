@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function Configuracion() {
-  const { pacientes } = useApp();
+  const { pacientes, setConfiguracion } = useApp(); // ← añadido setConfiguracion
 
   const [form, setForm] = useState({
     nombre_consultorio: '',
@@ -38,7 +38,7 @@ export default function Configuracion() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
-  const [existeConfig, setExisteConfig] = useState(false); // Indicates if config exists or needs creation
+  const [existeConfig, setExisteConfig] = useState(false);
 
   async function loadConfiguracion() {
     try {
@@ -61,7 +61,6 @@ export default function Configuracion() {
     } catch (err) {
       console.error('Error cargando configuración:', err);
       if (err.status === 404) {
-        // Configuration does not exist yet, we will create it on submit
         setExisteConfig(false);
       } else {
         setError(err.error || 'No se pudo cargar la configuración del consultorio.');
@@ -90,12 +89,12 @@ export default function Configuracion() {
     setSaving(true);
     try {
       if (existeConfig) {
-        // Update configuration
+        // Actualizar configuración existente
         await api.actualizarConfiguracion(form);
+        setConfiguracion(form); // ← actualiza el contexto global
         mostrarToast('Configuración actualizada correctamente');
       } else {
-        // Create configuration for the first time
-        // POST endpoint
+        // Crear configuración por primera vez
         const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/configuracion`, {
           method: 'POST',
           headers: {
@@ -108,6 +107,7 @@ export default function Configuracion() {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.error || 'Error creando configuración');
         }
+        setConfiguracion(form); // ← actualiza el contexto global
         setExisteConfig(true);
         mostrarToast('Configuración inicial guardada correctamente');
       }
@@ -158,7 +158,7 @@ export default function Configuracion() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Clinic Information Card */}
+                {/* Datos del Consultorio */}
                 <div className="bg-white border border-teal-border rounded-xl p-5 shadow-sm space-y-3.5">
                   <h3 className="text-[13px] font-semibold text-primary border-b border-teal-soft pb-2 flex items-center gap-1.5">
                     <Building2 size={14} className="text-teal" /> Datos del Consultorio
@@ -245,7 +245,7 @@ export default function Configuracion() {
                   </div>
                 </div>
 
-                {/* Professional Information Card */}
+                {/* Datos del Profesional */}
                 <div className="bg-white border border-teal-border rounded-xl p-5 shadow-sm space-y-3.5 flex flex-col justify-between">
                   <div className="space-y-3.5">
                     <h3 className="text-[13px] font-semibold text-primary border-b border-teal-soft pb-2 flex items-center gap-1.5">
