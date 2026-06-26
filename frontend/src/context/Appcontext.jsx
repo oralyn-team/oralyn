@@ -47,7 +47,6 @@ function normalizeMetodoPago(metodo = '') {
     Daviplata: 'daviplata',
     Otro: 'otro',
   };
-
   return metodos[metodo] ?? metodo;
 }
 
@@ -86,14 +85,12 @@ function evolucionToApi(ev = {}) {
 
 function normalizeCotizacion(cotizacion = {}) {
   if (cotizacion.info && cotizacion.procedimientos) return cotizacion;
-
   const procedimientos = (cotizacion.procedimientos || []).map(normalizeProcedimiento);
   const pagos = (cotizacion.pagos || []).map(normalizePago);
   const calculated = calcTotales(procedimientos, pagos);
   const total = Number(cotizacion.total ?? cotizacion.valor_total ?? calculated.total) || 0;
   const totalPagado = Number(cotizacion.totalPagado ?? cotizacion.total_pagado ?? calculated.totalPagado) || 0;
   const saldo = Number(cotizacion.saldo ?? Math.max(total - totalPagado, 0)) || 0;
-
   return {
     ...cotizacion,
     info: {
@@ -113,12 +110,14 @@ function normalizeCotizacion(cotizacion = {}) {
 }
 
 export function AppProvider({ children }) {
-  const [token, setToken]         = useState(() => localStorage.getItem('token'));
-  const [pacientes, setPacientes] = useState([]);
-  const [historias, setHistorias] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
+  const [token, setToken]             = useState(() => localStorage.getItem('token'));
+  const [pacientes, setPacientes]     = useState([]);
+  const [historias, setHistorias]     = useState([]);
+  const [configuracion, setConfiguracion] = useState(null); // ← NUEVO
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
 
+  // ── Carga inicial de pacientes ────────────────────────────────────────────
   useEffect(() => {
     if (!token) { setLoading(false); return; }
     setLoading(true);
@@ -136,8 +135,15 @@ export function AppProvider({ children }) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
+  // ── Carga inicial de configuración ────────────────────────────────────────
+  useEffect(() => {
+    if (!token) return;
+    api.getConfiguracion()
+      .then(setConfiguracion)
+      .catch(() => {}); // Si no existe aún, simplemente queda null
+  }, [token]);
 
+  // ── Auth ──────────────────────────────────────────────────────────────────
   function guardarToken(nuevoToken) {
     localStorage.setItem('token', nuevoToken);
     setToken(nuevoToken);
@@ -148,10 +154,10 @@ export function AppProvider({ children }) {
     setToken(null);
     setPacientes([]);
     setHistorias([]);
+    setConfiguracion(null); // ← limpiar al cerrar sesión
   }
 
   // ── Pacientes ─────────────────────────────────────────────────────────────
-
   async function recargarPacientes() {
     try {
       const data = await api.getPacientes();
@@ -173,7 +179,6 @@ export function AppProvider({ children }) {
   }
 
   // ── Historias ─────────────────────────────────────────────────────────────
-
   async function actualizarHistoria(historiaActualizada) {
     const { id } = historiaActualizada;
     const datos = { ...historiaActualizada };
@@ -182,7 +187,6 @@ export function AppProvider({ children }) {
       'tipoDocumento', 'fechaNacimiento', 'sexo', 'telefono',
       'correo', 'municipioCiudad', 'pacienteId',
     ].forEach((key) => delete datos[key]);
-
     await api.actualizarHistoria(id, datos);
     setHistorias((prev) =>
       prev.map((h) => h.id === id ? historiaActualizada : h)
@@ -218,68 +222,63 @@ export function AppProvider({ children }) {
   }
 
   // ── Cotizaciones / Tratamientos ───────────────────────────────────────────
-
   async function getCotizacionesPaciente(pacienteId) {
     const cotizaciones = await api.getCotizacionesPaciente(pacienteId);
     return (cotizaciones || []).map(normalizeCotizacion);
   }
 
   async function guardarTratamiento(data, pacienteId) {
-  const { id, accion, info, procedimientos, pagos = [] } = data;
+    const { id, accion, info, procedimientos, pagos = [] } = data;
 
-  // procedimientos llegan en camelCase desde el form (sin mapear)
-  const procedimientosBody = procedimientos.map((p, index) => {
-    const cantidad      = Number(p.cantidad      ?? p.cantidad)      || 1;
-    const valorUnitario = Number(p.valorUnitario ?? p.valor_unitario) || 0;
-    const descuento     = Number(p.descuento)    || 0;
-    return {
-      procedimiento:  p.procedimiento,
-      descripcion:    p.descripcion          ?? null,
-      aplica_en:      p.aplicaEn ?? p.aplica_en ?? 'general',
-      dientes:        p.dientes              ?? [],
-      cuadrante:      p.cuadrante            || null,
-      cantidad,
-      valor_unitario: valorUnitario,
-      descuento,
-      estado:         p.estado               ?? 'pendiente',
-      observaciones:  p.observaciones        || null,
-      orden:          index,
+    const procedimientosBody = procedimientos.map((p, index) => {
+      const cantidad      = Number(p.cantidad      ?? p.cantidad)       || 1;
+      const valorUnitario = Number(p.valorUnitario ?? p.valor_unitario) || 0;
+      const descuento     = Number(p.descuento)    || 0;
+      return {
+        procedimiento:  p.procedimiento,
+        descripcion:    p.descripcion          ?? null,
+        aplica_en:      p.aplicaEn ?? p.aplica_en ?? 'general',
+        dientes:        p.dientes              ?? [],
+        cuadrante:      p.cuadrante            || null,
+        cantidad,
+        valor_unitario: valorUnitario,
+        descuento,
+        estado:         p.estado               ?? 'pendiente',
+        observaciones:  p.observaciones        || null,
+        orden:          index,
+      };
+    });
+
+    const pagosBody = pagos
+      .filter((p) => Number(p.monto) > 0)
+      .map((p) => ({
+        id:          p.id,
+        fecha:       p.fecha       ?? null,
+        monto:       Number(p.monto),
+        metodo_pago: normalizeMetodoPago(p.metodo ?? p.metodo_pago),
+        referencia:  p.referencia  || null,
+      }));
+
+    const body = {
+      paciente_id:      pacienteId,
+      doctor_id:        info.doctor_id        ?? null,
+      tipo_tratamiento: info.tipo             ?? null,
+      prioridad:        info.prioridad        ?? 'media',
+      estado:           accion === 'aprobar'  ? 'aprobado' : (info.estado ?? 'borrador'),
+      motivo:           info.motivo           ?? null,
+      observaciones:    info.observaciones    ?? null,
+      procedimientos:   procedimientosBody,
+      pagos:            pagosBody,
     };
-  });
 
-  // pagos llegan con metodo (label) desde el form
-  const pagosBody = pagos
-    .filter((p) => Number(p.monto) > 0)
-    .map((p) => ({
-      id:          p.id,         // back lo usa para distinguir nuevos vs existentes en PUT
-      fecha:       p.fecha       ?? null,
-      monto:       Number(p.monto),
-      metodo_pago: normalizeMetodoPago(p.metodo ?? p.metodo_pago),
-      referencia:  p.referencia  || null,
-    }));
+    const esEdicion = Number.isInteger(id) && id > 0;
+    const cotizacion = esEdicion
+      ? await api.actualizarCotizacion(id, body)
+      : await api.crearCotizacion(body);
 
-  const body = {
-    paciente_id:      pacienteId,
-    doctor_id:        info.doctor_id        ?? null,
-    tipo_tratamiento: info.tipo             ?? null,
-    prioridad:        info.prioridad        ?? 'media',
-    estado:           accion === 'aprobar'  ? 'aprobado' : (info.estado ?? 'borrador'),
-    motivo:           info.motivo           ?? null,
-    observaciones:    info.observaciones    ?? null,
-    procedimientos:   procedimientosBody,
-    pagos:            pagosBody,            // ← van dentro del body, no por separado
-  };
-
-  // id null → crear, id número real → editar
-  const esEdicion = Number.isInteger(id) && id > 0;
-
-  const cotizacion = esEdicion
-    ? await api.actualizarCotizacion(id, body)
-    : await api.crearCotizacion(body);
-
-  await recargarPacientes();
-  return normalizeCotizacion(cotizacion);
-}
+    await recargarPacientes();
+    return normalizeCotizacion(cotizacion);
+  }
 
   async function cambiarEstadoCotizacion(cotizacionId, estado) {
     return api.cambiarEstadoCotizacion(cotizacionId, estado);
@@ -290,39 +289,33 @@ export function AppProvider({ children }) {
   }
 
   // ── Pagos ─────────────────────────────────────────────────────────────────
-
   async function getPagosPaciente(pacienteId) {
     return api.getPagosPaciente(pacienteId);
   }
 
   async function registrarPago(datos) {
-    // datos: { paciente_id, cotizacion_id?, monto, metodo_pago, referencia?, concepto? }
     const res = await api.crearPago(datos);
     await recargarPacientes();
     return res;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-
   return (
     <AppContext.Provider value={{
       // Auth
       token, guardarToken, cerrarSesion,
-
       // Pacientes
       pacientes, setPacientes,
       agregarPaciente, eliminarPaciente, recargarPacientes,
-
       // Historias
       historias, setHistorias,
       actualizarHistoria, crearEvolucion, eliminarEvolucion, actualizarOdontograma,
-
       // Cotizaciones
       getCotizacionesPaciente, guardarTratamiento, cambiarEstadoCotizacion, eliminarCotizacion,
-
       // Pagos
       getPagosPaciente, registrarPago,
-
+      // Configuración
+      configuracion, setConfiguracion, // ← NUEVO
       // Estado global
       loading, error,
     }}>
