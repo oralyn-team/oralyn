@@ -4,12 +4,14 @@ const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
 
-//router.use(verificarToken)
+router.use(verificarToken) // ← descomenta esto
 
-// GET /api/configuracion — obtener configuración
+// GET — obtener configuración del consultorio del usuario logueado
 router.get('/', async (req, res) => {
   try {
-    const config = await prisma.configuracion.findFirst()
+    const config = await prisma.configuracion.findUnique({
+      where: { id: req.usuario.consultorio_id } // ← filtra por consultorio
+    })
 
     if (!config) {
       return res.status(404).json({ error: 'Configuración no encontrada' })
@@ -22,25 +24,19 @@ router.get('/', async (req, res) => {
   }
 })
 
-// POST /api/configuracion — crear configuración inicial
+// POST — crear configuración (solo si no existe para ese consultorio)
 router.post('/', async (req, res) => {
-  const {
-    nombre_consultorio,
-    nombre_profesional,
-    registro_profesional,
-    nit,
-    direccion,
-    telefono,
-    ciudad,
-    email
-  } = req.body
+  const { nombre_consultorio, nombre_profesional, registro_profesional,
+          nit, direccion, telefono, ciudad, email } = req.body
 
   if (!nombre_consultorio || !nombre_profesional) {
     return res.status(400).json({ error: 'Nombre del consultorio y profesional son obligatorios' })
   }
 
   try {
-    const existe = await prisma.configuracion.findFirst()
+    const existe = await prisma.configuracion.findUnique({
+      where: { id: req.usuario.consultorio_id }
+    })
     if (existe) {
       return res.status(400).json({ error: 'Ya existe una configuración. Usa PUT para actualizarla.' })
     }
@@ -65,19 +61,12 @@ router.post('/', async (req, res) => {
   }
 })
 
-// PUT /api/configuracion — actualizar configuración
+// PUT — actualizar configuración del consultorio del usuario logueado
 router.put('/', async (req, res) => {
-  const datos = req.body
-
   try {
-    const existe = await prisma.configuracion.findFirst()
-    if (!existe) {
-      return res.status(404).json({ error: 'No existe configuración. Usa POST para crearla.' })
-    }
-
     const config = await prisma.configuracion.update({
-      where: { id: existe.id },
-      data: datos
+      where: { id: req.usuario.consultorio_id }, // ← directo, sin findFirst
+      data: req.body
     })
 
     res.json(config)
