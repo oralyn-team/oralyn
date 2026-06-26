@@ -316,8 +316,6 @@ enum MetodoPago {
 
 // ─── PLAN DE TRATAMIENTO / COTIZACIÓN ───────────────────────
 
-// ✅ Fix 2: Cotizacion — conservada versión HEAD (campos financieros completos:
-//    total_pagado, saldo, prioridad, doctor_id, ProcedimientoCotizacion)
 model Cotizacion {
   id               Int                  @id @default(autoincrement())
   consultorio_id   Int
@@ -368,9 +366,6 @@ model ProcedimientoCotizacion {
 }
 
 // ─── PAGOS ──────────────────────────────────────────────────
-
-// ✅ Fix 3: Pago — conservada versión HEAD (con cotizacion_id, referencia,
-//    relación a Cotizacion) vs origin/dev que solo tenía campos básicos
 model Pago {
   id            Int         @id @default(autoincrement())
   consultorio_id Int
