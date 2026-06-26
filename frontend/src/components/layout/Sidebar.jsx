@@ -3,6 +3,8 @@ import {
   LayoutDashboard, Users, CalendarDays,
   Stethoscope, ClipboardList, Receipt, Settings,
 } from 'lucide-react';
+import { useApp } from '../../context/Appcontext';
+
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard',      path: '/dashboard'     },
@@ -27,6 +29,7 @@ function ToothIcon() {
 }
 
 export default function Sidebar() {
+  const { configuracion } = useApp();
   return (
     <nav className="w-[220px] min-h-screen bg-primary flex flex-col flex-shrink-0">
       {/* Logo */}
@@ -65,11 +68,15 @@ export default function Sidebar() {
       <div className="px-5 py-4 border-t border-white/10">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-teal flex items-center justify-center text-[11px] font-medium text-primary">
-            DR
+            {configuracion?.nombre_profesional
+            ? configuracion.nombre_profesional.split(' ').map(w => w[0]).slice(0, 2).join('')
+            : 'DR'}
           </div>
-          <div>
-            <p className="text-[12px] text-white/80">Dra. Murillo</p>
-            <p className="text-[10px] text-white/40">Odontólogo</p>
+        <div>
+          <p className="text-[12px] text-white/80">
+           {configuracion?.nombre_profesional || 'Doctor'}
+          </p>
+          <p className="text-[10px] text-white/40">Odontólogo</p>
           </div>
         </div>
       </div>
