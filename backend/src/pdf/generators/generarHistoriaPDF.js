@@ -1,5 +1,6 @@
 const generarPDF = require('../helpers/generarPDF')
 const prisma = require('../../lib/prisma')
+const { TIPO_DEFAULT, ordenarOdontogramas } = require('../../services/odontogramas')
 
 const ESTADOS_LABEL = {
   sano:         'Sano',
@@ -83,40 +84,78 @@ function procesarExamen(examen) {
 
   const resultado = {}
 
-  const secciones = [
-    'estructuras_json',
-    'examen_pulpar_json',
-    'tejidos_json',
-    'periodontal_json'
-  ]
-
-  secciones.forEach(campo => {
-    if (!examen[campo]) return
-
+  // Mantener compatibilidad con examen estomatológico
+  if (examen.estructuras_json) {
     try {
-      const datos =
-        typeof examen[campo] === 'string'
-          ? JSON.parse(examen[campo])
-          : examen[campo]
-
-      resultado[campo] = Object.entries(datos)
+      const datos = typeof examen.estructuras_json === 'string' ? JSON.parse(examen.estructuras_json) : examen.estructuras_json
+      resultado.estructuras_json = Object.entries(datos)
         .filter(([, valor]) => valor === true)
-        .map(([clave]) =>
-          clave
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, l => l.toUpperCase())
-        )
-    } catch (error) {
-      console.error(`Error procesando ${campo}:`, error)
-      resultado[campo] = []
+        .map(([clave]) => clave)
+    } catch {
+      resultado.estructuras_json = []
     }
-  })
+  }
 
-  resultado.observaciones = examen.observaciones || ''
+  // Examen Pulpar
+  if (examen.examen_pulpar_json) {
+    try {
+      const datos = typeof examen.examen_pulpar_json === 'string' ? JSON.parse(examen.examen_pulpar_json) : examen.examen_pulpar_json
+      resultado.examen_pulpar = Object.entries(datos).map(([key, val]) => ({
+        nombre: key,
+        resultado: val === true ? 'Sí' : val === false ? 'No' : '—'
+      }))
+    } catch {
+      resultado.examen_pulpar = []
+    }
+  }
   resultado.pulpar_obs = examen.pulpar_obs || ''
+
+  // Tejidos Dentarios y Oclusión
+  if (examen.tejidos_json) {
+    try {
+      const datos = typeof examen.tejidos_json === 'string' ? JSON.parse(examen.tejidos_json) : examen.tejidos_json
+      resultado.tejidos = Object.entries(datos).map(([key, val]) => ({
+        nombre: key,
+        resultado: val === true ? 'Sí' : val === false ? 'No' : '—'
+      }))
+    } catch {
+      resultado.tejidos = []
+    }
+  }
+  resultado.tejidos_obs = examen.tejidos_obs || ''
+
+  // Alteraciones Periodontales
+  if (examen.periodontal_json) {
+    try {
+      const datos = typeof examen.periodontal_json === 'string' ? JSON.parse(examen.periodontal_json) : examen.periodontal_json
+      
+      resultado.periodontal_signos = Object.entries(datos)
+        .filter(([key]) => key !== 'movilidad' && key !== 'bolsa')
+        .map(([key, val]) => ({
+          nombre: key,
+          resultado: val === true ? 'Sí' : val === false ? 'No' : '—'
+        }))
+
+      const dientesSup = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+      const dientesInf = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+
+      const movilidad = datos.movilidad || {};
+      const bolsa = datos.bolsa || {};
+
+      resultado.movilidad_sup = dientesSup.map(d => ({ numero: d, valor: movilidad[d] || '—' }));
+      resultado.bolsa_sup = dientesSup.map(d => ({ numero: d, valor: bolsa[d] || '—' }));
+      resultado.movilidad_inf = dientesInf.map(d => ({ numero: d, valor: movilidad[d] || '—' }));
+      resultado.bolsa_inf = dientesInf.map(d => ({ numero: d, valor: bolsa[d] || '—' }));
+      resultado.tiene_grid_periodontal = Object.keys(movilidad).length > 0 || Object.keys(bolsa).length > 0;
+    } catch {
+      resultado.periodontal_signos = []
+      resultado.tiene_grid_periodontal = false
+    }
+  }
+  
   resultado.dx_periodontal = examen.dx_periodontal || ''
   resultado.periodontal_obs = examen.periodontal_obs || ''
-  resultado.tejidos_obs = examen.tejidos_obs || ''
+  resultado.observaciones = examen.observaciones || ''
 
   return resultado
 }
@@ -133,10 +172,12 @@ async function generarHistoriaPDF(historia, consultorio_id) {
     ? new Date(historia.fecha_atencion).toLocaleDateString('es-CO')
     : ''
 
-  const odontogramaReg = await prisma.hcOdontograma.findFirst({
-    where: { historia_id: historia.id },
-    orderBy: { creado_en: 'desc' },
-  })
+  const odontogramaReg = Array.isArray(historia.odontogramas)
+    ? ordenarOdontogramas(historia.odontogramas).find((item) => item.tipo === TIPO_DEFAULT) || null
+    : await prisma.hcOdontograma.findFirst({
+        where: { historia_id: historia.id, tipo: TIPO_DEFAULT },
+        orderBy: [{ actualizado_en: 'desc' }, { creado_en: 'desc' }],
+      })
 
   const odontograma = odontogramaReg
     ? procesarOdontograma(odontogramaReg.dientes_json)
