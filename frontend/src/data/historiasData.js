@@ -49,7 +49,7 @@ export const ESTRUCTURAS_ESTOMATOLOGICAS = [
   'Surcos vestibulares','Mejillas','Proceso alveolar',
   'Orofaringe','Paladar','Glándulas salivares','Piso de boca',
   'Dorso de lengua','Vientre de lengua',
-  'Paladar blando','Paladar duro','Vientre de lengua','Parótidas',
+  'Paladar blando','Paladar duro','Parótidas',
   'G. salivales','Maxilares',
   'Ruidos','Desviación','Cambio de volumen','Bloqueo mandibular',
   'Limitación de apertura','Dolor articular','Dolor muscular',

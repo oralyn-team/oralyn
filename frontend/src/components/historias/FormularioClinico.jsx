@@ -1,5 +1,4 @@
-// src/components/historias/FormularioClinico.jsx
-import { ANTECEDENTES_MEDICOS, HABITOS_ORALES, ESTRUCTURAS_ESTOMATOLOGICAS, TIPOS_SANGRE } from '../../data/historiasData';
+import { ANTECEDENTES_MEDICOS, HABITOS_ORALES, ESTRUCTURAS_ESTOMATOLOGICAS, TIPOS_SANGRE, DIENTES_SUPERIORES, DIENTES_INFERIORES } from '../../data/historiasData';
 
 const TIPOS_AFILIACION = ['Contributivo', 'Subsidiado', 'Particular'];
 
@@ -41,18 +40,20 @@ function InfoField({ label, value }) {
 }
 
 function CheckSiNo({ label, value, onChange, disabled }) {
+  // Sanitizar el name para evitar colisiones con caracteres especiales o acentos
+  const safeName = `ant-${label.replace(/[^a-zA-Z0-9]/g, '_')}`;
   return (
     <div className="flex items-center justify-between py-1.5 border-b border-teal-soft last:border-0">
       <span className="text-[12px] text-[#1a3a3a] flex-1 pr-2">{label}</span>
       <div className="flex items-center gap-3 flex-shrink-0">
         <label className="flex items-center gap-1 cursor-pointer">
-          <input type="radio" name={`ant-${label}`} disabled={disabled}
+          <input type="radio" name={safeName} disabled={disabled}
             checked={value === true} onChange={() => onChange(true)}
             className="accent-primary w-3.5 h-3.5" />
           <span className="text-[11px]">Sí</span>
         </label>
         <label className="flex items-center gap-1 cursor-pointer">
-          <input type="radio" name={`ant-${label}`} disabled={disabled}
+          <input type="radio" name={safeName} disabled={disabled}
             checked={value === false} onChange={() => onChange(false)}
             className="accent-status-red w-3.5 h-3.5" />
           <span className="text-[11px]">No</span>
@@ -218,6 +219,33 @@ function SeccionIdentificacion({ form, onChange, editable }) {
             : <p className="text-[12px] text-[#1a3a3a] px-2.5 py-1.5">{form.rh ? (form.rh === '+' ? 'Positivo (+)' : 'Negativo (−)') : '—'}</p>}
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+// ── Sección II ────────────────────────────────────────────────────────────
+function SeccionAntecedentes({ form, onChange, editable }) {
+  const antecedentes = form.antecedentes || {};
+
+  function field(name) {
+    return (e) => onChange({ ...form, [name]: e.target.value });
+  }
+
+  function updateAntecedentes(v) {
+    onChange({ ...form, antecedentes: v });
+  }
+
+  const mitad = Math.ceil(ANTECEDENTES_MEDICOS.length / 2);
+  const col1  = ANTECEDENTES_MEDICOS.slice(0, mitad);
+  const col2  = ANTECEDENTES_MEDICOS.slice(mitad);
+
+  return (
+    <div className="bg-white border border-teal-border rounded-xl p-4 mb-4">
+      <SectionTitle number="II" text="Antecedentes médicos" />
+
+      {/* 4 campos al inicio de la tarjeta */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="col-span-2">
           <Label text="Alergias conocidas" />
           {editable
@@ -243,7 +271,7 @@ function SeccionIdentificacion({ form, onChange, editable }) {
       </div>
 
       {/* Evento adverso */}
-      <div className="mt-3 border border-teal-border rounded-lg p-3 bg-teal-panel">
+      <div className="mb-4 border border-teal-border rounded-lg p-3 bg-teal-panel">
         <div className="flex items-center gap-4 mb-2">
           <span className="text-[11px] font-medium text-primary uppercase tracking-wide">Evento adverso</span>
           {['true','false'].map((v) => (
@@ -267,37 +295,363 @@ function SeccionIdentificacion({ form, onChange, editable }) {
           </>
         )}
       </div>
-    </div>
-  );
-}
 
-// ── Sección II ────────────────────────────────────────────────────────────
-function SeccionAntecedentes({ antecedentes, onChange, editable }) {
-  const mitad = Math.ceil(ANTECEDENTES_MEDICOS.length / 2);
-  const col1  = ANTECEDENTES_MEDICOS.slice(0, mitad);
-  const col2  = ANTECEDENTES_MEDICOS.slice(mitad);
-  return (
-    <div className="bg-white border border-teal-border rounded-xl p-4 mb-4">
-      <SectionTitle number="II" text="Antecedentes médicos" />
-      <div className="grid grid-cols-2 gap-x-6">
-        <div>{col1.map((item) => (
-          <CheckSiNo key={item} label={item} value={antecedentes[item]}
-            onChange={(v) => onChange({ ...antecedentes, [item]: v })} disabled={!editable} />
-        ))}</div>
-        <div>{col2.map((item) => (
-          <CheckSiNo key={item} label={item} value={antecedentes[item]}
-            onChange={(v) => onChange({ ...antecedentes, [item]: v })} disabled={!editable} />
-        ))}</div>
+      {/* Listado de antecedentes médicos */}
+      <div className="border-t border-teal-soft pt-4 mt-4">
+        <div className="grid grid-cols-2 gap-x-6">
+          <div>{col1.map((item) => (
+            <CheckSiNo key={item} label={item} value={antecedentes[item]}
+              onChange={(v) => updateAntecedentes({ ...antecedentes, [item]: v })} disabled={!editable} />
+          ))}</div>
+          <div>{col2.map((item) => (
+            <CheckSiNo key={item} label={item} value={antecedentes[item]}
+              onChange={(v) => updateAntecedentes({ ...antecedentes, [item]: v })} disabled={!editable} />
+          ))}</div>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Sección III ───────────────────────────────────────────────────────────
+function SeccionPulparPeriodontal({ form, onChange, editable }) {
+  const FILAS_PULPAR = ['Cuellos sensibles', 'Abscesos', 'Exposición pulpar', 'Cambio de color'];
+  const FILAS_TEJIDOS = ['Supernumerarios', 'Decoloración', 'Descalcificación', 'Facetas de desgaste', 'Abrasión y/o erosión', 'Erupción'];
+  const FILAS_PERIODONTAL = ['Sangrado', 'Exudado', 'Supuración', 'Cálculos', 'Inflamación', 'Retracciones', 'Presencia de bolsas'];
+
+  const examenPulpar = form.examenPulpar || {};
+  const tejidos = form.tejidos || {};
+  const periodontal = form.periodontal || {};
+
+  function handleRadioChange(seccion, fila, valor) {
+    onChange({
+      ...form,
+      [seccion]: {
+        ...(form[seccion] || {}),
+        [fila]: valor
+      }
+    });
+  }
+
+  function handleObsChange(seccionObs, valor) {
+    onChange({
+      ...form,
+      [seccionObs]: valor
+    });
+  }
+
+  return (
+    <div className="bg-white border border-teal-border rounded-xl p-4 mb-4">
+      <SectionTitle number="III" text="Examen pulpar y periodontal" />
+
+      {/* 1. Examen Pulpar */}
+      <h5 className="text-[11px] font-semibold text-primary uppercase tracking-wider mb-2.5">1. Examen Pulpar</h5>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+        <div className="border border-teal-soft rounded-lg overflow-hidden bg-white">
+          <div className="flex justify-between items-center px-3 py-2 bg-teal-panel border-b border-teal-soft">
+            <span className="text-[10px] font-semibold text-primary uppercase tracking-wide flex-1">Signo o Síntoma</span>
+            <span className="text-[10px] font-semibold text-teal-muted w-8 text-center">Sí</span>
+            <span className="text-[10px] font-semibold text-teal-muted w-8 text-center">No</span>
+          </div>
+          <div className="divide-y divide-teal-soft">
+            {FILAS_PULPAR.map((row) => (
+              <div key={row} className="flex items-center justify-between px-3 py-2">
+                <span className="text-[11.5px] text-[#1a3a3a]">{row}</span>
+                <div className="flex items-center gap-3">
+                  {[true, false].map((val) => (
+                    <label key={String(val)} className="w-8 flex justify-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`pulpar-${row.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                        disabled={!editable}
+                        checked={examenPulpar[row] === val}
+                        onChange={() => handleRadioChange('examenPulpar', row, val)}
+                        className="accent-primary w-3.5 h-3.5"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label text="Observaciones" />
+          {editable ? (
+            <textarea
+              value={form.pulparObs || ''}
+              onChange={(e) => handleObsChange('pulparObs', e.target.value)}
+              rows={4}
+              placeholder="Escriba las observaciones del examen pulpar..."
+              className={`${inputBase} h-[135px] resize-none`}
+            />
+          ) : (
+            <p className="text-[12px] text-[#1a3a3a] px-2.5 py-1.5 border border-teal-soft rounded-lg bg-[#F7FDFD] min-h-[135px]">
+              {form.pulparObs || '—'}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Tejidos Dentarios y Oclusión */}
+      <h5 className="text-[11px] font-semibold text-primary uppercase tracking-wider mb-2.5">2. Tejidos Dentarios y Oclusión</h5>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+        <div className="border border-teal-soft rounded-lg overflow-hidden bg-white">
+          <div className="flex justify-between items-center px-3 py-2 bg-teal-panel border-b border-teal-soft">
+            <span className="text-[10px] font-semibold text-primary uppercase tracking-wide flex-1">Signo o Síntoma</span>
+            <span className="text-[10px] font-semibold text-teal-muted w-8 text-center">Sí</span>
+            <span className="text-[10px] font-semibold text-teal-muted w-8 text-center">No</span>
+          </div>
+          <div className="divide-y divide-teal-soft">
+            {FILAS_TEJIDOS.map((row) => (
+              <div key={row} className="flex items-center justify-between px-3 py-2">
+                <span className="text-[11.5px] text-[#1a3a3a]">{row}</span>
+                <div className="flex items-center gap-3">
+                  {[true, false].map((val) => (
+                    <label key={String(val)} className="w-8 flex justify-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`tejidos-${row.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                        disabled={!editable}
+                        checked={tejidos[row] === val}
+                        onChange={() => handleRadioChange('tejidos', row, val)}
+                        className="accent-primary w-3.5 h-3.5"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label text="Observaciones" />
+          {editable ? (
+            <textarea
+              value={form.tejidosObs || ''}
+              onChange={(e) => handleObsChange('tejidosObs', e.target.value)}
+              rows={6}
+              placeholder="Escriba las observaciones de tejidos dentarios..."
+              className={`${inputBase} h-[205px] resize-none`}
+            />
+          ) : (
+            <p className="text-[12px] text-[#1a3a3a] px-2.5 py-1.5 border border-teal-soft rounded-lg bg-[#F7FDFD] min-h-[205px]">
+              {form.tejidosObs || '—'}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Alteraciones Periodontales */}
+      <h5 className="text-[11px] font-semibold text-primary uppercase tracking-wider mb-2.5">3. Alteraciones Periodontales</h5>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="border border-teal-soft rounded-lg overflow-hidden bg-white">
+          <div className="flex justify-between items-center px-3 py-2 bg-teal-panel border-b border-teal-soft">
+            <span className="text-[10px] font-semibold text-primary uppercase tracking-wide flex-1">Signo</span>
+            <span className="text-[10px] font-semibold text-teal-muted w-8 text-center">Sí</span>
+            <span className="text-[10px] font-semibold text-teal-muted w-8 text-center">No</span>
+          </div>
+          <div className="divide-y divide-teal-soft">
+            {FILAS_PERIODONTAL.map((row) => (
+              <div key={row} className="flex items-center justify-between px-3 py-2">
+                <span className="text-[11.5px] text-[#1a3a3a]">{row}</span>
+                <div className="flex items-center gap-3">
+                  {[true, false].map((val) => (
+                    <label key={String(val)} className="w-8 flex justify-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`periodontal-${row.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                        disabled={!editable}
+                        checked={periodontal[row] === val}
+                        onChange={() => handleRadioChange('periodontal', row, val)}
+                        className="accent-primary w-3.5 h-3.5"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label text="Observaciones" />
+          {editable ? (
+            <textarea
+              value={form.periodontalObs || ''}
+              onChange={(e) => handleObsChange('periodontalObs', e.target.value)}
+              rows={7}
+              placeholder="Escriba las observaciones periodontales..."
+              className={`${inputBase} h-[240px] resize-none`}
+            />
+          ) : (
+            <p className="text-[12px] text-[#1a3a3a] px-2.5 py-1.5 border border-teal-soft rounded-lg bg-[#F7FDFD] min-h-[240px]">
+              {form.periodontalObs || '—'}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Diagnóstico Periodontal */}
+      <div className="mb-5">
+        <Label text="Diagnóstico Periodontal" />
+        {editable ? (
+          <textarea
+            value={form.dxPeriodontal || ''}
+            onChange={(e) => handleObsChange('dxPeriodontal', e.target.value)}
+            rows={3}
+            placeholder="Describa el diagnóstico periodontal..."
+            className={`${inputBase} resize-none`}
+          />
+        ) : (
+          <p className="text-[12px] text-[#1a3a3a] px-2.5 py-1.5 border border-teal-soft rounded-lg bg-[#F7FDFD] min-h-[75px]">
+            {form.dxPeriodontal || '—'}
+          </p>
+        )}
+      </div>
+
+      {/* Tabla de Movilidad y Bolsa (Superior e Inferior) */}
+      <div className="mb-2">
+        <Label text="Tablas de Movilidad y Bolsa" />
+        
+        {/* Tabla Superior */}
+        <p className="text-[10px] font-semibold text-primary mb-1 uppercase tracking-wide">Arcada Superior (18 - 28)</p>
+        <div className="overflow-x-auto border border-teal-soft rounded-lg bg-white mb-4">
+          <table className="min-w-[680px] w-full text-center border-collapse">
+            <thead>
+              <tr className="bg-teal-panel border-b border-teal-soft">
+                <th className="px-3 py-1.5 text-[9px] font-semibold text-primary uppercase text-left w-20">Diente</th>
+                {DIENTES_SUPERIORES.map(num => (
+                  <th key={num} className="px-1 py-1.5 text-[10px] font-semibold text-teal-muted">{num}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-teal-soft">
+                <td className="px-3 py-1.5 text-[10px] font-medium text-primary text-left bg-teal-panel">Movilidad</td>
+                {DIENTES_SUPERIORES.map(num => (
+                  <td key={num} className="px-1 py-1">
+                    <input
+                      type="text"
+                      maxLength={3}
+                      disabled={!editable}
+                      value={periodontal.movilidad?.[num] || ''}
+                      onChange={(e) => {
+                        const mov = periodontal.movilidad || {};
+                        onChange({
+                          ...form,
+                          periodontal: {
+                            ...periodontal,
+                            movilidad: { ...mov, [num]: e.target.value }
+                          }
+                        });
+                      }}
+                      className="w-8 px-1 py-0.5 border border-teal-border rounded text-center text-[11px] bg-white outline-none focus:border-primary disabled:opacity-75 disabled:bg-gray-50"
+                    />
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="px-3 py-1.5 text-[10px] font-medium text-primary text-left bg-teal-panel">Bolsa</td>
+                {DIENTES_SUPERIORES.map(num => (
+                  <td key={num} className="px-1 py-1">
+                    <input
+                      type="text"
+                      maxLength={3}
+                      disabled={!editable}
+                      value={periodontal.bolsa?.[num] || ''}
+                      onChange={(e) => {
+                        const bol = periodontal.bolsa || {};
+                        onChange({
+                          ...form,
+                          periodontal: {
+                            ...periodontal,
+                            bolsa: { ...bol, [num]: e.target.value }
+                          }
+                        });
+                      }}
+                      className="w-8 px-1 py-0.5 border border-teal-border rounded text-center text-[11px] bg-white outline-none focus:border-primary disabled:opacity-75 disabled:bg-gray-50"
+                    />
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Tabla Inferior */}
+        <p className="text-[10px] font-semibold text-primary mb-1 uppercase tracking-wide">Arcada Inferior (48 - 38)</p>
+        <div className="overflow-x-auto border border-teal-soft rounded-lg bg-white">
+          <table className="min-w-[680px] w-full text-center border-collapse">
+            <thead>
+              <tr className="bg-teal-panel border-b border-teal-soft">
+                <th className="px-3 py-1.5 text-[9px] font-semibold text-primary uppercase text-left w-20">Diente</th>
+                {DIENTES_INFERIORES.map(num => (
+                  <th key={num} className="px-1 py-1.5 text-[10px] font-semibold text-teal-muted">{num}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-teal-soft">
+                <td className="px-3 py-1.5 text-[10px] font-medium text-primary text-left bg-teal-panel">Movilidad</td>
+                {DIENTES_INFERIORES.map(num => (
+                  <td key={num} className="px-1 py-1">
+                    <input
+                      type="text"
+                      maxLength={3}
+                      disabled={!editable}
+                      value={periodontal.movilidad?.[num] || ''}
+                      onChange={(e) => {
+                        const mov = periodontal.movilidad || {};
+                        onChange({
+                          ...form,
+                          periodontal: {
+                            ...periodontal,
+                            movilidad: { ...mov, [num]: e.target.value }
+                          }
+                        });
+                      }}
+                      className="w-8 px-1 py-0.5 border border-teal-border rounded text-center text-[11px] bg-white outline-none focus:border-primary disabled:opacity-75 disabled:bg-gray-50"
+                    />
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="px-3 py-1.5 text-[10px] font-medium text-primary text-left bg-teal-panel">Bolsa</td>
+                {DIENTES_INFERIORES.map(num => (
+                  <td key={num} className="px-1 py-1">
+                    <input
+                      type="text"
+                      maxLength={3}
+                      disabled={!editable}
+                      value={periodontal.bolsa?.[num] || ''}
+                      onChange={(e) => {
+                        const bol = periodontal.bolsa || {};
+                        onChange({
+                          ...form,
+                          periodontal: {
+                            ...periodontal,
+                            bolsa: { ...bol, [num]: e.target.value }
+                          }
+                        });
+                      }}
+                      className="w-8 px-1 py-0.5 border border-teal-border rounded text-center text-[11px] bg-white outline-none focus:border-primary disabled:opacity-75 disabled:bg-gray-50"
+                    />
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sección IV ───────────────────────────────────────────────────────────
 function SeccionHabitos({ habitos, habitosObs, onChange, onObsChange, editable }) {
   return (
     <div className="bg-white border border-teal-border rounded-xl p-4 mb-4">
-      <SectionTitle number="III" text="Hábitos orales nocivos" />
+      <SectionTitle number="IV" text="Hábitos orales nocivos" />
       <div className="flex flex-wrap gap-2 mb-3">
         {HABITOS_ORALES.map((h) => (
           <CheckHabito key={h} label={h} checked={habitos[h] || false}
@@ -314,13 +668,13 @@ function SeccionHabitos({ habitos, habitosObs, onChange, onObsChange, editable }
   );
 }
 
-// ── Sección IV ────────────────────────────────────────────────────────────
+// ── Sección V ────────────────────────────────────────────────────────────
 function SeccionEstomatologico({ estomatologico, estomatologicoObs, onChange, onObsChange, editable }) {
   const porColumna = Math.ceil(ESTRUCTURAS_ESTOMATOLOGICAS.length / 4);
   const cols = [0,1,2,3].map((i) => ESTRUCTURAS_ESTOMATOLOGICAS.slice(i*porColumna, (i+1)*porColumna));
   return (
     <div className="bg-white border border-teal-border rounded-xl p-4 mb-4">
-      <SectionTitle number="IV" text="Examen estomatológico" />
+      <SectionTitle number="V" text="Examen estomatológico" />
       <p className="text-[11px] text-teal-muted mb-3">Registrar Sí o No en cada estructura explorada</p>
       <div className="grid grid-cols-4 gap-3 mb-3">
         {cols.map((col, ci) => (
@@ -330,21 +684,25 @@ function SeccionEstomatologico({ estomatologico, estomatologicoObs, onChange, on
               <span className="text-[10px] font-medium text-teal-muted w-6 text-center">Sí</span>
               <span className="text-[10px] font-medium text-teal-muted w-6 text-center">No</span>
             </div>
-            {col.map((estructura) => (
-              <div key={estructura} className="flex items-center justify-between py-1 border-b border-teal-soft last:border-0">
-                <span className="text-[11px] text-[#1a3a3a] flex-1 truncate pr-1">{estructura}</span>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {[true, false].map((val) => (
-                    <label key={String(val)} className="w-6 flex justify-center cursor-pointer">
-                      <input type="radio" name={`esto-${estructura}`} disabled={!editable}
-                        checked={estomatologico[estructura] === val}
-                        onChange={() => onChange({ ...estomatologico, [estructura]: val })}
-                        className="accent-primary w-3 h-3" />
-                    </label>
-                  ))}
+            {col.map((estructura, ei) => {
+              // Usar índice de columna + posición para garantizar name único incluso si hay labels similares
+              const safeEstoName = `esto-${ci}-${ei}-${estructura.replace(/[^a-zA-Z0-9]/g, '_')}`;
+              return (
+                <div key={`${ci}-${ei}-${estructura}`} className="flex items-center justify-between py-1 border-b border-teal-soft last:border-0">
+                  <span className="text-[11px] text-[#1a3a3a] flex-1 truncate pr-1">{estructura}</span>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {[true, false].map((val) => (
+                      <label key={String(val)} className="w-6 flex justify-center cursor-pointer">
+                        <input type="radio" name={safeEstoName} disabled={!editable}
+                          checked={estomatologico[estructura] === val}
+                          onChange={() => onChange({ ...estomatologico, [estructura]: val })}
+                          className="accent-primary w-3 h-3" />
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
       </div>
@@ -364,8 +722,11 @@ export default function FormularioClinico({ form, editable, onChange }) {
     <div>
       <SeccionIdentificacion form={form} editable={editable} onChange={onChange} />
       <SeccionAntecedentes
-        antecedentes={form.antecedentes || {}} editable={editable}
-        onChange={(v) => update({ antecedentes: v })} />
+        form={form} editable={editable}
+        onChange={onChange} />
+      <SeccionPulparPeriodontal
+        form={form} editable={editable}
+        onChange={onChange} />
       <SeccionHabitos
         habitos={form.habitosOrales || {}} habitosObs={form.habitosObs} editable={editable}
         onChange={(v) => update({ habitosOrales: v })}

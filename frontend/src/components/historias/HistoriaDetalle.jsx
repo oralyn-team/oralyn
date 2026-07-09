@@ -1,5 +1,5 @@
 // src/components/historias/HistoriaDetalle.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet} from 'lucide-react';
 import OdontogramaModal  from './OdontogramaModal';
 import TratamientosCotizacionesForm from './tratamientos/TratamientoCotizacionForm';
@@ -27,6 +27,7 @@ function normalizeAdjunto(adj) {
     fecha: adj.creado_en?.split('T')[0] || adj.fecha?.split('T')[0] || '',
     url: adj.url || adj.ruta || null,
     mimeType: adj.mime_type || null,
+    contenido_base64: adj.contenido_base64 || null,
   };
 }
 
@@ -138,6 +139,9 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
     tratamientos: historia.tratamientos ?? [],
   });
 
+  const formRef = useRef(form);
+  useEffect(() => { formRef.current = form; }, [form]);
+
   useEffect(() => {
     let activo = true;
 
@@ -199,8 +203,15 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
 
         // Examen estomatológico: se guarda como JSON en estructuras_json
         examen: {
-          estructuras_json: form.estomatologico    || {},
-          observaciones:    form.estomatologicoObs || '',
+          estructuras_json:   form.estomatologico    || {},
+          observaciones:      form.estomatologicoObs || '',
+          examen_pulpar_json: form.examenPulpar      || {},
+          pulpar_obs:         form.pulparObs         || '',
+          tejidos_json:       form.tejidos           || {},
+          tejidos_obs:        form.tejidosObs        || '',
+          periodontal_json:   form.periodontal       || {},
+          dx_periodontal:     form.dxPeriodontal     || '',
+          periodontal_obs:    form.periodontalObs    || '',
         },
       });
 
@@ -295,12 +306,18 @@ async function handleEliminarTratamiento(tratamiento) {
     setErrorGuardar('Eliminar evoluciones aún necesita endpoint DELETE en backend.');
   }
 
-  async function actualizarOdontograma(nuevo) {
-    await api.actualizarOdontograma(historia.id, { dientes_json: nuevo, observaciones: null });
-    const actualizada = { ...form, odontograma: nuevo };
-    setForm(actualizada);
-    onActualizar(actualizada);
-  }
+
+async function actualizarOdontograma({ tipo, dientes_json }) {
+  await api.actualizarOdontograma(historia.id, tipo, { dientes_json, observaciones: null });
+
+  const actualizada = {
+    ...formRef.current,
+    odontograma: { ...formRef.current.odontograma, [tipo]: dientes_json },
+  };
+
+  setForm(actualizada);
+  onActualizar(actualizada);
+}
 
   function actualizarAdjuntos(nuevos) {
     const actualizada = { ...form, adjuntos: nuevos };
@@ -330,9 +347,8 @@ async function handleEliminarTratamiento(tratamiento) {
     actualizarAdjuntos((form.adjuntos || []).filter((adj) => adj.id !== adjuntoId));
   }
 
-  const dientesConCondicion = Object.values(form.odontograma || {}).filter(
-    (d) => d?.estado && d.estado !== 'sano'
-  ).length;
+  const dientesConCondicion = Object.values(form.odontograma?.['general-adulto'] || {}).filter(
+    (d) => d?.estado && d.estado !== 'sano').length;
 
   async function onVerPDF() {
   try {
@@ -478,9 +494,9 @@ async function handleEliminarTratamiento(tratamiento) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {Object.entries(form.odontograma || {})
-              .filter(([, v]) => v?.estado && v.estado !== 'sano')
-              .map(([num, val]) => (
+            {Object.entries(form.odontograma?.['general-adulto'] || {})
+            .filter(([, v]) => v?.estado && v.estado !== 'sano')
+            .map(([num, val]) => ( 
                 <span
                   key={num}
                   className="text-[11px] px-2.5 py-1 rounded-full font-medium"
@@ -731,11 +747,11 @@ async function handleEliminarTratamiento(tratamiento) {
         )}
 
       <OdontogramaModal
-        isOpen={modalOdonto}
-        onClose={() => setModalOdonto(false)}
-        odontograma={form.odontograma}
-        onGuardar={actualizarOdontograma}
-        nombrePaciente={form.pacienteNombre}
+      isOpen={modalOdonto}
+      onClose={() => setModalOdonto(false)}
+      odontogramas={form.odontograma}
+      onGuardar={actualizarOdontograma}
+      nombrePaciente={form.pacienteNombre}
       />
     </div>
   );

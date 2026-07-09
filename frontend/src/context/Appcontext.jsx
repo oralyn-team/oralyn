@@ -214,12 +214,14 @@ export function AppProvider({ children }) {
     ));
   }
 
-  async function actualizarOdontograma(historiaId, odontograma) {
-    await api.actualizarOdontograma(historiaId, odontograma);
+  async function actualizarOdontograma(historiaId, tipo, data) {
+    await api.actualizarOdontograma(historiaId, tipo, data);
     setHistorias((prev) => prev.map((h) =>
-      h.id === historiaId ? { ...h, odontograma } : h
-    ));
-  }
+      h.id === historiaId
+    ? { ...h, odontograma: { ...h.odontograma, [tipo]: data.dientes_json } }
+    : h
+  ));
+}
 
   // ── Cotizaciones / Tratamientos ───────────────────────────────────────────
   async function getCotizacionesPaciente(pacienteId) {

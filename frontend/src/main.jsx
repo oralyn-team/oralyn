@@ -18,12 +18,18 @@ function PrivateRoute({ children }) {
   return token ? children : <Navigate to="/login" />
 }
 
+// Si ya hay sesión activa, redirigir al dashboard en lugar de mostrar el login
+function PublicRoute({ children }) {
+  const token = localStorage.getItem('token')
+  return token ? <Navigate to="/dashboard" replace /> : children
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AppProvider>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/" element={<PrivateRoute><Navigate to="/dashboard" replace /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Pacientes /></PrivateRoute>} />

@@ -1,9 +1,8 @@
 // src/components/historias/OdontogramaModal.jsx
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Save, RotateCcw, Info } from 'lucide-react';
 
 // ── Constantes ────────────────────────────────────────────────────────────
-
 const ESTADOS = {
   sano:         { label: 'Sano',          color: '#3ECFCF', bg: '#E1F5EE', text: '#0F6E56',  dot: '#3ECFCF' },
   caries:       { label: 'Caries',        color: '#EF9F27', bg: '#FAEEDA', text: '#854F0B',  dot: '#EF9F27' },
@@ -25,6 +24,122 @@ const TEMP_SUP_DER = [55, 54, 53, 52, 51];
 const TEMP_SUP_IZQ = [61, 62, 63, 64, 65];
 const TEMP_INF_DER = [85, 84, 83, 82, 81];
 const TEMP_INF_IZQ = [71, 72, 73, 74, 75];
+
+const TIPOS_ODONTOGRAMA = [
+  { value: 'general-adulto', label: 'General Adulto' },
+  { value: 'general-infantil', label: 'General Infantil' },
+  { value: 'ortodoncia', label: 'Ortodoncia' },
+];
+
+const ELEMENTOS_ORTODONCIA = [
+  'Brackets',
+  'Bandas',
+  'Tubos',
+  'Arcos',
+  'Ligaduras',
+  'Botones',
+  'Elasticos',
+  'Mini implantes',
+  'Retenedores',
+];
+
+const ODONTOGRAMA_CONFIGS = {
+  'general-adulto': {
+    arcadas: [
+      {
+        key: 'superior',
+        label: 'Arcada Superior',
+        separator: 'Lingual',
+        normalLabel: 'Vestibular',
+        normalRows: [
+          { groups: [SUP_DER, SUP_IZQ], divider: true },
+          { groups: [TEMP_SUP_DER, TEMP_SUP_IZQ], pequeño: true, gap: 'gap-12' },
+        ],
+        lingualRows: [
+          { groups: [TEMP_SUP_DER, TEMP_SUP_IZQ], pequeño: true, gap: 'gap-12' },
+          { groups: [SUP_DER, SUP_IZQ], divider: true },
+        ],
+        lingualLabel: 'Vestibular',
+      },
+      {
+        key: 'inferior',
+        label: 'Arcada Inferior',
+        separator: 'Vestibular',
+        normalLabel: 'Lingual',
+        normalRows: [
+          { groups: [TEMP_INF_DER, TEMP_INF_IZQ], pequeño: true, gap: 'gap-12' },
+          { groups: [INF_DER, INF_IZQ], divider: true },
+        ],
+        lingualRows: [
+          { groups: [INF_DER, INF_IZQ], divider: true },
+          { groups: [TEMP_INF_DER, TEMP_INF_IZQ], pequeño: true, gap: 'gap-12' },
+        ],
+        lingualLabel: 'Lingual',
+      },
+    ],
+  },
+  'general-infantil': {
+    arcadas: [
+      {
+        key: 'superior',
+        label: 'Arcada Superior',
+        separator: 'Lingual',
+        normalLabel: 'Vestibular',
+        normalRows: [
+          { groups: [TEMP_SUP_DER, TEMP_SUP_IZQ], divider: true },
+        ],
+        lingualRows: [
+          { groups: [TEMP_SUP_DER, TEMP_SUP_IZQ], divider: true },
+        ],
+        lingualLabel: 'Vestibular',
+      },
+      {
+        key: 'inferior',
+        label: 'Arcada Inferior',
+        separator: 'Vestibular',
+        normalLabel: 'Lingual',
+        normalRows: [
+          { groups: [TEMP_INF_DER, TEMP_INF_IZQ], divider: true },
+        ],
+        lingualRows: [
+          { groups: [TEMP_INF_DER, TEMP_INF_IZQ], divider: true },
+        ],
+        lingualLabel: 'Lingual',
+      },
+    ],
+  },
+  ortodoncia: {
+    ortodoncia: true,
+    arcadas: [
+      {
+        key: 'superior',
+        label: 'Arcada Superior',
+        separator: 'Lingual',
+        normalLabel: 'Vestibular',
+        normalRows: [
+          { groups: [SUP_DER, SUP_IZQ], divider: true, ortodoncia: true },
+        ],
+        lingualRows: [
+          { groups: [SUP_DER, SUP_IZQ], divider: true, ortodoncia: true },
+        ],
+        lingualLabel: 'Vestibular',
+      },
+      {
+        key: 'inferior',
+        label: 'Arcada Inferior',
+        separator: 'Vestibular',
+        normalLabel: 'Lingual',
+        normalRows: [
+          { groups: [INF_DER, INF_IZQ], divider: true, ortodoncia: true },
+        ],
+        lingualRows: [
+          { groups: [INF_DER, INF_IZQ], divider: true, ortodoncia: true },
+        ],
+        lingualLabel: 'Lingual',
+      },
+    ],
+  },
+};
 
 // ── SVG de un diente ─────────────────────────────────────────────────────
 
@@ -113,6 +228,73 @@ function FilaDientes({ dientes, odontograma, seleccionado, multiSel, onClickDien
           pequeño={pequeño}
         />
       ))}
+    </div>
+  );
+}
+
+function FilaConfig({ row, filaProps }) {
+  return (
+    <div className={`flex justify-center ${row.gap || 'gap-1'}`}>
+      {row.groups.map((dientes, index) => (
+        <div key={`${dientes[0]}-${dientes[dientes.length - 1]}`} className="flex items-end gap-1">
+          <FilaDientes dientes={dientes} {...filaProps} pequeño={row.pequeño} />
+          {row.divider && index < row.groups.length - 1 && (
+            <div className="w-px self-stretch bg-teal-border mx-1" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GuiaOrtodoncia() {
+  return (
+    <div className="mt-3 border-t border-dashed border-teal-border pt-3">
+      <div className="flex items-center justify-center gap-1.5 mb-2">
+        {Array.from({ length: 12 }).map((_, index) => (
+          <span key={index} className="w-4 h-2 rounded-sm border border-teal-border bg-white" />
+        ))}
+      </div>
+      <div className="flex flex-wrap justify-center gap-1.5">
+        {ELEMENTOS_ORTODONCIA.map((item) => (
+          <span key={item} className="text-[9px] text-teal-muted border border-teal-border bg-teal-panel rounded-md px-2 py-1">
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ArcadaOdontograma({ arcada, vistaLingual, filaProps }) {
+  const rows = vistaLingual ? arcada.lingualRows : arcada.normalRows;
+  const label = vistaLingual ? arcada.lingualLabel : arcada.normalLabel;
+
+  return (
+    <div className="border border-teal-border rounded-2xl overflow-hidden mb-4 last:mb-0">
+      <div className="bg-teal-panel px-4 py-2 border-b border-teal-soft flex items-center justify-between">
+        <span className="text-[10px] font-semibold text-primary uppercase tracking-[1px]">{arcada.label}</span>
+        <div className="flex items-center gap-4 text-[9px] text-teal-muted">
+          <span>← Derecho</span>
+          <span>Izquierdo →</span>
+        </div>
+      </div>
+
+      <div className="px-4 py-4 space-y-3">
+        <p className="text-[9px] text-center text-teal-muted uppercase tracking-[1.5px]">{label}</p>
+        {rows.map((row, index) => (
+          <div key={`${arcada.key}-${index}`}>
+            <FilaConfig row={row} filaProps={filaProps} />
+            {row.ortodoncia && <GuiaOrtodoncia />}
+          </div>
+        ))}
+
+        <div className="flex items-center gap-2">
+          <div className="flex-1 border-t border-dashed border-teal-border" />
+          <span className="text-[9px] text-teal-muted font-medium px-2 uppercase tracking-wide">{arcada.separator}</span>
+          <div className="flex-1 border-t border-dashed border-teal-border" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -221,24 +403,28 @@ function PanelEdicion({ numero, datos, onChange, onCerrar }) {
 /**
  * @param {boolean}  props.isOpen
  * @param {function} props.onClose
- * @param {object}   props.odontograma    - { [numero]: { estado, notas } }
+ * @param {object}   props.odontograma    - { [tipo]: { [numero]: { estado, notas } } }
  * @param {function} props.onGuardar      - Callback ASYNC con odontograma actualizado
  * @param {string}   props.nombrePaciente
  */
-export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, onGuardar, nombrePaciente = '' }) {
-  const [local, setLocal]               = useState({ ...odontograma });
+export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, onGuardar, nombrePaciente = '' }) {
+  const [local, setLocal]               = useState({ ...odontogramas });
   const [seleccionado, setSelec]        = useState(null);
   const [multiSel, setMultiSel]         = useState([]);
   const [modoMulti, setModoMulti]       = useState(false);
   const [estadoMasivo, setEstadoMasivo] = useState('caries');
   const [vistaLingual, setVistaLingual] = useState(false);
-  const [guardando, setGuardando]       = useState(false); // ✅ estado de carga
-  const [error, setError]               = useState(null);  // ✅ estado de error
+  const [tipoOdontograma, setTipoOdontograma] = useState('general-adulto');
+  const [guardando, setGuardando]       = useState(false);
+  const [error, setError]               = useState(null);
+  const prevIsOpen = useRef(false);
 
-  // ✅ FIX: useEffect (no useState) para sincronizar cuando cambia el prop
   useEffect(() => {
-    setLocal({ ...odontograma });
-  }, [odontograma]);
+    if (isOpen && !prevIsOpen.current) {
+      setLocal({ ...odontogramas });
+    }
+    prevIsOpen.current = isOpen;
+  }, [isOpen, odontogramas]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -262,34 +448,42 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
   }, [modoMulti]);
 
   function actualizarDiente(numero, datos) {
-    setLocal((prev) => ({ ...prev, [numero]: datos }));
+    setLocal((prev) => ({
+      ...prev,
+      [tipoOdontograma]: {
+        ...(prev[tipoOdontograma] || {}),
+        [numero]: datos,
+      },
+    }));
   }
 
   function aplicarMasivo() {
     if (!multiSel.length) return;
     setLocal((prev) => {
-      const nuevo = { ...prev };
+      const actual = prev[tipoOdontograma] || {};
+      const nuevoActual = { ...actual };
       multiSel.forEach((n) => {
-        nuevo[n] = { estado: estadoMasivo, notas: prev[n]?.notas || '' };
+        nuevoActual[n] = { estado: estadoMasivo, notas: actual[n]?.notas || '' };
       });
-      return nuevo;
+      return { ...prev, [tipoOdontograma]: nuevoActual };
     });
     setMultiSel([]);
     setModoMulti(false);
   }
 
   function limpiarTodo() {
-    setLocal({});
+    setLocal((prev) => ({ ...prev, [tipoOdontograma]: {} }));
     setSelec(null);
     setMultiSel([]);
   }
 
-  // ✅ FIX: guardarYCerrar ahora es async y espera a que el padre termine
   async function guardarYCerrar() {
+    const dientesActual = local[tipoOdontograma] || {};
+
     setGuardando(true);
     setError(null);
     try {
-      await onGuardar(local); // el padre hace el fetch y puede lanzar error
+      await onGuardar({ tipo: tipoOdontograma, dientes_json: dientesActual });
       onClose();
     } catch (err) {
       console.error('Error guardando odontograma:', err);
@@ -301,11 +495,21 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
 
   if (!isOpen) return null;
 
-  const dientesConEstado = Object.keys(local).filter(
-    (k) => local[k]?.estado && local[k].estado !== 'sano'
+  const dientesActual = local[tipoOdontograma] || {};
+
+  const dientesConEstado = Object.keys(dientesActual).filter(
+    (k) => dientesActual[k]?.estado && dientesActual[k].estado !== 'sano'
   ).length;
 
-  const filaProps = { odontograma: local, seleccionado, multiSel, onClickDiente: handleClickDiente };
+  const filaProps = { odontograma: dientesActual, seleccionado, multiSel, onClickDiente: handleClickDiente };
+  const configOdontograma = ODONTOGRAMA_CONFIGS[tipoOdontograma] || ODONTOGRAMA_CONFIGS['general-adulto'];
+
+  function cambiarTipoOdontograma(value) {
+    setTipoOdontograma(value);
+    setSelec(null);
+    setMultiSel([]);
+    setModoMulti(false);
+  }
 
   return (
     <div
@@ -363,7 +567,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
 
           <div className="flex-1 overflow-y-auto px-6 py-5">
 
-            {/* ✅ Banner de error */}
+            {/* Banner de error */}
             {error && (
               <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-[12px] text-red-600 flex-1">{error}</p>
@@ -397,103 +601,31 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
               </div>
             )}
 
-            {/* ── ARCADA SUPERIOR ── */}
-            <div className="border border-teal-border rounded-2xl overflow-hidden mb-4">
-              <div className="bg-teal-panel px-4 py-2 border-b border-teal-soft flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-primary uppercase tracking-[1px]">Arcada Superior</span>
-                <div className="flex items-center gap-4 text-[9px] text-teal-muted">
-                  <span>← Derecho</span>
-                  <span>Izquierdo →</span>
-                </div>
-              </div>
-
-              <div className="px-4 py-4 space-y-3">
-                {!vistaLingual && (
-                  <>
-                    <p className="text-[9px] text-center text-teal-muted uppercase tracking-[1.5px]">Vestibular</p>
-                    <div className="flex justify-center gap-1">
-                      <FilaDientes dientes={SUP_DER} {...filaProps} />
-                      <div className="w-px bg-teal-border mx-1" />
-                      <FilaDientes dientes={SUP_IZQ} {...filaProps} />
-                    </div>
-                    <div className="flex justify-center gap-12">
-                      <FilaDientes dientes={TEMP_SUP_DER} {...filaProps} pequeño />
-                      <FilaDientes dientes={TEMP_SUP_IZQ} {...filaProps} pequeño />
-                    </div>
-                  </>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 border-t border-dashed border-teal-border" />
-                  <span className="text-[9px] text-teal-muted font-medium px-2 uppercase tracking-wide">Lingual</span>
-                  <div className="flex-1 border-t border-dashed border-teal-border" />
-                </div>
-
-                {vistaLingual && (
-                  <>
-                    <div className="flex justify-center gap-12">
-                      <FilaDientes dientes={TEMP_SUP_DER} {...filaProps} pequeño />
-                      <FilaDientes dientes={TEMP_SUP_IZQ} {...filaProps} pequeño />
-                    </div>
-                    <div className="flex justify-center gap-1">
-                      <FilaDientes dientes={SUP_DER} {...filaProps} />
-                      <div className="w-px bg-teal-border mx-1" />
-                      <FilaDientes dientes={SUP_IZQ} {...filaProps} />
-                    </div>
-                    <p className="text-[9px] text-center text-teal-muted uppercase tracking-[1.5px]">Vestibular</p>
-                  </>
-                )}
-              </div>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-border bg-teal-panel px-4 py-3">
+              <label className="text-[10px] font-semibold text-primary uppercase tracking-[0.8px]" htmlFor="tipo-odontograma">
+                Tipo de odontograma
+              </label>
+              <select
+                id="tipo-odontograma"
+                value={tipoOdontograma}
+                onChange={(e) => cambiarTipoOdontograma(e.target.value)}
+                className="min-w-[190px] text-[12px] border border-teal-border rounded-lg px-3 py-2 bg-white outline-none font-sans text-[#1a3a3a] focus:border-teal"
+              >
+                {TIPOS_ODONTOGRAMA.map((tipo) => (
+                  <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                ))}
+              </select>
             </div>
 
-            {/* ── ARCADA INFERIOR ── */}
-            <div className="border border-teal-border rounded-2xl overflow-hidden">
-              <div className="bg-teal-panel px-4 py-2 border-b border-teal-soft flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-primary uppercase tracking-[1px]">Arcada Inferior</span>
-                <div className="flex items-center gap-4 text-[9px] text-teal-muted">
-                  <span>← Derecho</span>
-                  <span>Izquierdo →</span>
-                </div>
-              </div>
-
-              <div className="px-4 py-4 space-y-3">
-                {!vistaLingual && (
-                  <>
-                    <p className="text-[9px] text-center text-teal-muted uppercase tracking-[1.5px]">Lingual</p>
-                    <div className="flex justify-center gap-12">
-                      <FilaDientes dientes={TEMP_INF_DER} {...filaProps} pequeño />
-                      <FilaDientes dientes={TEMP_INF_IZQ} {...filaProps} pequeño />
-                    </div>
-                    <div className="flex justify-center gap-1">
-                      <FilaDientes dientes={INF_DER} {...filaProps} />
-                      <div className="w-px bg-teal-border mx-1" />
-                      <FilaDientes dientes={INF_IZQ} {...filaProps} />
-                    </div>
-                  </>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 border-t border-dashed border-teal-border" />
-                  <span className="text-[9px] text-teal-muted font-medium px-2 uppercase tracking-wide">Vestibular</span>
-                  <div className="flex-1 border-t border-dashed border-teal-border" />
-                </div>
-
-                {vistaLingual && (
-                  <>
-                    <div className="flex justify-center gap-1">
-                      <FilaDientes dientes={INF_DER} {...filaProps} />
-                      <div className="w-px bg-teal-border mx-1" />
-                      <FilaDientes dientes={INF_IZQ} {...filaProps} />
-                    </div>
-                    <div className="flex justify-center gap-12">
-                      <FilaDientes dientes={TEMP_INF_DER} {...filaProps} pequeño />
-                      <FilaDientes dientes={TEMP_INF_IZQ} {...filaProps} pequeño />
-                    </div>
-                    <p className="text-[9px] text-center text-teal-muted uppercase tracking-[1.5px]">Lingual</p>
-                  </>
-                )}
-              </div>
-            </div>
+            {/* ── Arcadas: única implementación reutilizable para los 3 tipos ── */}
+            {configOdontograma.arcadas.map((arcada) => (
+              <ArcadaOdontograma
+                key={arcada.key}
+                arcada={arcada}
+                vistaLingual={vistaLingual}
+                filaProps={filaProps}
+              />
+            ))}
 
             {/* ── Leyenda ── */}
             <div className="mt-4 flex flex-wrap items-center gap-3 px-1">
@@ -518,10 +650,11 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
           ].join(' ')}>
             {seleccionado && (
               <PanelEdicion
-                numero={seleccionado}
-                datos={local[seleccionado]}
-                onChange={actualizarDiente}
-                onCerrar={() => setSelec(null)}
+              key={seleccionado}
+              numero={seleccionado}
+              datos={dientesActual[seleccionado]}
+              onChange={actualizarDiente}
+              onCerrar={() => setSelec(null)}
               />
             )}
           </div>
@@ -537,7 +670,6 @@ export default function OdontogramaModal({ isOpen, onClose, odontograma = {}, on
               className="px-4 py-2 text-[12px] text-primary font-sans bg-white border border-teal-border rounded-xl cursor-pointer hover:bg-teal-info transition-colors disabled:opacity-50">
               Cancelar
             </button>
-            {/* ✅ Botón con estado de carga */}
             <button type="button" onClick={guardarYCerrar} disabled={guardando}
               className="flex items-center gap-2 px-4 py-2 text-[12px] text-white font-semibold font-sans bg-primary rounded-xl border-none cursor-pointer hover:bg-primary-light transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
               <Save size={14} />

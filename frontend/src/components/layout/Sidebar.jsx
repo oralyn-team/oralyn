@@ -1,7 +1,7 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays,
-  Stethoscope, ClipboardList, Receipt, Settings,
+  Stethoscope, ClipboardList, Settings, LogOut,
 } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
 
@@ -29,7 +29,14 @@ function ToothIcon() {
 }
 
 export default function Sidebar() {
-  const { configuracion } = useApp();
+  const { configuracion, cerrarSesion } = useApp();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    cerrarSesion();
+    navigate('/login', { replace: true });
+  }
+
   return (
     <nav className="w-[220px] min-h-screen bg-primary flex flex-col flex-shrink-0">
       {/* Logo */}
@@ -67,19 +74,28 @@ export default function Sidebar() {
       {/* Footer */}
       <div className="px-5 py-4 border-t border-white/10">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-teal flex items-center justify-center text-[11px] font-medium text-primary">
+          <div className="w-7 h-7 rounded-full bg-teal flex items-center justify-center text-[11px] font-medium text-primary flex-shrink-0">
             {configuracion?.nombre_profesional
             ? configuracion.nombre_profesional.split(' ').map(w => w[0]).slice(0, 2).join('')
             : 'DR'}
           </div>
-        <div>
-          <p className="text-[12px] text-white/80">
-           {configuracion?.nombre_profesional || 'Doctor'}
-          </p>
-          <p className="text-[10px] text-white/40">Odontólogo</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12px] text-white/80 truncate">
+             {configuracion?.nombre_profesional || 'Doctor'}
+            </p>
+            <p className="text-[10px] text-white/40">Odontólogo</p>
           </div>
+          {/* Botón cerrar sesión */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Cerrar sesión"
+            className="flex-shrink-0 p-1.5 rounded-lg text-white/40 hover:text-red-300 hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <LogOut size={14} strokeWidth={1.8} />
+          </button>
         </div>
       </div>
     </nav>
   );
-}
+}
