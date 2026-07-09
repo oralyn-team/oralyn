@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import {
   X, Save, Plus, FileText, Stethoscope,
-  Activity, CreditCard, ChevronDown, AlertCircle,
+  Activity, CreditCard, Download, ChevronDown, AlertCircle,
 } from 'lucide-react';
 
 import { DOCTORES, TIPOS_TRATAMIENTO, PRIORIDADES, ESTADOS_TRATAMIENTO } from './constants';
@@ -12,6 +12,14 @@ import {
 import ProcedureCard  from './ProcedureCard';
 import PaymentRow     from './PaymentRow';
 import FinancialPanel from './FinancialPanel';
+
+
+const BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+function getToken() {
+  return localStorage.getItem('token');
+}
 
 // ─── Estilos compartidos ──────────────────────────────────────────────────────
 
@@ -111,6 +119,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
   const [pErrs,  setPErrs]  = useState({});
   const [paErrs, setPaErrs] = useState({});
   const [saving, setSaving] = useState(false);
+  const [descargandoPDF, setDescargandoPDF] = useState(false);
 
   // ── Cálculos ──────────────────────────────────────────────────────────────
 
@@ -191,10 +200,6 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
     return { e, pe, pae };
   }
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-  // El form envía camelCase sin transformar.
-  // AppContext.guardarTratamiento es quien mapea a snake_case antes de llamar al API.
-
   async function handleSubmit(accion) {
     const { e, pe, pae } = validar();
     setErrs(e);
@@ -213,8 +218,8 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
         id:             tratamientoEditar?.id || null,
         accion,
         info:           { ...form },
-        procedimientos: procs,   // camelCase — el contexto los mapea
-        pagos,                   // con pago.metodo (label) — el contexto lo normaliza
+        procedimientos: procs,   
+        pagos,                   
         totales,
       });
     } catch (err) {
@@ -222,6 +227,38 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
       setErrs((prev) => ({ ...prev, _global: err.error || 'Error al guardar' }));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDescargarPDF() {
+    if (!tratamientoEditar?.id) return;
+
+    setDescargandoPDF(true);
+    setErrs((prev) => ({ ...prev, _global: '' }));
+
+    try {
+      const res = await fetch(`${BASE_URL}/cotizaciones/${tratamientoEditar.id}/pdf`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+
+      if (!res.ok) {
+        throw new Error('No se pudo generar el PDF');
+      }
+
+      const blob = await res.blob();
+      const url  = window.URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `cotizacion-${tratamientoEditar.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error descargando PDF:', err);
+      setErrs((prev) => ({ ...prev, _global: 'No se pudo descargar el PDF de la cotización' }));
+    } finally {
+      setDescargandoPDF(false);
     }
   }
 
@@ -441,6 +478,17 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
           </p>
 
           <div className="flex items-center gap-2">
+            {esEdicion && (
+              <button
+                onClick={handleDescargarPDF}
+                disabled={descargandoPDF || saving}
+                className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-medium text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-info transition-colors disabled:opacity-50"
+              >
+                <Download size={12} />
+                {descargandoPDF ? 'Generando...' : 'Descargar PDF'}
+              </button>
+            )}
+
             <button
               onClick={onClose}
               disabled={saving}

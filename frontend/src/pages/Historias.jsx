@@ -40,6 +40,30 @@ function nombreCompletoPaciente(p) {
   return `${p.nombres} ${p.primer_apellido}${p.segundo_apellido ? ` ${p.segundo_apellido}` : ''}`;
 }
 
+// Mapea el "tipo" que guarda la base de datos (mayúsculas) a la clave que
+// consume el frontend (OdontogramaModal, HistoriaDetalle): minúsculas + guion.
+// Debe mantenerse en sync con TIPOS_ODONTOGRAMA/ALIASES_TIPO del backend
+// (src/services/odontogramas.js) y con TIPOS_ODONTOGRAMA de OdontogramaModal.jsx.
+const TIPO_A_CLAVE_FRONTEND = {
+  GENERAL_ADULTO: 'general-adulto',
+  GENERAL_INFANTIL: 'general-infantil',
+  ORTODONCIA: 'ortodoncia',
+};
+
+/**
+ * Reconstruye el array de odontogramas (uno por tipo, tal como los devuelve
+ * GET /detalle/:id) en el objeto keyed-por-tipo que espera el frontend:
+ * { 'general-adulto': { [numeroDiente]: { estado, notas } }, ... }
+ */
+function construirOdontogramaPorTipo(odontogramas = []) {
+  const resultado = {};
+  odontogramas.forEach((o) => {
+    const clave = TIPO_A_CLAVE_FRONTEND[o.tipo] || o.tipo;
+    resultado[clave] = o.dientes_json || {};
+  });
+  return resultado;
+}
+
 /**
  * Construye el objeto historia que consume HistoriaDetalle/FormularioClinico.
  * @param {object} paciente  - fila del módulo Pacientes
@@ -92,7 +116,17 @@ function construirHistoriaBase(paciente, historia, detalle = null) {
     antecedentes:     antecedentesDbToForm(detalle?.antecedentes),
     estomatologico:   detalle?.examen?.estructuras_json ?? {},
     estomatologicoObs: detalle?.examen?.observaciones   ?? '',
-    odontograma:      detalle?.odontogramas?.[0]?.dientes_json ?? {},
+    // Reconstruye TODOS los tipos de odontograma (adulto/infantil/ortodoncia),
+    // no solo el primero del array — antes esto perdía los tipos != [0].
+    odontograma:      construirOdontogramaPorTipo(detalle?.odontogramas),
+
+    examenPulpar:     detalle?.examen?.examen_pulpar_json ?? {},
+    pulparObs:        detalle?.examen?.pulpar_obs         ?? '',
+    tejidos:          detalle?.examen?.tejidos_json       ?? {},
+    tejidosObs:       detalle?.examen?.tejidos_obs        ?? '',
+    periodontal:      detalle?.examen?.periodontal_json   ?? {},
+    dxPeriodontal:    detalle?.examen?.dx_periodontal     ?? '',
+    periodontalObs:   detalle?.examen?.periodontal_obs    ?? '',
 
     adjuntos: (detalle?.adjuntos || []).map(formatearAdjunto),
   };
@@ -106,6 +140,7 @@ function formatearAdjunto(adj) {
     fecha: adj.creado_en?.split('T')[0] || adj.fecha?.split('T')[0] || '',
     url: adj.url || adj.ruta || null,
     mimeType: adj.mime_type || null,
+    contenido_base64: adj.contenido_base64 || null,
   };
 }
 

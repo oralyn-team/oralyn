@@ -37,8 +37,12 @@ export default function AdjuntosPanel({
         onChange?.(adjuntos);
       }
     } catch (err) {
-      console.error('Error adjuntando archivos:', err);
-      setError(err.error || 'No se pudieron adjuntar los archivos.');
+      console.error('Error adjuntando archivos:', err)
+      const msg =
+        err.status === 413
+          ? 'El archivo es demasiado grande (máx. 20 MB).'
+          : err.error || 'No se pudieron adjuntar los archivos.';
+      setError(msg);
     } finally {
       setProcesando(false);
     }
@@ -124,30 +128,57 @@ export default function AdjuntosPanel({
         </div>
       ) : (
         <ul className="divide-y divide-teal-soft px-4 pb-2">
-          {adjuntos.map((adj) => (
-            <li key={adj.id} className="flex items-center gap-3 py-2.5 group">
-              <IconoTipo tipo={adj.tipo} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-primary truncate">{adj.nombre}</p>
-                <p className="text-[10px] text-teal-muted">{adj.tipo === 'imagen' ? 'Imagen' : 'PDF'} · {adj.fecha}</p>
-              </div>
-              <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                {/* Simulado: en producción esto descargaría el archivo real */}
-                <button type="button"
-                  onClick={() => adj.url && window.open(adj.url, '_blank', 'noopener,noreferrer')}
-                  disabled={!adj.url}
-                  className="text-[11px] text-primary border border-teal-border rounded-lg px-2.5 py-1 bg-white hover:bg-teal-soft transition-colors cursor-pointer font-sans">
-                  Ver
-                </button>
-                {editable && (
-                  <button type="button" onClick={() => eliminarAdjunto(adj.id)} disabled={procesando}
-                    className="p-1.5 rounded-lg bg-status-redBg text-status-red border border-status-redBg hover:bg-red-100 transition-colors cursor-pointer">
-                    <Trash2 size={12} />
+          {adjuntos.map((adj) => {
+            const hasViewableContent = adj.url || adj.contenido_base64;
+
+            const handleVer = () => {
+              if (adj.url) {
+                window.open(adj.url, '_blank', 'noopener,noreferrer');
+                return;
+              }
+
+              if (adj.contenido_base64) {
+                try {
+                  const byteCharacters = atob(adj.contenido_base64);
+                  const byteNumbers = new Array(byteCharacters.length);
+                  for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                  }
+                  const byteArray = new Uint8Array(byteNumbers);
+                  const blob = new Blob([byteArray], { type: adj.mimeType || 'application/octet-stream' });
+                  const blobUrl = URL.createObjectURL(blob);
+                  window.open(blobUrl, '_blank');
+                } catch (e) {
+                  console.error('Error al decodificar el archivo base64:', e);
+                  alert('No se pudo abrir el archivo adjunto.');
+                }
+              }
+            };
+
+            return (
+              <li key={adj.id} className="flex items-center gap-3 py-2.5 group">
+                <IconoTipo tipo={adj.tipo} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-primary truncate">{adj.nombre}</p>
+                  <p className="text-[10px] text-teal-muted">{adj.tipo === 'imagen' ? 'Imagen' : 'PDF'} · {adj.fecha}</p>
+                </div>
+                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button type="button"
+                    onClick={handleVer}
+                    disabled={!hasViewableContent}
+                    className="text-[11px] text-primary border border-teal-border rounded-lg px-2.5 py-1 bg-white hover:bg-teal-soft transition-colors cursor-pointer font-sans disabled:opacity-50 disabled:cursor-not-allowed">
+                    Ver
                   </button>
-                )}
-              </div>
-            </li>
-          ))}
+                  {editable && (
+                    <button type="button" onClick={() => eliminarAdjunto(adj.id)} disabled={procesando}
+                      className="p-1.5 rounded-lg bg-status-redBg text-status-red border border-status-redBg hover:bg-red-100 transition-colors cursor-pointer">
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

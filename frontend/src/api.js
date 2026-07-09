@@ -133,7 +133,7 @@ export const api = {
   crearEvolucion: (historiaId, data) => request(`/historias/${historiaId}/evoluciones`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Odontograma
-  actualizarOdontograma: (historiaId, data) => request(`/historias/${historiaId}/odontograma`, { method: 'PUT', body: JSON.stringify(data) }),
+  actualizarOdontograma: (historiaId, tipo, data) => request(`/historias/${historiaId}/odontograma/${tipo}`, { method: 'PUT', body: JSON.stringify(data),}),
 
   // Adjuntos
   crearAdjunto:    (historiaId, data)      => request(`/historias/${historiaId}/adjuntos`, { method: 'POST', body: JSON.stringify(data) }),
