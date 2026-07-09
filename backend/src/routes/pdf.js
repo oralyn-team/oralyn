@@ -3,6 +3,7 @@ const express = require('express')
 const router = express.Router()
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { ordenarOdontogramas } = require('../services/odontogramas')
 
 router.use(verificarToken)
 
@@ -40,7 +41,10 @@ router.get('/historia/:id', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' })
     }
 
-    const pdf = await generarHistoriaPDF(historia, req.usuario.consultorio_id)
+    const pdf = await generarHistoriaPDF({
+      ...historia,
+      odontogramas: ordenarOdontogramas(historia.odontogramas),
+    }, req.usuario.consultorio_id)
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename=historia-${req.params.id}.pdf` })
     res.send(pdf)
   } catch (error) {

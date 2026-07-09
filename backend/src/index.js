@@ -33,7 +33,9 @@ app.use(cors({
  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
 }))
 
-app.use(express.json())
+// Límite ampliado a 20MB para soportar archivos adjuntos en base64 (imágenes y PDFs)
+app.use(express.json({ limit: '20mb' }))
+app.use(express.urlencoded({ extended: true, limit: '20mb' }))
 
 // Rutas
 app.use('/api/auth', authRoutes)

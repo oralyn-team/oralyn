@@ -39,6 +39,12 @@ enum TipoConsentimiento {
   higiene_oral
 }
 
+enum TipoOdontograma {
+  GENERAL_ADULTO
+  GENERAL_INFANTIL
+  ORTODONCIA
+}
+
 enum TipoItem {
   detartraje_curetraje
   superficie_retina
@@ -228,11 +234,14 @@ model HcOdontograma {
   id            Int             @id @default(autoincrement())
   historia_id   Int
   historia      HistoriaClinica @relation(fields: [historia_id], references: [id])
+  tipo          TipoOdontograma @default(GENERAL_ADULTO)
   dientes_json  Json
   observaciones String?
   creado_en     DateTime        @default(now())
+  actualizado_en DateTime       @default(now()) @updatedAt
 
   @@index([historia_id])
+  @@unique([historia_id, tipo])
 }
 
 // ─── HOJA DE EVOLUCIÓN ──────────────────────────────────────
@@ -256,8 +265,6 @@ model HojaEvolucion {
   @@index([historia_id])
 }
 
-// ✅ Fix 1: HcAdjunto — conservada versión HEAD (campos completos), eliminado
-//    el modelo Cita que estaba mezclado dentro por error del merge
 model HcAdjunto {
   id               Int             @id @default(autoincrement())
   historia_id      Int

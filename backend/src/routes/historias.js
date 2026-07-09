@@ -1,6 +1,19 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const {
+  TIPO_DEFAULT,
+  extraerDatosOdontograma,
+  obtenerHistoriaAutorizada,
+  listarOdontogramas,
+  obtenerOdontograma,
+  guardarOdontograma,
+  ordenarOdontogramas,
+  normalizarTipoOdontograma,
+} = require('../services/odontogramas')
+const { normalizarAntecedentes } = require('../services/antecedentes')
+
+
 
 const router = express.Router()
 router.use(verificarToken)
@@ -80,26 +93,40 @@ router.post('/:pacienteId', async (req, res) => {
 
       if (antecedentes && Object.keys(antecedentes).length > 0) {
         await tx.hcAntecedentes.create({
-          data: { historia_id: h.id, ...antecedentes }
+          data: { historia_id: h.id, ...normalizarAntecedentes(antecedentes) },
         })
       }
 
       if (examen) {
         await tx.hcExamenEstomatologico.create({
           data: {
-            historia_id:      h.id,
-            estructuras_json: examen.estructuras_json ?? examen,
-            observaciones:    examen.observaciones ?? null,
+            historia_id:        h.id,
+            estructuras_json:   examen.estructuras_json ?? null,
+            observaciones:      examen.observaciones ?? null,
+            examen_pulpar_json: examen.examen_pulpar_json ?? null,
+            pulpar_obs:         examen.pulpar_obs ?? null,
+            tejidos_json:       examen.tejidos_json ?? null,
+            tejidos_obs:        examen.tejidos_obs ?? null,
+            periodontal_json:   examen.periodontal_json ?? null,
+            dx_periodontal:     examen.dx_periodontal ?? null,
+            periodontal_obs:    examen.periodontal_obs ?? null,
           }
         })
       }
 
       if (odontograma) {
+        const tipo = normalizarTipoOdontograma(odontograma.tipo)
+        const datosOdontograma = extraerDatosOdontograma(odontograma)
+
+        if (!datosOdontograma.dientes_json) {
+          throw new Error('dientes_json es obligatorio para crear el odontograma')
+        }
+
         await tx.hcOdontograma.create({
           data: {
             historia_id:   h.id,
-            dientes_json:  odontograma.dientes_json,
-            observaciones: odontograma.observaciones,
+            tipo,
+            ...datosOdontograma,
           }
         })
       }
@@ -109,8 +136,9 @@ router.post('/:pacienteId', async (req, res) => {
 
     res.status(201).json(historia)
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Error interno del servidor' })
+  if (error.statusCode) return res.status(error.statusCode).json({ error: error.message })
+  console.error(error)
+  res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
@@ -173,7 +201,7 @@ router.get('/detalle/:id', async (req, res) => {
         paciente:     true,
         antecedentes: true,
         examen:       true,
-        odontogramas: { orderBy: { creado_en: 'desc' } },
+        odontogramas: true,
         evoluciones:  { orderBy: { fecha: 'desc' } },
         adjuntos:     { orderBy: { creado_en: 'desc' } },
       }
@@ -185,7 +213,10 @@ router.get('/detalle/:id', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' })
     }
 
-    res.json(historia)
+    res.json({
+      ...historia,
+      odontogramas: ordenarOdontogramas(historia.odontogramas),
+    })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
@@ -230,11 +261,11 @@ router.put('/:id', async (req, res) => {
       })
 
       if (antecedentes && Object.keys(antecedentes).length > 0) {
-        // ✅ Fix 1: usar datos dinámicos del body, no valores hardcodeados
+        const antecedentesNormalizados = normalizarAntecedentes(antecedentes)
         await tx.hcAntecedentes.upsert({
           where:  { historia_id: id },
-          update: { ...antecedentes },
-          create: { historia_id: id, ...antecedentes },
+          update: antecedentesNormalizados,
+          create: { historia_id: id, ...antecedentesNormalizados },
         })
       }
 
@@ -242,13 +273,27 @@ router.put('/:id', async (req, res) => {
         await tx.hcExamenEstomatologico.upsert({
           where:  { historia_id: id },
           update: {
-            estructuras_json: examen.estructuras_json,
-            observaciones:    examen.observaciones,
+            estructuras_json:   examen.estructuras_json,
+            observaciones:      examen.observaciones,
+            examen_pulpar_json: examen.examen_pulpar_json,
+            pulpar_obs:         examen.pulpar_obs,
+            tejidos_json:       examen.tejidos_json,
+            tejidos_obs:        examen.tejidos_obs,
+            periodontal_json:   examen.periodontal_json,
+            dx_periodontal:     examen.dx_periodontal,
+            periodontal_obs:    examen.periodontal_obs,
           },
           create: {
-            historia_id:      id,
-            estructuras_json: examen.estructuras_json,
-            observaciones:    examen.observaciones,
+            historia_id:        id,
+            estructuras_json:   examen.estructuras_json,
+            observaciones:      examen.observaciones,
+            examen_pulpar_json: examen.examen_pulpar_json,
+            pulpar_obs:         examen.pulpar_obs,
+            tejidos_json:       examen.tejidos_json,
+            tejidos_obs:        examen.tejidos_obs,
+            periodontal_json:   examen.periodontal_json,
+            dx_periodontal:     examen.dx_periodontal,
+            periodontal_obs:    examen.periodontal_obs,
           },
         })
       }
@@ -256,9 +301,10 @@ router.put('/:id', async (req, res) => {
       return h
     })
 
-    res.json(historia) // ✅ Fix 2: eliminado el res.json(actualizada) duplicado e inexistente
+    res.json(historia) 
   } catch (error) {
-    console.error(error)
+    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message })
+      console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
@@ -335,39 +381,83 @@ router.get('/:historiaId/evoluciones', async (req, res) => {
   }
 })
 
-// PUT /api/historias/:historiaId/odontograma
-router.put('/:historiaId/odontograma', async (req, res) => {
+// GET /api/historias/:historiaId/odontogramas
+router.get('/:historiaId/odontogramas', async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
-  const { dientes_json, observaciones } = req.body
+
+  if (isNaN(historiaId)) {
+    return res.status(400).json({ error: 'ID de historia invalido' })
+  }
+
+  try {
+    const historia = await obtenerHistoriaAutorizada(prisma, historiaId, req.usuario.consultorio_id)
+    if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
+
+    const odontogramas = await listarOdontogramas(prisma, historiaId)
+    res.json(odontogramas)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// GET /api/historias/:historiaId/odontograma/:tipo
+router.get('/:historiaId/odontograma/:tipo', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+
+  if (isNaN(historiaId)) {
+    return res.status(400).json({ error: 'ID de historia invalido' })
+  }
+
+  try {
+    const historia = await obtenerHistoriaAutorizada(prisma, historiaId, req.usuario.consultorio_id)
+    if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
+
+    const odontograma = await obtenerOdontograma(prisma, historiaId, req.params.tipo)
+    if (!odontograma) return res.status(404).json({ error: 'Odontograma no encontrado' })
+
+    res.json(odontograma)
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message })
+    }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// PUT /api/historias/:historiaId/odontograma/:tipo
+router.put('/:historiaId/odontograma/:tipo', async (req, res) => {
+  const historiaId = parseInt(req.params.historiaId)
+  const { dientes_json, observaciones } = extraerDatosOdontograma(req.body)
+
+  if (isNaN(historiaId)) {
+    return res.status(400).json({ error: 'ID de historia invalido' })
+  }
 
   if (!dientes_json) {
     return res.status(400).json({ error: 'dientes_json es obligatorio' })
   }
 
   try {
-    const historia = await prisma.historiaClinica.findUnique({ where: { id: historiaId } })
+    const historia = await obtenerHistoriaAutorizada(prisma, historiaId, req.usuario.consultorio_id)
     if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
 
-    const existente = await prisma.hcOdontograma.findFirst({
-      where:   { historia_id: historiaId },
-      orderBy: { creado_en: 'desc' }
+    const odontograma = await guardarOdontograma(prisma, historiaId, req.params.tipo, {
+      dientes_json,
+      observaciones,
     })
-
-    const odontograma = existente
-      ? await prisma.hcOdontograma.update({
-          where: { id: existente.id },
-          data:  { dientes_json, observaciones }
-        })
-      : await prisma.hcOdontograma.create({
-          data: { historia_id: historiaId, dientes_json, observaciones }
-        })
 
     res.json(odontograma)
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message })
+    }
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
+
 
 // PUT /api/historias/:historiaId/evoluciones/:evolucionId
 router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
@@ -542,7 +632,7 @@ router.get('/:id/pdf', async (req, res) => {
         paciente: true,
         antecedentes: true,
         examen: true,
-        odontogramas: { orderBy: { creado_en: 'desc' } },
+        odontogramas: true,
         evoluciones: { orderBy: { fecha: 'desc' } },
       }
     })
@@ -553,7 +643,10 @@ router.get('/:id/pdf', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' })
     }
 
-    const pdf = await generarHistoriaPDF(historia, req.usuario.consultorio_id)
+    const pdf = await generarHistoriaPDF({
+      ...historia,
+      odontogramas: ordenarOdontogramas(historia.odontogramas),
+    }, req.usuario.consultorio_id)
 
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `inline; filename=historia-${id}.pdf`)
