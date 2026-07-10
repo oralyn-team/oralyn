@@ -8,7 +8,7 @@ import { useNotificaciones } from '../../hooks/useNotificaciones';
  * La prop pacientes se mantiene por compatibilidad pero ya no es necesaria.
  */
 export default function Topbar() {
-  const { pacientes = [] } = useApp();
+  const { pacientes, configuracion} = useApp();
   const notificaciones = useNotificaciones(pacientes);
 
   return (
@@ -23,9 +23,11 @@ export default function Topbar() {
         <Notificaciones notificaciones={notificaciones} />
 
         {/* Avatar */}
-        <div className="w-8 h-8 rounded-full bg-teal flex items-center justify-center text-[11px] font-medium text-primary">
-          DR
-        </div>
+        <div className="w-7 h-7 rounded-full bg-teal flex items-center justify-center text-[11px] font-medium text-primary flex-shrink-0">
+            {configuracion?.nombre_profesional
+            ? configuracion.nombre_profesional.split(' ').map(w => w[0]).slice(0, 2).join('')
+            : 'DR'}
+          </div>
       </div>
     </header>
   );
