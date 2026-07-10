@@ -64,6 +64,7 @@ function mapPagos(pagos, consultorio_id, paciente_id, cotizacion_id) {
 router.post('/', async (req, res) => {
   const {
     paciente_id,
+    doctor,
     doctor_id,
     tipo_tratamiento,
     prioridad,
@@ -96,6 +97,7 @@ router.post('/', async (req, res) => {
         data: {
           consultorio_id:   req.usuario.consultorio_id,
           paciente_id,
+          doctor:           doctor           ?? null,
           doctor_id:        doctor_id        ?? null,
           tipo_tratamiento: tipo_tratamiento ?? null,
           prioridad:        prioridad        ?? 'media',
@@ -275,6 +277,7 @@ router.patch('/:id/estado', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
   const {
+    doctor,
     doctor_id,
     tipo_tratamiento,
     prioridad,
@@ -330,6 +333,7 @@ router.put('/:id', async (req, res) => {
       return tx.cotizacion.update({
         where: { id },
         data: {
+          doctor:           doctor           ?? null,
           doctor_id:        doctor_id        ?? null,
           tipo_tratamiento: tipo_tratamiento ?? null,
           prioridad:        prioridad        ?? 'media',
