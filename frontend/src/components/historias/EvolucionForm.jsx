@@ -1,7 +1,8 @@
 // src/components/historias/EvolucionForm.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save, Stethoscope, ClipboardList, Wrench, CalendarCheck, ChevronDown } from 'lucide-react';
 import { DOCTORES } from '../../data/citasData';
+import { useApp } from '../../context/Appcontext'; 
 
 
 // ─── Constantes clínicas ──────────────────────────────────────────────────────
@@ -117,12 +118,22 @@ function SectionDivider({ icon: Icon, title }) {
  * @param {object|null} props.evolucionEditar
  * @param {function}    [props.onVerOdontograma] - Handler para abrir odontograma
  */
-export default function EvolucionForm({ onGuardar, onClose, evolucionEditar}) {
-  const [form, setForm]   = useState(() => (
-    evolucionEditar || { ...VACIO, fecha: getFechaHoy() }
+export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
+  const { configuracion } = useApp();
+  const doctorDefault = configuracion?.nombre_profesional || '';
+
+  const [form, setForm] = useState(() => (
+    evolucionEditar || { ...VACIO, fecha: getFechaHoy(), doctor: doctorDefault }
   ));
-  const [errs, setErrs]   = useState({});
-  const esEdicion         = Boolean(evolucionEditar);
+  const [errs, setErrs] = useState({});
+  const esEdicion = Boolean(evolucionEditar);
+
+  // Respaldo: si configuracion llega después del montaje
+  useEffect(() => {
+    if (!esEdicion && !form.doctor && configuracion?.nombre_profesional) {
+      setForm((prev) => ({ ...prev, doctor: configuracion.nombre_profesional }));
+    }
+  }, [configuracion]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -137,7 +148,7 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar}) {
   function validar() {
     const e = {};
     if (!form.fecha)                  e.fecha         = 'La fecha es obligatoria.';
-    if (!form.doctor)                 e.doctor        = 'Selecciona un doctor.';
+    if (!form.doctor)                 e.doctor        = 'Doctor es obligatorio.';
     if (!form.motivo.trim())          e.motivo        = 'El motivo es obligatorio.';
     if (!form.diagnostico.trim())     e.diagnostico   = 'El diagnóstico es obligatorio.';
     if (!form.procedimiento)          e.procedimiento = 'Selecciona el procedimiento realizado.';
@@ -203,19 +214,19 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar}) {
               />
             </Field>
             <Field label="Doctor tratante" error={errs.doctor}>
-              <div className="relative">
-                <select
-                  name="doctor"
-                  value={form.doctor}
-                  onChange={handleChange}
-                  className={`${inputBase} appearance-none pr-7 ${errs.doctor ? inputError : ''}`}
-                >
-                  <option value="">Seleccionar...</option>
-                  {DOCTORES.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
-              </div>
-            </Field>
+              <input
+              type="text"
+              name="doctor"
+              list="doctores-lista-evolucion"
+              value={form.doctor}
+              onChange={handleChange}
+              placeholder="Nombre del doctor..."
+              className={`${inputBase} ${errs.doctor ? inputError : ''}`}
+              />
+              <datalist id="doctores-lista-evolucion">
+                {DOCTORES.map((d) => <option key={d} value={d} />)}
+                </datalist>
+                </Field>
           </div>
 
           {/* ── SECCIÓN 2: Evaluación clínica ── */}

@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useApp } from '../../../context/Appcontext';
 import {
   X, Save, Plus, FileText, Stethoscope,
   Activity, CreditCard, Download, ChevronDown, AlertCircle,
@@ -107,10 +108,13 @@ function StatusBadge({ estado }) {
  */
 export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamientoEditar }) {
   const esEdicion = Boolean(tratamientoEditar);
+  const { configuracion } = useApp();
+  const doctorDefault = configuracion?.nombre_profesional || '';
 
   const [form,   setForm]   = useState(() => ({
     ...FORM_VACIO,
     fecha: getToday(),
+    doctor: doctorDefault,
     ...(tratamientoEditar?.info || {}),
   }));
   const [procs,  setProcs]  = useState(() => tratamientoEditar?.procedimientos || [PROC_VACIO()]);
@@ -120,6 +124,12 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
   const [paErrs, setPaErrs] = useState({});
   const [saving, setSaving] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
+
+  useEffect(() => {
+    if (!esEdicion && !form.doctor && configuracion?.nombre_profesional) {
+      setForm((prev) => ({ ...prev, doctor: configuracion.nombre_profesional }));
+    }
+  }, [configuracion]);
 
   // ── Cálculos ──────────────────────────────────────────────────────────────
 
@@ -312,15 +322,19 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
                   className={`${input} ${errs.fecha ? inputErr : ''}`} />
               </Field>
               <Field label="Doctor" error={errs.doctor}>
-                <SelectBox
-                  value={form.doctor}
-                  onChange={(e) => handleForm({ target: { name: 'doctor', value: e.target.value } })}
-                  error={errs.doctor}
-                >
-                  <option value="">Seleccionar...</option>
-                  {DOCTORES.map((d) => <option key={d} value={d}>{d}</option>)}
-                </SelectBox>
-              </Field>
+                <input
+                type="text"
+                name="doctor"
+                list="doctores-lista-tratamiento"
+                value={form.doctor}
+                onChange={handleForm}
+                placeholder="Nombre del doctor..."
+                className={`${input} ${errs.doctor ? inputErr : ''}`}
+                />
+                <datalist id="doctores-lista-tratamiento">
+                  {DOCTORES.map((d) => <option key={d} value={d} />)}
+                  </datalist>
+                  </Field>
               <Field label="Tipo de tratamiento" error={errs.tipo}>
                 <SelectBox
                   value={form.tipo}
