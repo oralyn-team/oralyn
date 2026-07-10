@@ -1,6 +1,7 @@
 // src/components/citas/CitaForm.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
+import { useApp } from '../../context/Appcontext';
 
 import {
   PROCEDIMIENTOS_CAT,
@@ -61,12 +62,10 @@ function Field({ label, error, children }) {
   );
 }
 
-export default function CitaForm({
-  onGuardar,
-  onClose,
-  citaEditar,
-  pacientes,
-}) {
+export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) {
+  const { configuracion } = useApp();
+  const doctorDefault = configuracion?.nombre_profesional || '';
+
   const [form, setForm] = useState(() => (
     citaEditar
       ? {
@@ -79,11 +78,16 @@ export default function CitaForm({
           procedimiento: citaEditar.procedimiento ?? citaEditar.motivo ?? '',
           estado: citaEditar.estado || 'Pendiente',
         }
-      : { ...VACIO, fecha: getFechaHoy() }
+      : { ...VACIO, fecha: getFechaHoy(), doctor: doctorDefault }
   ));
   const [errs, setErrs] = useState({});
-
   const esEdicion = Boolean(citaEditar);
+
+  useEffect(() => {
+    if (!esEdicion && !form.doctor && configuracion?.nombre_profesional) {
+      setForm((prev) => ({ ...prev, doctor: configuracion.nombre_profesional }));
+    }
+  }, [configuracion]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -293,26 +297,19 @@ export default function CitaForm({
           </Field>
 
           <Field label="Doctor">
-            <select
-              name="doctor"
-              value={form.doctor}
-              onChange={handleChange}
-              className={inputBase}
-            >
-              <option value="">
-                Seleccionar doctor...
-              </option>
-
-              {DOCTORES.map((d) => (
-                <option
-                  key={d}
-                  value={d}
-                >
-                  {d}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <input
+            type="text"
+            name="doctor"
+            list="doctores-lista-cita"
+            value={form.doctor}
+            onChange={handleChange}
+            placeholder="Nombre del doctor..."
+            className={inputBase}
+            />
+            <datalist id="doctores-lista-cita">
+              {DOCTORES.map((d) => <option key={d} value={d} />)}
+              </datalist>
+              </Field>
 
           <Field label="Estado">
             <select
