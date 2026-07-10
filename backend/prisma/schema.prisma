@@ -329,6 +329,7 @@ model Cotizacion {
   consultorio      Configuracion        @relation(fields: [consultorio_id], references: [id])
   paciente_id      Int
   paciente         Paciente             @relation(fields: [paciente_id], references: [id])
+  doctor          String?
   doctor_id        Int?
   fecha            DateTime             @default(now())
   tipo_tratamiento String?
