@@ -3,51 +3,175 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: Arial; padding: 50px; color: #222; font-size: 12px; line-height: 1.7; }
-    .header { text-align: right; margin-bottom: 20px; font-size: 11px; }
-    h1 { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 8px; }
-    h2 { font-size: 12px; font-weight: bold; margin-top: 14px; margin-bottom: 6px; }
-    ol { padding-left: 20px; margin: 0; }
-    ol li { margin-bottom: 4px; }
-    .checkbox-item { margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-    .checkbox { width: 12px; height: 12px; border: 1px solid #333; display: inline-block; flex-shrink: 0; }
-    .checked { background: #333; }
-    .declaracion { margin-bottom: 14px; }
-    .firmas { margin-top: 50px; display: flex; justify-content: space-between; }
-    .firma { text-align: center; }
-    .firma-linea { border-top: 1px solid #333; width: 180px; margin: 0 auto 5px; }
-    .ciudad-fecha { margin-top: 30px; font-size: 12px; }
-    .ciudad-fecha span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
+    body {
+      font-family: Arial;
+      padding: 50px;
+      color: #222;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    ol {
+      padding-left: 20px;
+      margin: 0;
+    }
+
+    ol li {
+      margin-bottom: 4px;
+    }
+
+    .checkbox-item {
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox {
+      width: 12px;
+      height: 12px;
+      border: 1px solid #333;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .checked {
+      background: #333;
+    }
+
+    .declaracion {
+      margin-bottom: 14px;
+    }
+
+ .firmas-container { margin-top: 60px; }
+.huella-box { 
+  width: 180px; 
+  height: 100px; 
+  border: 2px solid #333; 
+  margin-bottom: 6px;
+}
+.huella-label {
+  font-size: 10px;
+  color: #555;
+  text-align: center;
+  width: 180px;
+  margin-bottom: 20px;
+}
+
+    .firmas-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 0;
+    }
+
+    .firma {
+      text-align: center;
+    }
+
+    .firma-linea {
+      border-top: 1px solid #333;
+      width: 180px;
+      margin: 0 auto 5px;
+    }
+
+    .firma-sub {
+      font-size: 11px;
+      color: #555;
+    }
+
+    .ciudad-fecha {
+      margin-top: 30px;
+      font-size: 12px;
+    }
+
+    .ciudad-fecha span {
+      display: inline-block;
+      border-bottom: 1px solid #333;
+      min-width: 80px;
+      margin: 0 4px;
+    }
   </style>
 </head>
+
 <body>
 
-<div class="header">
-   <strong>{{config.nombre_consultorio}}</strong><br>
-  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
-  {{config.direccion}}<br>
-  Cel: {{config.telefono}} · NIT. {{config.nit}}
+<div class="header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+  {{#if config.logo_url}}
+  <img src="{{config.logo_url}}" style="height:70px; object-fit:contain;"/>
+  {{else}}
+  <div></div>
+  {{/if}}
+
+  <div style="text-align:right; font-size:11px;">
+    <strong>{{config.nombre_consultorio}}</strong><br>
+    {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+    {{config.direccion}}<br>
+    Cel: {{config.telefono}} · NIT. {{config.nit}}
+  </div>
 </div>
 
 <h1>CONSENTIMIENTO INFORMADO DE REHABILITACIÓN</h1>
 
 <div class="declaracion">
-  Yo <strong>{{nombre_paciente}}</strong> identificado con cédula de ciudadanía No. <strong>{{cc_paciente}}</strong>,
-  mayor de edad, en calidad de paciente / representante legal. Por medio de la presente constancia,
-  en pleno y normal uso de mis facultades mentales, otorgo en forma libre mi consentimiento al
-  DOCTOR(A) <strong>{{config.nombre_profesional}}</strong> para que en ejercicio legal de su profesión se me practique
-  el procedimiento de rehabilitación oral.
+  Yo <strong>{{nombre_paciente}}</strong> identificado con cédula de ciudadanía No.
+  <strong>{{cc_paciente}}</strong>, mayor de edad, en calidad de paciente / representante legal.
+  Por medio de la presente constancia, en pleno y normal uso de mis facultades mentales,
+  otorgo en forma libre mi consentimiento al DOCTOR(A)
+  <strong>{{config.nombre_profesional}}</strong> para que en ejercicio legal de su profesión
+  se me practique el procedimiento de rehabilitación oral.
 </div>
 
 <h2>TIPO DE PRÓTESIS:</h2>
-<div class="checkbox-item"><span class="checkbox {{#if protesis_removible}}checked{{/if}}"></span> PRÓTESIS REMOVIBLE</div>
-<div class="checkbox-item"><span class="checkbox {{#if protesis_total}}checked{{/if}}"></span> PRÓTESIS TOTAL</div>
-<div class="checkbox-item"><span class="checkbox {{#if sobredentadura}}checked{{/if}}"></span> SOBREDENTADURA</div>
-<div class="checkbox-item"><span class="checkbox {{#if diente_unico}}checked{{/if}}"></span> DIENTE ÚNICO (corona)</div>
-<div class="checkbox-item"><span class="checkbox {{#if protesis_fija}}checked{{/if}}"></span> PRÓTESIS FIJA IMPLANTO SOPORTADA</div>
-<div class="checkbox-item"><span class="checkbox {{#if protesis_hibrida}}checked{{/if}}"></span> PRÓTESIS HÍBRIDA</div>
+
+<div class="checkbox-item">
+  <span class="checkbox {{#if protesis_removible}}checked{{/if}}"></span>
+  PRÓTESIS REMOVIBLE
+</div>
+
+<div class="checkbox-item">
+  <span class="checkbox {{#if protesis_total}}checked{{/if}}"></span>
+  PRÓTESIS TOTAL
+</div>
+
+<div class="checkbox-item">
+  <span class="checkbox {{#if sobredentadura}}checked{{/if}}"></span>
+  SOBREDENTADURA
+</div>
+
+<div class="checkbox-item">
+  <span class="checkbox {{#if diente_unico}}checked{{/if}}"></span>
+  DIENTE ÚNICO (corona)
+</div>
+
+<div class="checkbox-item">
+  <span class="checkbox {{#if protesis_fija}}checked{{/if}}"></span>
+  PRÓTESIS FIJA IMPLANTO SOPORTADA
+</div>
+
+<div class="checkbox-item">
+  <span class="checkbox {{#if protesis_hibrida}}checked{{/if}}"></span>
+  PRÓTESIS HÍBRIDA
+</div>
 
 <h2>POSIBLES COMPLICACIONES:</h2>
+
 <ol>
   <li>Pérdida dentaria del tejido sano en la preparación protésica (Prótesis fija).</li>
   <li>Fractura de estructuras dentarias en el procedimiento clínico (Prótesis fija).</li>
@@ -69,17 +193,22 @@
 <div class="ciudad-fecha">
   Villavicencio <span>{{dia}}</span> de <span>{{mes}}</span> de <span>{{anio}}</span>
 </div>
-
-<div class="firmas">
-  <div class="firma">
-    {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
-    <div class="firma-linea"></div>
-    <div>Firma Paciente o Representante</div>
-  </div>
-  <div class="firma">
-    {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
-    <div class="firma-linea"></div>
-    <div>Firma Profesional</div>
+<div class="firmas-container">
+  <div class="huella-box"></div>
+  <div class="huella-label">Huella dactilar del paciente</div>
+  <div class="firmas-row">
+    <div class="firma">
+      {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+      <div class="firma-linea"></div>
+      <div>Firma paciente / acudiente</div>
+      <div class="firma-sub">C.C. {{cc_paciente}}</div>
+    </div>
+    <div class="firma">
+      {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+      <div class="firma-linea"></div>
+      <div>Firma Profesional</div>
+      <div class="firma-sub">C.C. {{cc_profesional}}</div>
+    </div>
   </div>
 </div>
 
