@@ -1,21 +1,4 @@
-const express = require('express')
-const cors = require('cors')
-require('dotenv').config()
-
-const authRoutes = require('./routes/auth')
-const pacientesRoutes = require('./routes/pacientes')
-const historiasRoutes = require('./routes/historias')
-const citasRoutes = require('./routes/citas')
-const pagosRoutes = require('./routes/pagos')
-const cotizacionesRoutes = require('./routes/cotizaciones')
-const consentimientosRoutes = require('./routes/consentimientos')
-const dashboardRoutes = require('./routes/dashboard')
-const pdfRoutes = require('./routes/pdf')
-const certificadosRoutes = require('./routes/certificados')
-const configuracionRoutes = require('./routes/configuracion')
-const adminRoutes = require('./routes/admin')
-
-const app = express()
+const app = require('./app')
 
 const NODE_ENV = process.env.NODE_ENV || 'development'
 console.log(`Entorno: ${NODE_ENV}`)
@@ -62,7 +45,8 @@ app.use(errorHandler)
 
 const PORT = process.env.PORT || 3000
 
+console.log(`Entorno: ${NODE_ENV}`)
+
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`)
 })
-

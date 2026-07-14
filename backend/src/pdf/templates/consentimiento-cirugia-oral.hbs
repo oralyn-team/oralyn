@@ -3,44 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: Arial; padding: 50px; color: #222; font-size: 12px; line-height: 1.7; }
-    .header { text-align: right; margin-bottom: 20px; font-size: 11px; }
-    h1 { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 8px; }
-    h2 { font-size: 12px; font-weight: bold; margin-top: 14px; margin-bottom: 6px; }
-    ul { padding-left: 20px; margin: 0; }
-    ul li { margin-bottom: 4px; }
-    .declaracion { margin-bottom: 14px; }
-    .firmas { margin-top: 50px; display: flex; justify-content: space-between; }
-    .firma { text-align: center; }
-    .firma-linea { border-top: 1px solid #333; width: 180px; margin: 0 auto 5px; }
-    .firma-sub { font-size: 11px; color: #555; }
-    .ciudad-fecha { margin-top: 30px; font-size: 12px; }
-    .ciudad-fecha span { display: inline-block; border-bottom: 1px solid #333; min-width: 80px; margin: 0 4px; }
+    body {
+      font-family: Arial;
+      padding: 50px;
+      color: #222;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    ul {
+      padding-left: 20px;
+      margin: 0;
+    }
+
+    ul li {
+      margin-bottom: 4px;
+    }
+
+    .declaracion {
+      margin-bottom: 14px;
+    }
+
+  .firmas-container { margin-top: 60px; }
+.huella-box { 
+  width: 180px; 
+  height: 100px; 
+  border: 2px solid #333; 
+  margin-bottom: 6px;
+}
+.huella-label {
+  font-size: 10px;
+  color: #555;
+  text-align: center;
+  width: 180px;
+  margin-bottom: 20px;
+}
+
+    .firmas-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 0;
+    }
+
+    .firma {
+      text-align: center;
+    }
+
+    .firma-linea {
+      border-top: 1px solid #333;
+      width: 180px;
+      margin: 0 auto 5px;
+    }
+
+    .firma-sub {
+      font-size: 11px;
+      color: #555;
+    }
+
+    .ciudad-fecha {
+      margin-top: 30px;
+      font-size: 12px;
+    }
+
+    .ciudad-fecha span {
+      display: inline-block;
+      border-bottom: 1px solid #333;
+      min-width: 80px;
+      margin: 0 4px;
+    }
   </style>
 </head>
+
 <body>
 
-<div class="header">
-   <strong>{{config.nombre_consultorio}}</strong><br>
-  {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
-  {{config.direccion}}<br>
-  Cel: {{config.telefono}} · NIT. {{config.nit}}
+<div class="header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+  {{#if config.logo_url}}
+  <img src="{{config.logo_url}}" style="height:70px; object-fit:contain;"/>
+  {{else}}
+  <div></div>
+  {{/if}}
+
+  <div style="text-align:right; font-size:11px;">
+    <strong>{{config.nombre_consultorio}}</strong><br>
+    {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+    {{config.direccion}}<br>
+    Cel: {{config.telefono}} · NIT. {{config.nit}}
+  </div>
 </div>
 
 <h1>CONSENTIMIENTO INFORMADO (DE CIRUGÍA ORAL)</h1>
 
 <div class="declaracion">
-  Yo <strong>{{nombre_paciente}}</strong> mayor de edad identificado(a) con C.C. <strong>{{cc_paciente}}</strong>
-  actuando en nombre propio, en pleno uso de mis facultades, libre y consciente, declaro que el profesional
-  me ha informado y explicado:
+  Yo <strong>{{nombre_paciente}}</strong> mayor de edad identificado(a) con C.C.
+  <strong>{{cc_paciente}}</strong>
+  actuando en nombre propio, en pleno uso de mis facultades, libre y consciente,
+  declaro que el profesional me ha informado y explicado:
 </div>
 
 <h2>VENTAJAS:</h2>
+
 <ul>
   <li>Retiros focos de infección.</li>
 </ul>
 
 <h2>RIESGOS:</h2>
+
 <ul>
   <li>Ruptura de la aguja por la técnica anestésica</li>
   <li>Lesión en el nervio</li>
@@ -59,12 +143,14 @@
 </ul>
 
 <h2>RECOMENDACIONES PRE:</h2>
+
 <ul>
   <li>Si el paciente presenta inflamación intra o extra oral requiere mediación antibiótica y antiinflamatoria.</li>
   <li>Radiografía peri apical del diente o dientes afectados para descartar anquilosis posibles fracturas o dilaceraciones radiculares, entre otros.</li>
 </ul>
 
 <h2>RECOMENDACIONES POS:</h2>
+
 <ul>
   <li>Tomar medicamentos a horas indicadas</li>
   <li>No escupir, no molestar con la lengua en las áreas afectadas</li>
@@ -80,21 +166,25 @@
 </div>
 
 <div class="ciudad-fecha">
-  Ciudad <span>{{ciudad}}</span> Fecha <span>{{fecha}}</span>
+  Ciudad <span>{{ciudad}}</span>
+  Fecha <span>{{fecha}}</span>
 </div>
-
-<div class="firmas">
-  <div class="firma">
-    {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
-    <div class="firma-linea"></div>
-    <div>Firma paciente / acudiente</div>
-    <div class="firma-sub">C.C. {{cc_paciente}}</div>
-  </div>
-  <div class="firma">
-    {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
-    <div class="firma-linea"></div>
-    <div>Firma Profesional</div>
-    <div class="firma-sub">C.C. {{cc_profesional}}</div>
+<div class="firmas-container">
+  <div class="huella-box"></div>
+  <div class="huella-label">Huella dactilar del paciente</div>
+  <div class="firmas-row">
+    <div class="firma">
+      {{#if firma_paciente}}<img src="{{firma_paciente}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+      <div class="firma-linea"></div>
+      <div>Firma paciente / acudiente</div>
+      <div class="firma-sub">C.C. {{cc_paciente}}</div>
+    </div>
+    <div class="firma">
+      {{#if firma_doctor}}<img src="{{firma_doctor}}" style="height:55px;display:block;margin:0 auto 4px"/>{{/if}}
+      <div class="firma-linea"></div>
+      <div>Firma Profesional</div>
+      <div class="firma-sub">C.C. {{cc_profesional}}</div>
+    </div>
   </div>
 </div>
 
