@@ -5,7 +5,7 @@ const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 const { ordenarOdontogramas } = require('../services/odontogramas')
 
-//router.use(verificarToken)
+router.use(verificarToken)
 
 const generarPacientePDF = require('../pdf/generators/generarPacientePDF')
 const generarHistoriaPDF = require('../pdf/generators/generarHistoriaPDF')
