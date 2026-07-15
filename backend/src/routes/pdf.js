@@ -4,7 +4,7 @@ const router = express.Router()
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 
-//router.use(verificarToken)
+router.use(verificarToken)
 
 const generarPacientePDF = require('../pdf/generators/generarPacientePDF')
 const generarHistoriaPDF = require('../pdf/generators/generarHistoriaPDF')
