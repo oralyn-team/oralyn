@@ -4,13 +4,9 @@ import { X, Save } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
 
 import {
-  PROCEDIMIENTOS_CAT,
-} from '../historias/tratamientos/constants';
-
-import {
   ESTADOS_CITA,
   DOCTORES,
-} from'../../data/citasData';
+} from '../../data/citasData';
 
 
 const VACIO = {
@@ -63,8 +59,9 @@ function Field({ label, error, children }) {
 }
 
 export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) {
-  const { configuracion } = useApp();
+  const { configuracion, getProcedimientosAgrupados } = useApp();
   const doctorDefault = configuracion?.nombre_profesional || '';
+  const procedimientosAgrupados = getProcedimientosAgrupados();
 
   const [form, setForm] = useState(() => (
     citaEditar
@@ -278,17 +275,17 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
                 Seleccionar procedimiento...
               </option>
 
-              {PROCEDIMIENTOS_CAT.map((grupo) => (
+              {procedimientosAgrupados.map((grupo) => (
                 <optgroup
                   key={grupo.grupo}
                   label={grupo.grupo}
                 >
                   {grupo.items.map((item) => (
                     <option
-                      key={item}
-                      value={item}
+                      key={item.id}
+                      value={item.nombre}
                     >
-                      {item}
+                      {item.nombre}
                     </option>
                   ))}
                 </optgroup>

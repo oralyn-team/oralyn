@@ -9,40 +9,14 @@ export const DOCTORES = [
   'Dra. Laura Mendoza',
 ];
 
-export const PROCEDIMIENTOS_CAT = [
-  {
-    grupo: 'Preventivo',
-    items: ['Valoración inicial', 'Profilaxis', 'Limpieza dental', 'Radiografía periapical', 'Radiografía panorámica'],
-  },
-  {
-    grupo: 'Restaurador',
-    items: ['Resina compuesta', 'Restauración', 'Incrustación (Inlay)', 'Corona dental', 'Sellante de fisuras'],
-  },
-  {
-    grupo: 'Endodoncia',
-    items: ['Endodoncia unirradicular', 'Endodoncia birradicular', 'Endodoncia trirradicular', 'Retratamiento endodóntico'],
-  },
-  {
-    grupo: 'Cirugía',
-    items: ['Exodoncia simple', 'Exodoncia quirúrgica', 'Cirugía de terceros molares', 'Implante dental', 'Frenectomía'],
-  },
-  {
-    grupo: 'Estético',
-    items: ['Blanqueamiento dental', 'Carillas de resina', 'Carillas de porcelana', 'Diseño de sonrisa'],
-  },
-  {
-    grupo: 'Ortodoncia',
-    items: ['Ortodoncia fija (inicio)', 'Control de ortodoncia', 'Ortodoncia invisible', 'Retenedores'],
-  },
-  {
-    grupo: 'Prótesis',
-    items: ['Prótesis parcial removible', 'Prótesis total', 'Prótesis fija (puente)', 'Provisional acrílico'],
-  },
-  {
-    grupo: 'Periodoncia',
-    items: ['Curetaje', 'Raspado y alisado radicular', 'Gingivoplastia', 'Control periodontal'],
-  },
-];
+/**
+ * @deprecated — El catálogo de procedimientos ya no se define aquí.
+ * Usa `getProcedimientosAgrupados()` o `procedimientosCatalog` del AppContext.
+ * Esta constante se mantiene sólo para compatibilidad con imports no migrados;
+ * no agreges nuevos procedimientos aquí.
+ */
+export const PROCEDIMIENTOS_CAT = [];
+
 
 /** Cuadrantes con sus dientes (numeración FDI) */
 export const CUADRANTES = [

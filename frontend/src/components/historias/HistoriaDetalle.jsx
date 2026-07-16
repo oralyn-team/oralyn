@@ -549,10 +549,16 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
         <div className="bg-white border border-teal-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-teal-soft">
             <h3 className="text-[13px] font-medium text-primary">Evoluciones del paciente</h3>
-            <button type="button" onClick={() => { setEvEditar(null); setModalEv(true); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors">
-              <Plus size={13} /> Nueva evolución
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => api.verRecomendacionesPDF()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-teal-dark hover:text-teal-muted font-medium font-sans bg-teal-panel border border-teal-border rounded-lg cursor-pointer hover:bg-teal-soft transition-colors">
+                <FileText size={13} /> Recomendaciones Post-Qx
+              </button>
+              <button type="button" onClick={() => { setEvEditar(null); setModalEv(true); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors">
+                <Plus size={13} /> Nueva evolución
+              </button>
+            </div>
           </div>
           <div className="p-4">
             {!form.evoluciones?.length ? (
