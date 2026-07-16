@@ -71,6 +71,7 @@ model Configuracion {
   telefono             String?
   ciudad               String   @default("Villavicencio")
   email                String?
+  logo_url             String?
   creado_en            DateTime @default(now())
 
   usuarios        Usuario[]

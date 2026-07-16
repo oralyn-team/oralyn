@@ -59,7 +59,8 @@ router.get('/cotizacion/:id', async (req, res) => {
       where: { id: Number(req.params.id), consultorio_id: req.usuario.consultorio_id },
       include: {
         paciente: { select: { nombres: true, primer_apellido: true, segundo_apellido: true, tipo_documento: true, numero_documento: true, telefono: true } },
-        items: true
+        procedimientos: { orderBy: { orden: 'asc' } },
+        pagos: { orderBy: { fecha: 'asc' } }
       }
     })
     if (!cotizacion) return res.status(404).json({ error: 'Cotización no encontrada' })
