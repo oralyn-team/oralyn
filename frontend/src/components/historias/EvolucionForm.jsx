@@ -6,28 +6,6 @@ import { useApp } from '../../context/Appcontext';
 
 
 // ─── Constantes clínicas ──────────────────────────────────────────────────────
-const PROCEDIMIENTOS = [
-  'Valoración inicial',
-  'Control periódico',
-  'Profilaxis / Limpieza dental',
-  'Blanqueamiento dental',
-  'Resina compuesta',
-  'Incrustación (Inlay / Onlay)',
-  'Corona dental',
-  'Endodoncia',
-  'Exodoncia simple',
-  'Exodoncia quirúrgica',
-  'Cirugía oral',
-  'Ortodoncia - Revisión',
-  'Instalación de aparatología',
-  'Ajuste de brackets',
-  'Implante dental',
-  'Prótesis removible',
-  'Prótesis fija',
-  'Periodoncia',
-  'Urgencia odontológica',
-  'Otro',
-];
 
 const ESTADOS_CLINICOS = [
   { value: 'en_tratamiento', label: 'En tratamiento', color: 'text-amber-600' },
@@ -119,8 +97,9 @@ function SectionDivider({ icon: Icon, title }) {
  * @param {function}    [props.onVerOdontograma] - Handler para abrir odontograma
  */
 export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
-  const { configuracion } = useApp();
+  const { configuracion, getProcedimientosAgrupados } = useApp();
   const doctorDefault = configuracion?.nombre_profesional || '';
+  const procedimientosAgrupados = getProcedimientosAgrupados();
 
   const [form, setForm] = useState(() => (
     evolucionEditar || { ...VACIO, fecha: getFechaHoy(), doctor: doctorDefault }
@@ -266,8 +245,14 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
                   onChange={handleChange}
                   className={`${inputBase} appearance-none pr-7 ${errs.procedimiento ? inputError : ''}`}
                 >
-                  <option value="">Seleccionar...</option>
-                  {PROCEDIMIENTOS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  <option value="">Seleccionar procedimiento...</option>
+                  {procedimientosAgrupados.map((cat) => (
+                    <optgroup key={cat.grupo} label={cat.grupo}>
+                      {cat.items.map((p) => (
+                        <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
                 <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
               </div>

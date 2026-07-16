@@ -1,8 +1,9 @@
 // src/components/tratamientos/ProcedureCard.jsx
 import { useState, useRef, useEffect } from 'react';
 import { Trash2, Copy, ChevronDown, ChevronUp, Percent, AlertCircle } from 'lucide-react';
-import { PROCEDIMIENTOS_CAT, CUADRANTES, ESTADOS_PROC, TIPOS_APLICACION } from './constants';
+import { CUADRANTES, ESTADOS_PROC, TIPOS_APLICACION } from './constants';
 import { calcSubtotalProc, fmt, resumirAplicacion } from './helpers';
+import { useApp } from '../../../context/Appcontext';
 
 // ─── Estilos base ─────────────────────────────────────────────────────────────
 
@@ -181,6 +182,9 @@ function TeethPicker({ selected = [], onChange }) {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function ProcedureCard({ proc, index, onChange, onDelete, onDuplicate, error = {} }) {
+  const { getProcedimientosAgrupados, procedimientosCatalog } = useApp();
+  const procedimientosAgrupados = getProcedimientosAgrupados();
+
   const [expanded, setExpanded] = useState(true);
   const subtotal = calcSubtotalProc(proc);
   const hasError = Object.keys(error).length > 0;
@@ -189,13 +193,22 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
   // Helpers de cambio
   const set = (field, value) => onChange(proc.id, field, value);
 
+  // Al seleccionar un procedimiento, auto-rellenar el precio base del catálogo
+  function handleProcedimientoChange(nombre) {
+    set('procedimiento', nombre);
+    const found = procedimientosCatalog.find((p) => p.nombre === nombre);
+    if (found && found.valorBase && !proc.valorUnitario) {
+      set('valorUnitario', String(found.valorBase));
+    }
+  }
+
   // Resetear selección dental al cambiar tipo
   function handleAplicaEn(val) {
     set('aplicaEn', val);
     set('dientes', []);
     set('cuadrante', '');
     if (val !== 'dientes') set('cantidad', 1);
-}
+  }
 
   return (
     <div
@@ -275,13 +288,15 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
                 <FieldLabel>Procedimiento</FieldLabel>
                 <SelectBox
                   value={proc.procedimiento}
-                  onChange={(e) => set('procedimiento', e.target.value)}
+                  onChange={(e) => handleProcedimientoChange(e.target.value)}
                   error={error.procedimiento}
                 >
                   <option value="">Seleccionar...</option>
-                  {PROCEDIMIENTOS_CAT.map((cat) => (
+                  {procedimientosAgrupados.map((cat) => (
                     <optgroup key={cat.grupo} label={cat.grupo}>
-                      {cat.items.map((p) => <option key={p} value={p}>{p}</option>)}
+                      {cat.items.map((p) => (
+                        <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                      ))}
                     </optgroup>
                   ))}
                 </SelectBox>

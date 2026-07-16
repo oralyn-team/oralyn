@@ -77,9 +77,137 @@ async function request(path, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+// ── Procedimientos CUPS — mock localStorage ────────────────────────────────
+// Estructura de cada procedimiento:
+// { id, codigo, nombre, categoria, valorBase, activo, createdAt }
+//
+// Cuando el backend esté disponible, basta con reemplazar estas funciones
+// por llamadas a `request(...)` con los mismos contratos de entrada/salida.
+
+const CUPS_KEY = 'oralyn_procedimientos_cups';
+
+const CUPS_SEED = [
+  // Preventivo
+  { id: 'cups_1',  codigo: '890201', nombre: 'Valoración inicial',            categoria: 'Preventivo',   valorBase: 50000,  activo: true },
+  { id: 'cups_2',  codigo: '890202', nombre: 'Profilaxis',                    categoria: 'Preventivo',   valorBase: 60000,  activo: true },
+  { id: 'cups_3',  codigo: '890203', nombre: 'Limpieza dental',               categoria: 'Preventivo',   valorBase: 60000,  activo: true },
+  { id: 'cups_4',  codigo: '890204', nombre: 'Radiografía periapical',        categoria: 'Preventivo',   valorBase: 20000,  activo: true },
+  { id: 'cups_5',  codigo: '890205', nombre: 'Radiografía panorámica',        categoria: 'Preventivo',   valorBase: 80000,  activo: true },
+  // Restaurador
+  { id: 'cups_6',  codigo: '890301', nombre: 'Resina compuesta',              categoria: 'Restaurador',  valorBase: 120000, activo: true },
+  { id: 'cups_7',  codigo: '890302', nombre: 'Restauración',                  categoria: 'Restaurador',  valorBase: 100000, activo: true },
+  { id: 'cups_8',  codigo: '890303', nombre: 'Incrustación (Inlay)',          categoria: 'Restaurador',  valorBase: 350000, activo: true },
+  { id: 'cups_9',  codigo: '890304', nombre: 'Corona dental',                 categoria: 'Restaurador',  valorBase: 800000, activo: true },
+  { id: 'cups_10', codigo: '890305', nombre: 'Sellante de fisuras',           categoria: 'Restaurador',  valorBase: 40000,  activo: true },
+  // Endodoncia
+  { id: 'cups_11', codigo: '890401', nombre: 'Endodoncia unirradicular',      categoria: 'Endodoncia',   valorBase: 400000, activo: true },
+  { id: 'cups_12', codigo: '890402', nombre: 'Endodoncia birradicular',       categoria: 'Endodoncia',   valorBase: 550000, activo: true },
+  { id: 'cups_13', codigo: '890403', nombre: 'Endodoncia trirradicular',      categoria: 'Endodoncia',   valorBase: 700000, activo: true },
+  { id: 'cups_14', codigo: '890404', nombre: 'Retratamiento endodóntico',     categoria: 'Endodoncia',   valorBase: 600000, activo: true },
+  // Cirugía
+  { id: 'cups_15', codigo: '890501', nombre: 'Exodoncia simple',              categoria: 'Cirugía',      valorBase: 80000,  activo: true },
+  { id: 'cups_16', codigo: '890502', nombre: 'Exodoncia quirúrgica',          categoria: 'Cirugía',      valorBase: 200000, activo: true },
+  { id: 'cups_17', codigo: '890503', nombre: 'Cirugía de terceros molares',   categoria: 'Cirugía',      valorBase: 350000, activo: true },
+  { id: 'cups_18', codigo: '890504', nombre: 'Implante dental',               categoria: 'Cirugía',      valorBase: 2500000,activo: true },
+  { id: 'cups_19', codigo: '890505', nombre: 'Frenectomía',                   categoria: 'Cirugía',      valorBase: 250000, activo: true },
+  // Estético
+  { id: 'cups_20', codigo: '890601', nombre: 'Blanqueamiento dental',         categoria: 'Estético',     valorBase: 400000, activo: true },
+  { id: 'cups_21', codigo: '890602', nombre: 'Carillas de resina',            categoria: 'Estético',     valorBase: 300000, activo: true },
+  { id: 'cups_22', codigo: '890603', nombre: 'Carillas de porcelana',         categoria: 'Estético',     valorBase: 1200000,activo: true },
+  { id: 'cups_23', codigo: '890604', nombre: 'Diseño de sonrisa',             categoria: 'Estético',     valorBase: 500000, activo: true },
+  // Ortodoncia
+  { id: 'cups_24', codigo: '890701', nombre: 'Ortodoncia fija (inicio)',      categoria: 'Ortodoncia',   valorBase: 3000000,activo: true },
+  { id: 'cups_25', codigo: '890702', nombre: 'Control de ortodoncia',         categoria: 'Ortodoncia',   valorBase: 80000,  activo: true },
+  { id: 'cups_26', codigo: '890703', nombre: 'Ortodoncia invisible',          categoria: 'Ortodoncia',   valorBase: 4000000,activo: true },
+  { id: 'cups_27', codigo: '890704', nombre: 'Retenedores',                   categoria: 'Ortodoncia',   valorBase: 200000, activo: true },
+  // Prótesis
+  { id: 'cups_28', codigo: '890801', nombre: 'Prótesis parcial removible',    categoria: 'Prótesis',     valorBase: 800000, activo: true },
+  { id: 'cups_29', codigo: '890802', nombre: 'Prótesis total',                categoria: 'Prótesis',     valorBase: 1500000,activo: true },
+  { id: 'cups_30', codigo: '890803', nombre: 'Prótesis fija (puente)',        categoria: 'Prótesis',     valorBase: 2000000,activo: true },
+  { id: 'cups_31', codigo: '890804', nombre: 'Provisional acrílico',          categoria: 'Prótesis',     valorBase: 150000, activo: true },
+  // Periodoncia
+  { id: 'cups_32', codigo: '890901', nombre: 'Curetaje',                      categoria: 'Periodoncia',  valorBase: 120000, activo: true },
+  { id: 'cups_33', codigo: '890902', nombre: 'Raspado y alisado radicular',   categoria: 'Periodoncia',  valorBase: 180000, activo: true },
+  { id: 'cups_34', codigo: '890903', nombre: 'Gingivoplastia',                categoria: 'Periodoncia',  valorBase: 300000, activo: true },
+  { id: 'cups_35', codigo: '890904', nombre: 'Control periodontal',           categoria: 'Periodoncia',  valorBase: 60000,  activo: true },
+];
+
+/** Retorna todos los procedimientos desde localStorage, inicializando el seed si no existe */
+function _cupsRead() {
+  const raw = localStorage.getItem(CUPS_KEY);
+  if (!raw) {
+    const seeded = CUPS_SEED.map((p) => ({ ...p, createdAt: new Date().toISOString() }));
+    localStorage.setItem(CUPS_KEY, JSON.stringify(seeded));
+    return seeded;
+  }
+  return JSON.parse(raw);
+}
+
+function _cupsWrite(data) {
+  localStorage.setItem(CUPS_KEY, JSON.stringify(data));
+}
+
+function _delay(ms = 120) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function getProcedimientos() {
+  await _delay();
+  return _cupsRead();
+}
+
+async function crearProcedimiento(data) {
+  await _delay();
+  const list = _cupsRead();
+  const nuevo = {
+    ...data,
+    id: `cups_${Date.now()}`,
+    activo: data.activo !== false,
+    createdAt: new Date().toISOString(),
+  };
+  _cupsWrite([...list, nuevo]);
+  return nuevo;
+}
+
+async function actualizarProcedimiento(id, data) {
+  await _delay();
+  const list = _cupsRead();
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx === -1) throw { status: 404, error: 'Procedimiento no encontrado' };
+  const updated = { ...list[idx], ...data, id };
+  list[idx] = updated;
+  _cupsWrite(list);
+  return updated;
+}
+
+async function eliminarProcedimiento(id) {
+  await _delay();
+  const list = _cupsRead();
+  const filtered = list.filter((p) => p.id !== id);
+  _cupsWrite(filtered);
+  return null;
+}
+
 // Agrega esta función junto a verHistoriaPDF:
 async function verCotizacionPDF(cotizacionId) {
   const url = `${BASE_URL}/cotizaciones/${cotizacionId}/pdf`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al obtener el PDF');
+  }
+
+  const blob = await response.blob();
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+async function verRecomendacionesPDF() {
+  const url = `${BASE_URL}/pdf/recomendaciones`;
 
   const response = await fetch(url, {
     headers: {
@@ -99,6 +227,7 @@ export const api = {
   verPDF,
   verHistoriaPDF,
   verCotizacionPDF,
+  verRecomendacionesPDF,
 
   // Auth
   login: (email, password) =>
@@ -147,6 +276,7 @@ export const api = {
   cambiarEstadoCotizacion: (id, estado) => request(`/cotizaciones/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ estado }) }),
   eliminarCotizacion:      (id)         => request(`/cotizaciones/${id}`, { method: 'DELETE' }),
   verCotizacionPDF:        (id)         => verCotizacionPDF(id),
+  verRecomendacionesPDF:   ()           => verRecomendacionesPDF(),
 
   // Pagos
   getPagosPaciente: (pacienteId) => request(`/pagos/paciente/${pacienteId}`),
@@ -176,4 +306,11 @@ export const api = {
   // Configuración
   getConfiguracion: () => request('/configuracion'),
   actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Catálogo de Procedimientos CUPS (mock localStorage — reemplazar por request() cuando el backend esté listo)
+  getProcedimientos:         ()         => getProcedimientos(),
+  crearProcedimiento:        (data)     => crearProcedimiento(data),
+  actualizarProcedimiento:   (id, data) => actualizarProcedimiento(id, data),
+  eliminarProcedimiento:     (id)       => eliminarProcedimiento(id),
 }
+

@@ -113,7 +113,9 @@ export function AppProvider({ children }) {
   const [token, setToken]             = useState(() => localStorage.getItem('token'));
   const [pacientes, setPacientes]     = useState([]);
   const [historias, setHistorias]     = useState([]);
-  const [configuracion, setConfiguracion] = useState(null); // ← NUEVO
+  const [configuracion, setConfiguracion] = useState(null);
+  const [procedimientosCatalog, setProcedimientosCatalog] = useState([]);
+  const [loadingProcedimientos, setLoadingProcedimientos] = useState(false);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
 
@@ -143,6 +145,16 @@ export function AppProvider({ children }) {
       .catch(() => {}); // Si no existe aún, simplemente queda null
   }, [token]);
 
+  // ── Carga inicial del catálogo de procedimientos CUPS ─────────────────────
+  useEffect(() => {
+    if (!token) return;
+    setLoadingProcedimientos(true);
+    api.getProcedimientos()
+      .then(setProcedimientosCatalog)
+      .catch(() => {})
+      .finally(() => setLoadingProcedimientos(false));
+  }, [token]);
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   function guardarToken(nuevoToken) {
     localStorage.setItem('token', nuevoToken);
@@ -154,7 +166,8 @@ export function AppProvider({ children }) {
     setToken(null);
     setPacientes([]);
     setHistorias([]);
-    setConfiguracion(null); // ← limpiar al cerrar sesión
+    setConfiguracion(null);
+    setProcedimientosCatalog([]);
   }
 
   // ── Pacientes ─────────────────────────────────────────────────────────────
@@ -301,6 +314,39 @@ export function AppProvider({ children }) {
     return res;
   }
 
+  // ── Catálogo de Procedimientos CUPS ───────────────────────────────────────
+  /**
+   * Retorna los procedimientos activos agrupados por categoría.
+   * Formato: [{ grupo: string, items: [{ id, codigo, nombre, valorBase }] }]
+   * Los componentes usan esta función para renderizar <optgroup> dinámicamente.
+   */
+  function getProcedimientosAgrupados() {
+    const activos = procedimientosCatalog.filter((p) => p.activo);
+    const mapa = {};
+    activos.forEach((p) => {
+      if (!mapa[p.categoria]) mapa[p.categoria] = [];
+      mapa[p.categoria].push(p);
+    });
+    return Object.entries(mapa).map(([grupo, items]) => ({ grupo, items }));
+  }
+
+  async function crearProcedimientoCtx(data) {
+    const nuevo = await api.crearProcedimiento(data);
+    setProcedimientosCatalog((prev) => [...prev, nuevo]);
+    return nuevo;
+  }
+
+  async function actualizarProcedimientoCtx(id, data) {
+    const updated = await api.actualizarProcedimiento(id, data);
+    setProcedimientosCatalog((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    return updated;
+  }
+
+  async function eliminarProcedimientoCtx(id) {
+    await api.eliminarProcedimiento(id);
+    setProcedimientosCatalog((prev) => prev.filter((p) => p.id !== id));
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <AppContext.Provider value={{
@@ -317,7 +363,13 @@ export function AppProvider({ children }) {
       // Pagos
       getPagosPaciente, registrarPago,
       // Configuración
-      configuracion, setConfiguracion, // ← NUEVO
+      configuracion, setConfiguracion,
+      // Catálogo Procedimientos CUPS
+      procedimientosCatalog, loadingProcedimientos,
+      getProcedimientosAgrupados,
+      crearProcedimiento:      crearProcedimientoCtx,
+      actualizarProcedimiento: actualizarProcedimientoCtx,
+      eliminarProcedimiento:   eliminarProcedimientoCtx,
       // Estado global
       loading, error,
     }}>
