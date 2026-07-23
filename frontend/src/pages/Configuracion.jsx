@@ -97,17 +97,73 @@ function Toggle({ checked, onChange }) {
 
 const PROC_VACIO = { codigo: '', nombre: '', categoria: CATEGORIAS[0], valorBase: '', activo: true };
 
+// ── Modal de Procedimiento (Crear / Editar) ───────────────────────────────────
+
 function ProcedimientoModal({ proc, onSave, onClose, saving }) {
-  const [form, setForm] = useState(proc || PROC_VACIO);
+  const [catalogoOficial, setCatalogoOficial] = useState([]);
+  const [loadingOficial, setLoadingOficial] = useState(false);
+  const [busquedaOficial, setBusquedaOficial] = useState('');
+  const [selectedOficial, setSelectedOficial] = useState(
+    proc ? { codigo: proc.codigo, nombreOficial: proc.nombreOficial || proc.nombre, categoria: proc.categoria } : null
+  );
+
+  const [form, setForm] = useState(() => ({
+    codigo: proc?.codigo || '',
+    nombreOficial: proc?.nombreOficial || proc?.nombre || '',
+    nombre: proc?.nombre || '',
+    categoria: proc?.categoria || 'Preventivo',
+    valorBase: proc?.valorBase ?? '',
+    activo: proc?.activo !== false,
+  }));
   const [errs, setErrs] = useState({});
+
+  useEffect(() => {
+    if (!proc) {
+      let isMounted = true;
+      setLoadingOficial(true);
+      api.getCatalogoOficial().then((res) => {
+        if (isMounted) {
+          setCatalogoOficial(res || []);
+          setLoadingOficial(false);
+        }
+      }).catch(() => {
+        if (isMounted) setLoadingOficial(false);
+      });
+      return () => { isMounted = false; };
+    }
+  }, [proc]);
+
+  const resultadosOficiales = useMemo(() => {
+    let list = [...catalogoOficial];
+    if (busquedaOficial.trim()) {
+      const q = busquedaOficial.toLowerCase();
+      list = list.filter(item =>
+        item.nombreOficial.toLowerCase().includes(q) ||
+        item.codigo.toLowerCase().includes(q)
+      );
+    }
+    // Ordenar: Frecuentes primero
+    return list.sort((a, b) => (b.frecuente ? 1 : 0) - (a.frecuente ? 1 : 0));
+  }, [catalogoOficial, busquedaOficial]);
+
+  function handleSelectOfficial(item) {
+    setSelectedOficial(item);
+    setForm((prev) => ({
+      ...prev,
+      codigo: item.codigo,
+      nombreOficial: item.nombreOficial,
+      nombre: item.nombreOficial, // Nombre visible por defecto
+      categoria: item.categoria,
+    }));
+  }
 
   function set(field, val) { setForm(p => ({ ...p, [field]: val })); }
 
   function validar() {
     const e = {};
-    if (!form.nombre.trim())   e.nombre  = 'El nombre es obligatorio.';
-    if (!form.categoria)       e.categoria = 'Selecciona una categoría.';
-    if (form.valorBase !== '' && isNaN(Number(form.valorBase))) e.valorBase = 'Ingresa un número válido.';
+    if (!selectedOficial)      e.oficial = 'Debes seleccionar un procedimiento del Catálogo Oficial CUPS.';
+    if (!form.nombre.trim())   e.nombre  = 'El nombre visible es obligatorio.';
+    if (form.valorBase !== '' && isNaN(Number(form.valorBase))) e.valorBase = 'Ingresa un precio válido.';
     setErrs(e);
     return Object.keys(e).length === 0;
   }
@@ -126,7 +182,7 @@ function ProcedimientoModal({ proc, onSave, onClose, saving }) {
       className="fixed inset-0 bg-primary/45 backdrop-blur-[2px] flex items-center justify-center z-50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-teal-border flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl border border-teal-border flex flex-col max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-teal-soft flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -135,9 +191,9 @@ function ProcedimientoModal({ proc, onSave, onClose, saving }) {
             </div>
             <div>
               <p className="text-[13px] font-semibold text-primary">
-                {proc ? 'Editar procedimiento' : 'Nuevo procedimiento'}
+                {proc ? 'Editar procedimiento del consultorio' : 'Agregar procedimiento al consultorio'}
               </p>
-              <p className="text-[10.5px] text-teal-muted mt-0.5">Catálogo CUPS del consultorio</p>
+              <p className="text-[10.5px] text-teal-muted mt-0.5">Catálogo CUPS Oficial & Repertorio Clínico</p>
             </div>
           </div>
           <button onClick={onClose} className="text-teal-muted hover:text-primary transition-colors cursor-pointer p-1">
@@ -146,90 +202,153 @@ function ProcedimientoModal({ proc, onSave, onClose, saving }) {
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
 
-          {/* Código CUPS */}
-          <div>
-            <label className={labelCls}>
-              <span className="flex items-center gap-1"><Hash size={10} /> Código CUPS</span>
-            </label>
-            <input
-              type="text"
-              value={form.codigo}
-              onChange={e => set('codigo', e.target.value)}
-              className={inputCls}
-              placeholder="Ej: 890201"
-              maxLength={10}
-            />
-          </div>
-
-          {/* Nombre */}
-          <div>
-            <label className={labelCls}>
-              <span className="flex items-center gap-1"><FileText size={10} /> Nombre del procedimiento *</span>
-            </label>
-            <input
-              type="text"
-              value={form.nombre}
-              onChange={e => set('nombre', e.target.value)}
-              className={`${inputCls} ${errs.nombre ? 'border-status-red' : ''}`}
-              placeholder="Ej: Profilaxis dental"
-            />
-            {errs.nombre && <p className="text-[10.5px] text-status-red mt-1">⚠ {errs.nombre}</p>}
-          </div>
-
-          {/* Categoría */}
-          <div>
-            <label className={labelCls}>
-              <span className="flex items-center gap-1"><Tag size={10} /> Categoría *</span>
-            </label>
-            <div className="relative">
-              <select
-                value={form.categoria}
-                onChange={e => set('categoria', e.target.value)}
-                className={`${inputCls} appearance-none pr-7 ${errs.categoria ? 'border-status-red' : ''}`}
-              >
-                {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
-                <option value="Otro">Otra categoría</option>
-              </select>
-              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
-            </div>
-            {errs.categoria && <p className="text-[10.5px] text-status-red mt-1">⚠ {errs.categoria}</p>}
-          </div>
-
-          {/* Valor base */}
-          <div>
-            <label className={labelCls}>
-              <span className="flex items-center gap-1"><DollarSign size={10} /> Valor base (COP)</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted text-[12px]">$</span>
-              <input
-                type="number"
-                min="0"
-                value={form.valorBase}
-                onChange={e => set('valorBase', e.target.value)}
-                className={`${inputCls} pl-7 ${errs.valorBase ? 'border-status-red' : ''}`}
-                placeholder="0"
-              />
-            </div>
-            {errs.valorBase && <p className="text-[10.5px] text-status-red mt-1">⚠ {errs.valorBase}</p>}
-            <p className="text-[10px] text-teal-muted mt-1">
-              Este valor se sugiere automáticamente al agregar el procedimiento a un plan de tratamiento.
-            </p>
-          </div>
-
-          {/* Activo */}
-          <div className="flex items-center justify-between py-2 px-3 bg-teal-bg rounded-lg border border-teal-border">
+          {/* BUSCADOR DE CATÁLOGO OFICIAL (Solo si es nuevo o cambiando selección) */}
+          {!proc && (
             <div>
-              <p className="text-[12px] font-medium text-primary">Procedimiento activo</p>
-              <p className="text-[10.5px] text-teal-muted">Solo los procedimientos activos aparecen en los formularios</p>
+              <label className={labelCls}>
+                <span className="flex items-center gap-1"><Search size={11} /> Buscar en Catálogo CUPS Oficial *</span>
+              </label>
+              <div className="relative mb-2">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-teal-muted" />
+                <input
+                  type="text"
+                  value={busquedaOficial}
+                  onChange={e => setBusquedaOficial(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 text-[12px] border border-teal-border rounded-lg bg-teal-bg focus:outline-none focus:ring-1 focus:ring-primary/40 focus:bg-white transition-colors"
+                  placeholder="Buscar por código CUPS (ej: 890201) o nombre oficial..."
+                />
+              </div>
+
+              {errs.oficial && <p className="text-[10.5px] text-status-red mb-2">⚠ {errs.oficial}</p>}
+
+              {/* Lista de resultados del catálogo oficial */}
+              <div className="border border-teal-border rounded-xl max-h-48 overflow-y-auto divide-y divide-teal-soft bg-white mb-4">
+                {loadingOficial ? (
+                  <div className="p-4 text-center text-[11px] text-teal-muted flex items-center justify-center gap-2">
+                    <Loader2 size={13} className="animate-spin text-primary" /> Cargando catálogo oficial CUPS...
+                  </div>
+                ) : resultadosOficiales.length === 0 ? (
+                  <div className="p-4 text-center text-[11px] text-teal-muted">
+                    No se encontraron procedimientos en el Catálogo Oficial.
+                  </div>
+                ) : (
+                  resultadosOficiales.map((item) => {
+                    const isSelected = selectedOficial?.codigo === item.codigo;
+                    const cc = catColor(item.categoria);
+                    return (
+                      <div
+                        key={item.codigo}
+                        onClick={() => handleSelectOfficial(item)}
+                        className={[
+                          'p-3 cursor-pointer transition-colors flex items-start justify-between gap-2',
+                          isSelected ? 'bg-primary/10 border-l-4 border-l-primary' : 'hover:bg-teal-bg/50',
+                        ].join(' ')}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-[10.5px] font-mono text-teal-muted bg-teal-soft/80 px-1.5 py-0.5 rounded font-semibold">
+                              CUPS {item.codigo}
+                            </span>
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${cc.bg} ${cc.text} ${cc.border}`}>
+                              {item.categoria}
+                            </span>
+                            {item.frecuente && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                                ⭐ Frecuente
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11.5px] font-medium text-primary leading-snug">{item.nombreOficial}</p>
+                        </div>
+                        {isSelected && <Check size={16} className="text-primary flex-shrink-0 mt-1" />}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-            <Toggle checked={form.activo} onChange={v => set('activo', v)} />
-          </div>
+          )}
+
+          {/* DATOS OFICIALES (INFORMACIÓN SOLO LECTURA) */}
+          {selectedOficial && (
+            <div className="p-3.5 bg-teal-bg/60 border border-teal-border rounded-xl space-y-2">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted flex items-center gap-1">
+                <FileText size={11} /> Información Oficial CUPS (Solo Lectura)
+              </p>
+              <div className="grid grid-cols-3 gap-2 pt-1 text-[11.5px]">
+                <div>
+                  <span className="text-[10px] text-teal-muted block">Código CUPS</span>
+                  <span className="font-mono font-medium text-primary">{selectedOficial.codigo}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] text-teal-muted block">Categoría Oficial</span>
+                  <span className="font-medium text-primary">{selectedOficial.categoria}</span>
+                </div>
+                <div className="col-span-3 pt-1 border-t border-teal-border/40">
+                  <span className="text-[10px] text-teal-muted block">Nombre Oficial</span>
+                  <span className="font-medium text-primary leading-snug block">{selectedOficial.nombreOficial}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CONFIGURACIÓN PROPIA DEL CONSULTORIO (EDITABLE) */}
+          {selectedOficial && (
+            <div className="space-y-3 pt-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.7px] text-primary flex items-center gap-1 border-b border-teal-soft pb-1">
+                <Pencil size={11} className="text-teal" /> Configuración en el Consultorio
+              </p>
+
+              {/* Nombre Visible */}
+              <div>
+                <label className={labelCls}>
+                  <span className="flex items-center gap-1"><FileText size={10} /> Nombre visible en el consultorio *</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.nombre}
+                  onChange={e => set('nombre', e.target.value)}
+                  className={`${inputCls} ${errs.nombre ? 'border-status-red' : ''}`}
+                  placeholder="Ej: Profilaxis dental"
+                />
+                {errs.nombre && <p className="text-[10.5px] text-status-red mt-1">⚠ {errs.nombre}</p>}
+                <p className="text-[10px] text-teal-muted mt-1">Nombre corto con el que los profesionales identificarán el procedimiento.</p>
+              </div>
+
+              {/* Precio / Valor base */}
+              <div>
+                <label className={labelCls}>
+                  <span className="flex items-center gap-1"><DollarSign size={10} /> Precio / Valor base (COP)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted text-[12px]">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.valorBase}
+                    onChange={e => set('valorBase', e.target.value)}
+                    className={`${inputCls} pl-7 ${errs.valorBase ? 'border-status-red' : ''}`}
+                    placeholder="0"
+                  />
+                </div>
+                {errs.valorBase && <p className="text-[10.5px] text-status-red mt-1">⚠ {errs.valorBase}</p>}
+              </div>
+
+              {/* Estado (Activo / Inactivo) */}
+              <div className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-teal-border">
+                <div>
+                  <p className="text-[12px] font-medium text-primary">Estado del procedimiento</p>
+                  <p className="text-[10.5px] text-teal-muted">Solo los activos aparecen en historias clínicas y citas</p>
+                </div>
+                <Toggle checked={form.activo} onChange={v => set('activo', v)} />
+              </div>
+            </div>
+          )}
 
           {/* Acciones */}
-          <div className="flex items-center justify-end gap-2 pt-1">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-teal-soft">
             <button
               type="button"
               onClick={onClose}
@@ -239,11 +358,11 @@ function ProcedimientoModal({ proc, onSave, onClose, saving }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-70 cursor-pointer"
+              disabled={saving || !selectedOficial}
+              className="flex items-center gap-1.5 px-4 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50 cursor-pointer"
             >
               {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-              {saving ? 'Guardando...' : 'Guardar'}
+              {saving ? 'Guardando...' : 'Guardar Procedimiento'}
             </button>
           </div>
         </form>
@@ -495,10 +614,11 @@ function TabCatalogoCUPS() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-teal-bg border-b border-teal-border">
-                <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px]">Código</th>
-                <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px]">Procedimiento</th>
+                <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px]">Nombre visible</th>
+                <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px]">Código CUPS</th>
+                <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px]">Nombre oficial</th>
                 <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px]">Categoría</th>
-                <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px] text-right">Valor base</th>
+                <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px] text-right">Precio</th>
                 <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px] text-center">Estado</th>
                 <th className="px-4 py-3 text-[10.5px] font-semibold text-teal-muted uppercase tracking-[0.7px] text-center">Acciones</th>
               </tr>
@@ -516,16 +636,21 @@ function TabCatalogoCUPS() {
                       'hover:bg-primary/[0.03]',
                     ].join(' ')}
                   >
-                    {/* Código */}
+                    {/* Nombre visible */}
                     <td className="px-4 py-3">
-                      <span className="text-[11px] font-mono text-teal-muted bg-teal-soft/60 px-1.5 py-0.5 rounded">
+                      <p className="text-[12.5px] font-medium text-primary leading-snug">{proc.nombre}</p>
+                    </td>
+
+                    {/* Código CUPS */}
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] font-mono text-teal-muted bg-teal-soft/60 px-1.5 py-0.5 rounded font-semibold">
                         {proc.codigo || '—'}
                       </span>
                     </td>
 
-                    {/* Nombre */}
+                    {/* Nombre oficial */}
                     <td className="px-4 py-3">
-                      <p className="text-[12.5px] font-medium text-primary leading-snug">{proc.nombre}</p>
+                      <p className="text-[11.5px] text-teal-muted leading-snug">{proc.nombreOficial || proc.nombre}</p>
                     </td>
 
                     {/* Categoría */}
@@ -535,7 +660,7 @@ function TabCatalogoCUPS() {
                       </span>
                     </td>
 
-                    {/* Valor */}
+                    {/* Precio / Valor base */}
                     <td className="px-4 py-3 text-right">
                       <span className="text-[12px] font-medium text-primary tabular-nums">{fmt(proc.valorBase)}</span>
                     </td>
