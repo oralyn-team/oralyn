@@ -1,18 +1,19 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays,
-  Stethoscope, ClipboardList, Settings, LogOut,
+  Stethoscope, ClipboardList, Settings, LogOut, FileBarChart,
 } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
 
 
 const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: 'Dashboard',      path: '/dashboard'     },
-  { icon: Users,           label: 'Pacientes',      path: '/pacientes'     },
-  { icon: CalendarDays,    label: 'Citas',           path: '/citas'         },
-  { icon: Stethoscope,     label: 'Consentimientos',   path: '/consentimientos'  },
-  { icon: ClipboardList,   label: 'Historias',       path: '/historias'     },
-  { icon: Settings,        label: 'Ajustes',         path: '/configuracion' },
+  { icon: LayoutDashboard, label: 'Dashboard',       path: '/dashboard'       },
+  { icon: Users,           label: 'Pacientes',       path: '/pacientes'       },
+  { icon: CalendarDays,    label: 'Citas',            path: '/citas'           },
+  { icon: Stethoscope,     label: 'Consentimientos',  path: '/consentimientos' },
+  { icon: ClipboardList,   label: 'Historias',        path: '/historias'       },
+  { icon: FileBarChart,    label: 'RIPS',             path: '/rips'            },
+  { icon: Settings,        label: 'Ajustes',          path: '/configuracion'   },
 ];
 
 function ToothIcon() {

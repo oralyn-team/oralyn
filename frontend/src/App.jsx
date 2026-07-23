@@ -4,6 +4,7 @@ import Pacientes from './pages/Pacientes';
 import Citas     from './pages/Citas';
 import Historias from './pages/Historias';
 import Consentimientos from './pages/Consentimientos';
+import Rips from './pages/Rips';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
       <Route path="/citas"      element={<Citas />} />
       <Route path="/historias"  element={<Historias />} />
       <Route path="/consentimientos" element={<Consentimientos />} />
+      <Route path="/rips" element={<Rips />} />
     </Routes>
   );
 }

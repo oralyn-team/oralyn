@@ -77,59 +77,57 @@ async function request(path, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
-// ── Procedimientos CUPS — mock localStorage ────────────────────────────────
-// Estructura de cada procedimiento:
-// { id, codigo, nombre, categoria, valorBase, activo, createdAt }
-//
-// Cuando el backend esté disponible, basta con reemplazar estas funciones
-// por llamadas a `request(...)` con los mismos contratos de entrada/salida.
+// ── Catálogo CUPS Oficial (Solo Lectura) ──────────────────────────────────
+export const CATALOGO_CUPS_OFICIAL = [
+  // Promoción y prevención
+  { codigo: '890201', nombreOficial: 'CONSULTA DE PRIMERA VEZ POR ODONTOLOGÍA GENERAL', categoria: 'Promoción y prevención', frecuente: true },
+  { codigo: '890202', nombreOficial: 'CONTROL DE PRIMERA VEZ POR ODONTOLOGÍA GENERAL', categoria: 'Promoción y prevención', frecuente: true },
+  { codigo: '890203', nombreOficial: 'PROFILAXIS DENTAL Y CONTROL DE PLACA', categoria: 'Promoción y prevención', frecuente: true },
+  { codigo: '890204', nombreOficial: 'APLICACIÓN TÓPICA DE FLÚOR EN GEL O BARNIZ', categoria: 'Promoción y prevención', frecuente: true },
+  { codigo: '890205', nombreOficial: 'APLICACIÓN DE SELLANTES DE FOSAS Y FISURAS', categoria: 'Promoción y prevención', frecuente: true },
+  { codigo: '890206', nombreOficial: 'RADIOGRAFÍA PERIAPICAL O CORONAL', categoria: 'Promoción y prevención', frecuente: false },
+
+  // Restaurador
+  { codigo: '890301', nombreOficial: 'RESTAURACIÓN DENTAL CON RESINA DE FOTOCURADO', categoria: 'Restaurador', frecuente: true },
+  { codigo: '890302', nombreOficial: 'RESTAURACIÓN ODONTOLÓGICA CON AMALGAMA', categoria: 'Restaurador', frecuente: false },
+  { codigo: '890303', nombreOficial: 'INCRUSTACIÓN METÁLICA O ESTÉTICA (INLAY/ONLAY)', categoria: 'Restaurador', frecuente: false },
+  { codigo: '890304', nombreOficial: 'RECONSTRUCCIÓN DE MUÑÓN CON NÚCLEO PREFABRICADO', categoria: 'Restaurador', frecuente: true },
+
+  // Endodoncia
+  { codigo: '890401', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE UNIRRADICULAR', categoria: 'Endodoncia', frecuente: true },
+  { codigo: '890402', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE BIRRADICULAR', categoria: 'Endodoncia', frecuente: true },
+  { codigo: '890403', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE MULTIRRADICULAR', categoria: 'Endodoncia', frecuente: false },
+  { codigo: '890404', nombreOficial: 'RETRATAMIENTO ENDODÓNTICO EN DIENTE UNIRRADICULAR O MULTIRRADICULAR', categoria: 'Endodoncia', frecuente: false },
+
+  // Ortodoncia
+  { codigo: '890701', nombreOficial: 'INSTALACIÓN DE APARATOLOGÍA FIJA DE ORTODONCIA (BRACKETS)', categoria: 'Ortodoncia', frecuente: true },
+  { codigo: '890702', nombreOficial: 'CONTROL MENSUAL DE TRATAMIENTO DE ORTODONCIA', categoria: 'Ortodoncia', frecuente: true },
+  { codigo: '890703', nombreOficial: 'ELABORACIÓN E INSTALACIÓN DE RETENEDORES DE ORTODONCIA', categoria: 'Ortodoncia', frecuente: false },
+
+  // Cirugía
+  { codigo: '890501', nombreOficial: 'EXODONCIA DE DIENTE PERMANENTE UNIRRADICULAR O MULTIRRADICULAR', categoria: 'Cirugía', frecuente: true },
+  { codigo: '890502', nombreOficial: 'EXODONCIA QUIRÚRGICA DE TERCER MOLAR RETENIDO O INCLUIDO', categoria: 'Cirugía', frecuente: true },
+  { codigo: '890503', nombreOficial: 'FRENECTOMÍA LABIAL O LINGUAL', categoria: 'Cirugía', frecuente: false },
+
+  // Rehabilitación
+  { codigo: '890801', nombreOficial: 'COLOCACIÓN DE CORONA COMPLETA INDIVIDUAL EN METAL-CERÁMICA O ZIRCONIO', categoria: 'Rehabilitación', frecuente: true },
+  { codigo: '890802', nombreOficial: 'PRÓTESIS PARCIAL REMOVIBLE ACRÍLICA O METÁLICA', categoria: 'Rehabilitación', frecuente: false },
+  { codigo: '890803', nombreOficial: 'PRÓTESIS TOTAL SUPERIOR E INFERIOR ACRÍLICA', categoria: 'Rehabilitación', frecuente: false },
+  { codigo: '890804', nombreOficial: 'IMPLANTE DENTAL OSEOINTEGRADO INDIVIDUAL', categoria: 'Rehabilitación', frecuente: true },
+];
 
 const CUPS_KEY = 'oralyn_procedimientos_cups';
 
 const CUPS_SEED = [
-  // Preventivo
-  { id: 'cups_1',  codigo: '890201', nombre: 'Valoración inicial',            categoria: 'Preventivo',   valorBase: 50000,  activo: true },
-  { id: 'cups_2',  codigo: '890202', nombre: 'Profilaxis',                    categoria: 'Preventivo',   valorBase: 60000,  activo: true },
-  { id: 'cups_3',  codigo: '890203', nombre: 'Limpieza dental',               categoria: 'Preventivo',   valorBase: 60000,  activo: true },
-  { id: 'cups_4',  codigo: '890204', nombre: 'Radiografía periapical',        categoria: 'Preventivo',   valorBase: 20000,  activo: true },
-  { id: 'cups_5',  codigo: '890205', nombre: 'Radiografía panorámica',        categoria: 'Preventivo',   valorBase: 80000,  activo: true },
-  // Restaurador
-  { id: 'cups_6',  codigo: '890301', nombre: 'Resina compuesta',              categoria: 'Restaurador',  valorBase: 120000, activo: true },
-  { id: 'cups_7',  codigo: '890302', nombre: 'Restauración',                  categoria: 'Restaurador',  valorBase: 100000, activo: true },
-  { id: 'cups_8',  codigo: '890303', nombre: 'Incrustación (Inlay)',          categoria: 'Restaurador',  valorBase: 350000, activo: true },
-  { id: 'cups_9',  codigo: '890304', nombre: 'Corona dental',                 categoria: 'Restaurador',  valorBase: 800000, activo: true },
-  { id: 'cups_10', codigo: '890305', nombre: 'Sellante de fisuras',           categoria: 'Restaurador',  valorBase: 40000,  activo: true },
-  // Endodoncia
-  { id: 'cups_11', codigo: '890401', nombre: 'Endodoncia unirradicular',      categoria: 'Endodoncia',   valorBase: 400000, activo: true },
-  { id: 'cups_12', codigo: '890402', nombre: 'Endodoncia birradicular',       categoria: 'Endodoncia',   valorBase: 550000, activo: true },
-  { id: 'cups_13', codigo: '890403', nombre: 'Endodoncia trirradicular',      categoria: 'Endodoncia',   valorBase: 700000, activo: true },
-  { id: 'cups_14', codigo: '890404', nombre: 'Retratamiento endodóntico',     categoria: 'Endodoncia',   valorBase: 600000, activo: true },
-  // Cirugía
-  { id: 'cups_15', codigo: '890501', nombre: 'Exodoncia simple',              categoria: 'Cirugía',      valorBase: 80000,  activo: true },
-  { id: 'cups_16', codigo: '890502', nombre: 'Exodoncia quirúrgica',          categoria: 'Cirugía',      valorBase: 200000, activo: true },
-  { id: 'cups_17', codigo: '890503', nombre: 'Cirugía de terceros molares',   categoria: 'Cirugía',      valorBase: 350000, activo: true },
-  { id: 'cups_18', codigo: '890504', nombre: 'Implante dental',               categoria: 'Cirugía',      valorBase: 2500000,activo: true },
-  { id: 'cups_19', codigo: '890505', nombre: 'Frenectomía',                   categoria: 'Cirugía',      valorBase: 250000, activo: true },
-  // Estético
-  { id: 'cups_20', codigo: '890601', nombre: 'Blanqueamiento dental',         categoria: 'Estético',     valorBase: 400000, activo: true },
-  { id: 'cups_21', codigo: '890602', nombre: 'Carillas de resina',            categoria: 'Estético',     valorBase: 300000, activo: true },
-  { id: 'cups_22', codigo: '890603', nombre: 'Carillas de porcelana',         categoria: 'Estético',     valorBase: 1200000,activo: true },
-  { id: 'cups_23', codigo: '890604', nombre: 'Diseño de sonrisa',             categoria: 'Estético',     valorBase: 500000, activo: true },
-  // Ortodoncia
-  { id: 'cups_24', codigo: '890701', nombre: 'Ortodoncia fija (inicio)',      categoria: 'Ortodoncia',   valorBase: 3000000,activo: true },
-  { id: 'cups_25', codigo: '890702', nombre: 'Control de ortodoncia',         categoria: 'Ortodoncia',   valorBase: 80000,  activo: true },
-  { id: 'cups_26', codigo: '890703', nombre: 'Ortodoncia invisible',          categoria: 'Ortodoncia',   valorBase: 4000000,activo: true },
-  { id: 'cups_27', codigo: '890704', nombre: 'Retenedores',                   categoria: 'Ortodoncia',   valorBase: 200000, activo: true },
-  // Prótesis
-  { id: 'cups_28', codigo: '890801', nombre: 'Prótesis parcial removible',    categoria: 'Prótesis',     valorBase: 800000, activo: true },
-  { id: 'cups_29', codigo: '890802', nombre: 'Prótesis total',                categoria: 'Prótesis',     valorBase: 1500000,activo: true },
-  { id: 'cups_30', codigo: '890803', nombre: 'Prótesis fija (puente)',        categoria: 'Prótesis',     valorBase: 2000000,activo: true },
-  { id: 'cups_31', codigo: '890804', nombre: 'Provisional acrílico',          categoria: 'Prótesis',     valorBase: 150000, activo: true },
-  // Periodoncia
-  { id: 'cups_32', codigo: '890901', nombre: 'Curetaje',                      categoria: 'Periodoncia',  valorBase: 120000, activo: true },
-  { id: 'cups_33', codigo: '890902', nombre: 'Raspado y alisado radicular',   categoria: 'Periodoncia',  valorBase: 180000, activo: true },
-  { id: 'cups_34', codigo: '890903', nombre: 'Gingivoplastia',                categoria: 'Periodoncia',  valorBase: 300000, activo: true },
-  { id: 'cups_35', codigo: '890904', nombre: 'Control periodontal',           categoria: 'Periodoncia',  valorBase: 60000,  activo: true },
+  { id: 'cups_1',  codigo: '890201', nombreOficial: 'CONSULTA DE PRIMERA VEZ POR ODONTOLOGÍA GENERAL', nombre: 'Valoración inicial', categoria: 'Promoción y prevención', valorBase: 50000, activo: true },
+  { id: 'cups_2',  codigo: '890203', nombreOficial: 'PROFILAXIS DENTAL Y CONTROL DE PLACA', nombre: 'Profilaxis dental', categoria: 'Promoción y prevención', valorBase: 60000, activo: true },
+  { id: 'cups_3',  codigo: '890301', nombreOficial: 'RESTAURACIÓN DENTAL CON RESINA DE FOTOCURADO', nombre: 'Resina compuesta', categoria: 'Restaurador', valorBase: 120000, activo: true },
+  { id: 'cups_4',  codigo: '890401', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE UNIRRADICULAR', nombre: 'Endodoncia unirradicular', categoria: 'Endodoncia', valorBase: 400000, activo: true },
+  { id: 'cups_5',  codigo: '890501', nombreOficial: 'EXODONCIA DE DIENTE PERMANENTE UNIRRADICULAR O MULTIRRADICULAR', nombre: 'Exodoncia simple', categoria: 'Cirugía', valorBase: 80000, activo: true },
+  { id: 'cups_6',  codigo: '890502', nombreOficial: 'EXODONCIA QUIRÚRGICA DE TERCER MOLAR RETENIDO O INCLUIDO', nombre: 'Cirugía de terceros molares', categoria: 'Cirugía', valorBase: 350000, activo: true },
+  { id: 'cups_7',  codigo: '890702', nombreOficial: 'CONTROL MENSUAL DE TRATAMIENTO DE ORTODONCIA', nombre: 'Control de ortodoncia', categoria: 'Ortodoncia', valorBase: 80000, activo: true },
+  { id: 'cups_8',  codigo: '890801', nombreOficial: 'COLOCACIÓN DE CORONA COMPLETA INDIVIDUAL EN METAL-CERÁMICA O ZIRCONIO', nombre: 'Corona dental', categoria: 'Rehabilitación', valorBase: 800000, activo: true },
+  { id: 'cups_9',  codigo: '890804', nombreOficial: 'IMPLANTE DENTAL OSEOINTEGRADO INDIVIDUAL', nombre: 'Implante dental', categoria: 'Rehabilitación', valorBase: 2500000, activo: true },
 ];
 
 /** Retorna todos los procedimientos desde localStorage, inicializando el seed si no existe */
@@ -149,6 +147,11 @@ function _cupsWrite(data) {
 
 function _delay(ms = 120) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+async function getCatalogoOficial() {
+  await _delay();
+  return CATALOGO_CUPS_OFICIAL;
 }
 
 async function getProcedimientos() {
@@ -308,6 +311,7 @@ export const api = {
   actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Catálogo de Procedimientos CUPS (mock localStorage — reemplazar por request() cuando el backend esté listo)
+  getCatalogoOficial:        ()         => getCatalogoOficial(),
   getProcedimientos:         ()         => getProcedimientos(),
   crearProcedimiento:        (data)     => crearProcedimiento(data),
   actualizarProcedimiento:   (id, data) => actualizarProcedimiento(id, data),
