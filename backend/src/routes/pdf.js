@@ -60,11 +60,7 @@ router.get('/cotizacion/:id', async (req, res) => {
       include: {
         paciente: { select: { nombres: true, primer_apellido: true, segundo_apellido: true, tipo_documento: true, numero_documento: true, telefono: true } },
         procedimientos: { orderBy: { orden: 'asc' } },
-<<<<<<< HEAD
-        pagos: { orderBy: { fecha: 'asc' } }
-=======
         pagos: { orderBy: { fecha: 'desc' } }
->>>>>>> f8f1512 (feat: huella dactilar y logo en consentimientos PDFs)
       }
     })
     if (!cotizacion) return res.status(404).json({ error: 'Cotización no encontrada' })

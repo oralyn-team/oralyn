@@ -149,12 +149,7 @@ router.post('/', async (req, res) => {
     observaciones,
     procedimientos,
     pagos = [],
-    observaciones,
-    motivo,
-    tipo_tratamiento,
-    prioridad,
-    estado,
-    doctor_id
+    estado
   } = req.body
 
   const errorValidacion = validarCotizacion({ paciente_id, procedimientos, estado, prioridad })
@@ -178,17 +173,13 @@ router.post('/', async (req, res) => {
           doctor:           doctor           ?? null,
           doctor_id:        doctor_id        ?? null,
           tipo_tratamiento: tipo_tratamiento ?? null,
-          prioridad:        prioridad        ?? 'media',
+          prioridad:        prioridad        || 'media',
+          estado:           estado           || 'borrador',
           motivo:           motivo           ?? null,
           observaciones:    observaciones    ?? null,
           total,
           total_pagado: totalPagado,
           saldo,
-          observaciones,
-          motivo,
-          tipo_tratamiento,
-          prioridad: prioridad || 'media',
-          estado: estado || 'borrador',
           procedimientos: { create: procedimientosData }
         },
         include: { procedimientos: true, pagos: true }
@@ -255,14 +246,15 @@ router.put('/:id', async (req, res) => {
 
   const {
     paciente_id,
-    procedimientos,
-    pagos = [],
-    observaciones,
-    motivo,
+    doctor,
+    doctor_id,
     tipo_tratamiento,
     prioridad,
-    estado,
-    doctor_id
+    motivo,
+    observaciones,
+    procedimientos,
+    pagos = [],
+    estado
   } = req.body
 
   const errorValidacion = validarCotizacion({ paciente_id, procedimientos, estado, prioridad })
@@ -293,6 +285,7 @@ router.put('/:id', async (req, res) => {
         where: { id },
         data: {
           paciente_id,
+          doctor: doctor ?? null,
           doctor_id: doctor_id ?? null,
           total,
           total_pagado: totalPagado,
