@@ -5,153 +5,141 @@ const verificarToken = require('../middlewares/auth')
 const router = express.Router()
 router.use(verificarToken)
 
-const METODOS_VALIDOS = [
-  'efectivo',
-  'transferencia_bancaria',
-  'tarjeta_debito',
-  'tarjeta_credito',
-  'nequi',
-  'daviplata',
-  'otro',
-]
+const metodosValidos = ['efectivo', 'transferencia_bancaria', 'tarjeta_debito', 'tarjeta_credito', 'nequi', 'daviplata', 'otro']
+const estadosConSaldo = ['aprobado', 'en_proceso', 'finalizado']
 
-const ESTADOS_CON_SALDO = ['aprobado', 'en_proceso', 'finalizado']
+function parseId(value) {
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
 
-// ─── POST /api/pagos — registrar pago ────────────────────────────────────────
+function parseMonto(value) {
+  const monto = Number(value)
+  return Number.isFinite(monto) && monto > 0 ? monto : null
+}
 
-router.post('/', async (req, res) => {
-  const paciente_id   = parseInt(req.body.paciente_id)
-  const cotizacion_id = req.body.cotizacion_id ? parseInt(req.body.cotizacion_id) : null
-  const monto         = Number(req.body.monto)
-  const { metodo_pago, referencia, concepto } = req.body
+async function recalcularSaldoCotizacion(tx, cotizacionId, consultorioId) {
+  const cotizacion = await tx.cotizacion.findFirst({
+    where: { id: cotizacionId, consultorio_id: consultorioId },
+    select: { total: true }
+  })
 
-  // ── Validaciones ──────────────────────────────────────────────────────────
-
-  if (isNaN(paciente_id)) {
-    return res.status(400).json({ error: 'ID de paciente inválido' })
+  if (!cotizacion) {
+    return
   }
 
-  if (!metodo_pago) {
+  const pagos = await tx.pago.findMany({
+    where: { cotizacion_id: cotizacionId, consultorio_id: consultorioId },
+    select: { monto: true }
+  })
+
+  const totalPagado = pagos.reduce((sum, pago) => sum + Number(pago.monto), 0)
+
+  await tx.cotizacion.update({
+    where: { id: cotizacionId },
+    data: {
+      total_pagado: totalPagado,
+      saldo: Math.max(Number(cotizacion.total) - totalPagado, 0)
+    }
+  })
+}
+
+router.post('/', async (req, res) => {
+  const pacienteId = parseId(req.body.paciente_id)
+  const cotizacionId = req.body.cotizacion_id ? parseId(req.body.cotizacion_id) : null
+  const monto = parseMonto(req.body.monto)
+  const { metodo_pago, concepto, referencia } = req.body
+
+  if (!pacienteId || !monto || !metodo_pago) {
     return res.status(400).json({ error: 'Paciente, monto y método de pago son obligatorios' })
   }
 
-  if (isNaN(monto) || monto <= 0) {
-    return res.status(400).json({ error: 'El monto debe ser un número mayor a 0' })
+  if (!metodosValidos.includes(metodo_pago)) {
+    return res.status(400).json({ error: `Método de pago no válido. Valores aceptados: ${metodosValidos.join(', ')}` })
   }
 
-  if (!METODOS_VALIDOS.includes(metodo_pago)) {
-    return res.status(400).json({
-      error: `Método de pago no válido. Valores aceptados: ${METODOS_VALIDOS.join(', ')}`
-    })
+  if (req.body.cotizacion_id && !cotizacionId) {
+    return res.status(400).json({ error: 'ID de cotización inválido' })
   }
 
   try {
-    // ── Verificar paciente ─────────────────────────────────────────────────
+    const paciente = await prisma.paciente.findFirst({
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+    })
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
-    const paciente = await prisma.paciente.findUnique({ where: { id: paciente_id } })
-    if (!paciente) {
-      return res.status(404).json({ error: 'Paciente no encontrado' })
+    if (cotizacionId) {
+      const cotizacion = await prisma.cotizacion.findFirst({
+        where: {
+          id: cotizacionId,
+          paciente_id: pacienteId,
+          consultorio_id: req.usuario.consultorio_id
+        }
+      })
+
+      if (!cotizacion) return res.status(404).json({ error: 'Cotización no encontrada' })
     }
-
-    // ── Verificar cotización si viene ──────────────────────────────────────
-
-    if (cotizacion_id) {
-      const cotizacion = await prisma.cotizacion.findUnique({ where: { id: cotizacion_id } })
-      if (!cotizacion) {
-        return res.status(404).json({ error: 'Cotización no encontrada' })
-      }
-    }
-
-    // ── Transacción: crear pago + actualizar saldo ─────────────────────────
 
     const pago = await prisma.$transaction(async (tx) => {
       const nuevoPago = await tx.pago.create({
         data: {
-          paciente_id,
-          cotizacion_id: cotizacion_id ?? null,
+          consultorio_id: req.usuario.consultorio_id,
+          paciente_id: pacienteId,
+          cotizacion_id: cotizacionId,
           monto,
           metodo_pago,
-          referencia: referencia ?? null,
-          concepto:   concepto   ?? null,
+          concepto: concepto ?? null,
+          referencia: referencia ?? null
         }
       })
 
-      if (cotizacion_id) {
-        const agregado = await tx.pago.aggregate({
-          where: { cotizacion_id },
-          _sum:  { monto: true }
-        })
-
-        const totalPagado = Number(agregado._sum.monto) || 0
-
-        const cotizacion = await tx.cotizacion.findUnique({
-          where:  { id: cotizacion_id },
-          select: { total: true }
-        })
-
-        await tx.cotizacion.update({
-          where: { id: cotizacion_id },
-          data: {
-            total_pagado: totalPagado,
-            saldo:        Math.max(0, Number(cotizacion.total) - totalPagado)
-          }
-        })
+      if (cotizacionId) {
+        await recalcularSaldoCotizacion(tx, cotizacionId, req.usuario.consultorio_id)
       }
 
       return nuevoPago
-    }) // ✅ Fix 1: cierre correcto del $transaction
+    })
 
     res.status(201).json(pago)
-
-  } catch (error) { // ✅ Fix 2: catch que faltaba para el try del POST
+  } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
-// ─── GET /api/pagos/paciente/:pacienteId — historial y resumen ───────────────
-
 router.get('/paciente/:pacienteId', async (req, res) => {
-  const pacienteId = parseInt(req.params.pacienteId)
-
-  if (isNaN(pacienteId)) {
-    return res.status(400).json({ error: 'ID de paciente inválido' })
-  }
+  const pacienteId = parseId(req.params.pacienteId)
+  if (!pacienteId) return res.status(400).json({ error: 'ID de paciente inválido' })
 
   try {
-    // ── Verificar paciente ─────────────────────────────────────────────────
-
-    const paciente = await prisma.paciente.findUnique({ where: { id: pacienteId } })
-    if (!paciente) {
-      return res.status(404).json({ error: 'Paciente no encontrado' })
-    }
-
-    // ── Pagos e historial ──────────────────────────────────────────────────
+    const paciente = await prisma.paciente.findFirst({
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+    })
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
     const pagos = await prisma.pago.findMany({
-      where:   { paciente_id: pacienteId, consultorio_id: req.usuario.consultorio_id },
+      where: { paciente_id: pacienteId, consultorio_id: req.usuario.consultorio_id },
       orderBy: { fecha: 'desc' }
     })
 
-    // ✅ Fix 3: usar ESTADOS_CON_SALDO en lugar del estado hardcodeado 'aprobada'
     const cotizaciones = await prisma.cotizacion.findMany({
-      where:  {
-        paciente_id:    pacienteId,
+      where: {
+        paciente_id: pacienteId,
         consultorio_id: req.usuario.consultorio_id,
-        estado:         { in: ESTADOS_CON_SALDO }
+        estado: { in: estadosConSaldo }
       },
       select: { total: true }
     })
 
-    const totalCotizado  = cotizaciones.reduce((sum, c) => sum + Number(c.total), 0)
-    const totalPagado    = pagos.reduce((sum, p) => sum + Number(p.monto), 0)
-    const saldoPendiente = Math.max(0, totalCotizado - totalPagado)
+    const totalCotizado = cotizaciones.reduce((sum, c) => sum + Number(c.total), 0)
+    const totalPagado = pagos.reduce((sum, p) => sum + Number(p.monto), 0)
+    const saldoPendiente = Math.max(totalCotizado - totalPagado, 0)
 
     res.json({
       pagos,
       resumen: {
-        total_cotizado:  totalCotizado,
-        total_pagado:    totalPagado,
+        total_cotizado: totalCotizado,
+        total_pagado: totalPagado,
         saldo_pendiente: saldoPendiente
       }
     })
