@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; color: #222; line-height: 1.6; font-size: 13px; }
+    h1 { text-align: center; color: #1a3a5c; margin-bottom: 24px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+    h2 { margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 4px; color: #2e6da4; font-size: 13px; text-transform: uppercase; }
+    .fila { display: flex; gap: 30px; margin-bottom: 12px; }
+    .campo { margin-bottom: 6px; flex: 1; }
+    .label { font-weight: bold; color: #444; display: block; margin-bottom: 2px; }
+    .texto { padding: 8px 12px; background: #f9f9f9; border: 1px solid #eee; border-radius: 4px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  
+<div class="header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+  {{#if config.logo_url}}
+  <img src="{{config.logo_url}}" style="height:70px; object-fit:contain;"/>
+  {{else}}
+  <div></div>
+  {{/if}}
+  <div style="text-align:right; font-size:11px; line-height: 1.4;">
+    <strong>{{config.nombre_consultorio}}</strong><br>
+    {{config.nombre_profesional}} · Reg. {{config.registro_profesional}}<br>
+    {{config.direccion}}<br>
+    Cel: {{config.telefono}} · NIT. {{config.nit}}
+  </div>
+</div>
+
+<h1>Ficha Técnica del Paciente</h1>
+
+<h2>I. Datos Personales</h2>
+<div class="fila">
+  <div class="campo">
+    <span class="label">Nombre completo</span>
+    <div class="texto">{{nombre_completo}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">Identificación</span>
+    <div class="texto">{{tipo_documento}} {{numero_documento}}</div>
+  </div>
+</div>
+
+<div class="fila">
+  <div class="campo">
+    <span class="label">Fecha de nacimiento</span>
+    <div class="texto">{{fecha_nacimiento}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">Sexo</span>
+    <div class="texto">{{sexo}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">RH</span>
+    <div class="texto">{{#if rh}}{{rh}}{{else}}—{{/if}}</div>
+  </div>
+</div>
+
+<div class="fila">
+  <div class="campo">
+    <span class="label">Estado civil</span>
+    <div class="texto">{{#if estado_civil}}{{estado_civil}}{{else}}—{{/if}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">Asegurador / EPS</span>
+    <div class="texto">{{#if asegurador}}{{asegurador}}{{else}}—{{/if}}</div>
+  </div>
+</div>
+
+<h2>II. Información de Contacto</h2>
+<div class="fila">
+  <div class="campo">
+    <span class="label">Teléfono</span>
+    <div class="texto">{{#if telefono}}{{telefono}}{{else}}—{{/if}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">Correo electrónico</span>
+    <div class="texto">{{#if correo}}{{correo}}{{else}}—{{/if}}</div>
+  </div>
+</div>
+
+<div class="fila">
+  <div class="campo">
+    <span class="label">Municipio / Ciudad</span>
+    <div class="texto">{{municipio_ciudad}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">Dirección de residencia</span>
+    <div class="texto">{{#if direccion_residencia}}{{direccion_residencia}}{{else}}—{{/if}}</div>
+  </div>
+</div>
+
+<h2>III. Información de Acudiente</h2>
+{{#if acudiente_nombre}}
+<div class="fila">
+  <div class="campo">
+    <span class="label">Nombre del acudiente</span>
+    <div class="texto">{{acudiente_nombre}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">Parentesco</span>
+    <div class="texto">{{acudiente_parentesco}}</div>
+  </div>
+  <div class="campo">
+    <span class="label">Teléfono de contacto</span>
+    <div class="texto">{{acudiente_telefono}}</div>
+  </div>
+</div>
+{{else}}
+<p style="font-style: italic; color: #666; margin-left: 4px;">No se ha registrado acudiente para este paciente.</p>
+{{/if}}
+
+</body>
+</html>

@@ -2,9 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const puppeteer = require('puppeteer')
 const handlebars = require('handlebars')
-const { PrismaClient } = require('@prisma/client')
-
-const prisma = new PrismaClient()
+const prisma = require('../../lib/prisma')
 
 async function obtenerConfig(consultorio_id) {
   try {
