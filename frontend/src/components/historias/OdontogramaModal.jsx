@@ -56,7 +56,7 @@ const TIPOS_ARCO = [
 ];
 
 // Configuraciones de elásticos intermaxilares (diente → diente)
-const TIPOS_ELASTICO = [
+export const TIPOS_ELASTICO = [
   { key: 'clase-i',   label: 'Clase I' },
   { key: 'clase-ii',  label: 'Clase II' },
   { key: 'clase-iii', label: 'Clase III' },
@@ -64,7 +64,7 @@ const TIPOS_ELASTICO = [
   { key: 'vertical',  label: 'Vertical' },
   { key: 'triangulo', label: 'Triángulo' },
 ];
-const COLOR_ELASTICO = {
+export const COLOR_ELASTICO = {
   'clase-i':   '#0EA5A5',
   'clase-ii':  '#D97706',
   'clase-iii': '#DC2626',
