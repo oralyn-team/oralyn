@@ -32,7 +32,7 @@ const TIPOS_ODONTOGRAMA = [
 ];
 
 // Aparatología seleccionable por diente (multi-selección, no excluyente)
-const APARATOLOGIA = [
+export const APARATOLOGIA = [
   { key: 'bracket',      label: 'Bracket' },
   { key: 'banda',        label: 'Banda' },
   { key: 'tubo',         label: 'Tubo' },
@@ -41,7 +41,7 @@ const APARATOLOGIA = [
   { key: 'ligadura',     label: 'Ligadura' },
   { key: 'retenedor',    label: 'Retenedor' },
 ];
-const APARATOLOGIA_LABELS = Object.fromEntries(APARATOLOGIA.map((a) => [a.key, a.label]));
+export const APARATOLOGIA_LABELS = Object.fromEntries(APARATOLOGIA.map((a) => [a.key, a.label]));
 
 // Tipos de arco de ortodoncia por arcada
 const TIPOS_ARCO = [

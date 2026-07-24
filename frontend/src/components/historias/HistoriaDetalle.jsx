@@ -1,7 +1,7 @@
 // src/components/historias/HistoriaDetalle.jsx
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet} from 'lucide-react';
-import OdontogramaModal  from './OdontogramaModal';
+import OdontogramaModal, { APARATOLOGIA_LABELS } from './OdontogramaModal';
 import TratamientosCotizacionesForm from './tratamientos/TratamientoCotizacionForm';
 import EvolucionForm     from './EvolucionForm';
 import AdjuntosPanel     from './AdjuntosPanel';
@@ -347,8 +347,30 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
     actualizarAdjuntos((form.adjuntos || []).filter((adj) => adj.id !== adjuntoId));
   }
 
-  const dientesConCondicion = Object.values(form.odontograma?.['general-adulto'] || {}).filter(
-    (d) => d?.estado && d.estado !== 'sano').length;
+  const TIPOS_ODONTOGRAMA_RESUMEN = [
+    { key: 'general-adulto', label: 'General adulto' },
+    { key: 'general-infantil', label: 'General infantil' },
+    { key: 'ortodoncia', label: 'Ortodoncia' },
+  ];
+
+  function extraerCondicionesDeTipo(mapaTipo) {
+    return Object.entries(mapaTipo || {})
+      // 'arcos' y 'elasticos' son claves reservadas a nivel de odontograma, no dientes
+      .filter(([key]) => key !== 'arcos' && key !== 'elasticos')
+      .filter(([, v]) => {
+        const tieneEstado = v?.estado && v.estado !== 'sano';
+        const tieneAparatologia = Array.isArray(v?.aparatologia) && v.aparatologia.length > 0;
+        return tieneEstado || tieneAparatologia;
+      });
+  }
+
+  const condicionesPorTipo = TIPOS_ODONTOGRAMA_RESUMEN.map(({ key, label }) => ({
+    key,
+    label,
+    items: extraerCondicionesDeTipo(form.odontograma?.[key]),
+  }));
+
+  const dientesConCondicion = condicionesPorTipo.reduce((acc, t) => acc + t.items.length, 0);
 
   async function onVerPDF() {
   try {
@@ -494,35 +516,49 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {Object.entries(form.odontograma?.['general-adulto'] || {})
-            .filter(([, v]) => v?.estado && v.estado !== 'sano')
-            .map(([num, val]) => ( 
-                <span
-                  key={num}
-                  className="text-[11px] px-2.5 py-1 rounded-full font-medium"
-                  style={{
-                    backgroundColor: {
-                      caries:'#FAEEDA',
-                      restauracion:'#EAF3DE',
-                      ausente:'#FDECEA',
-                      endodoncia:'#FBEAF0',
-                      corona:'#E6F1FB',
-                      implante:'#EEEDFE'
-                    }[val.estado] || '#EAF6F6',
+            {condicionesPorTipo.flatMap(({ key: tipoKey, label: tipoLabel, items }) =>
+              items.map(([num, val]) => {
+                const tieneEstado = val?.estado && val.estado !== 'sano';
+                const aparatologiaTexto = Array.isArray(val?.aparatologia) && val.aparatologia.length
+                  ? val.aparatologia.map((a) => APARATOLOGIA_LABELS[a] || a).join(', ')
+                  : null;
+                const descripcion = [tieneEstado ? val.estado : null, aparatologiaTexto]
+                  .filter(Boolean)
+                  .join(' + ');
+                const colores = tieneEstado
+                  ? {
+                      bg: {
+                        caries: '#FAEEDA',
+                        restauracion: '#EAF3DE',
+                        ausente: '#FDECEA',
+                        endodoncia: '#FBEAF0',
+                        corona: '#E6F1FB',
+                        implante: '#EEEDFE',
+                      }[val.estado] || '#EAF6F6',
+                      text: {
+                        caries: '#854F0B',
+                        restauracion: '#3B6D11',
+                        ausente: '#A32D2D',
+                        endodoncia: '#993556',
+                        corona: '#185FA5',
+                        implante: '#3C3489',
+                      }[val.estado] || '#0B4F5E',
+                    }
+                  : { bg: '#EEEDFE', text: '#3C3489' };
 
-                    color: {
-                      caries:'#854F0B',
-                      restauracion:'#3B6D11',
-                      ausente:'#A32D2D',
-                      endodoncia:'#993556',
-                      corona:'#185FA5',
-                      implante:'#3C3489'
-                    }[val.estado] || '#0B4F5E',
-                  }}
-                >
-                  D{num} · {val.estado}
-                </span>
-              ))}
+                return (
+                  <span
+                    key={`${tipoKey}-${num}`}
+                    className="text-[11px] px-2.5 py-1 rounded-full font-medium"
+                    style={{ backgroundColor: colores.bg, color: colores.text }}
+                    title={tipoLabel}
+                  >
+                    D{num} · {descripcion}
+                    {tipoKey === 'ortodoncia' && <span className="opacity-60"> (Orto)</span>}
+                  </span>
+                );
+              })
+            )}
           </div>
 
         </div>
@@ -762,3 +798,4 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
     </div>
   );
 }
+
