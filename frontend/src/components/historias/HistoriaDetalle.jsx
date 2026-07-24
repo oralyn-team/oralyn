@@ -1,7 +1,7 @@
 // src/components/historias/HistoriaDetalle.jsx
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet} from 'lucide-react';
-import OdontogramaModal, { APARATOLOGIA_LABELS } from './OdontogramaModal';
+import OdontogramaModal, { TIPOS_ELASTICO, COLOR_ELASTICO } from './OdontogramaModal';
 import TratamientosCotizacionesForm from './tratamientos/TratamientoCotizacionForm';
 import EvolucionForm     from './EvolucionForm';
 import AdjuntosPanel     from './AdjuntosPanel';
@@ -357,11 +357,7 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
     return Object.entries(mapaTipo || {})
       // 'arcos' y 'elasticos' son claves reservadas a nivel de odontograma, no dientes
       .filter(([key]) => key !== 'arcos' && key !== 'elasticos')
-      .filter(([, v]) => {
-        const tieneEstado = v?.estado && v.estado !== 'sano';
-        const tieneAparatologia = Array.isArray(v?.aparatologia) && v.aparatologia.length > 0;
-        return tieneEstado || tieneAparatologia;
-      });
+      .filter(([, v]) => v?.estado && v.estado !== 'sano');
   }
 
   const condicionesPorTipo = TIPOS_ODONTOGRAMA_RESUMEN.map(({ key, label }) => ({
@@ -371,6 +367,7 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
   }));
 
   const dientesConCondicion = condicionesPorTipo.reduce((acc, t) => acc + t.items.length, 0);
+  const elasticosActuales = form.odontograma?.['ortodoncia']?.elasticos || [];
 
   async function onVerPDF() {
   try {
@@ -496,17 +493,17 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
 
     <div className="p-5">
 
-      {dientesConCondicion > 0 ? (
+      {(dientesConCondicion > 0 || elasticosActuales.length > 0) ? (
         <div className="bg-teal-panel border border-teal-border rounded-xl p-4">
 
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-[26px] font-bold text-primary">
-                {dientesConCondicion}
+                {dientesConCondicion > 0 ? dientesConCondicion : elasticosActuales.length}
               </p>
 
               <p className="text-[12px] text-teal-muted">
-                dientes con condición registrada
+                {dientesConCondicion > 0 ? 'dientes con condición registrada' : 'elásticos activos'}
               </p>
             </div>
 
@@ -518,33 +515,24 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
           <div className="flex flex-wrap gap-2">
             {condicionesPorTipo.flatMap(({ key: tipoKey, label: tipoLabel, items }) =>
               items.map(([num, val]) => {
-                const tieneEstado = val?.estado && val.estado !== 'sano';
-                const aparatologiaTexto = Array.isArray(val?.aparatologia) && val.aparatologia.length
-                  ? val.aparatologia.map((a) => APARATOLOGIA_LABELS[a] || a).join(', ')
-                  : null;
-                const descripcion = [tieneEstado ? val.estado : null, aparatologiaTexto]
-                  .filter(Boolean)
-                  .join(' + ');
-                const colores = tieneEstado
-                  ? {
-                      bg: {
-                        caries: '#FAEEDA',
-                        restauracion: '#EAF3DE',
-                        ausente: '#FDECEA',
-                        endodoncia: '#FBEAF0',
-                        corona: '#E6F1FB',
-                        implante: '#EEEDFE',
-                      }[val.estado] || '#EAF6F6',
-                      text: {
-                        caries: '#854F0B',
-                        restauracion: '#3B6D11',
-                        ausente: '#A32D2D',
-                        endodoncia: '#993556',
-                        corona: '#185FA5',
-                        implante: '#3C3489',
-                      }[val.estado] || '#0B4F5E',
-                    }
-                  : { bg: '#EEEDFE', text: '#3C3489' };
+                const colores = {
+                  bg: {
+                    caries: '#FAEEDA',
+                    restauracion: '#EAF3DE',
+                    ausente: '#FDECEA',
+                    endodoncia: '#FBEAF0',
+                    corona: '#E6F1FB',
+                    implante: '#EEEDFE',
+                  }[val.estado] || '#EAF6F6',
+                  text: {
+                    caries: '#854F0B',
+                    restauracion: '#3B6D11',
+                    ausente: '#A32D2D',
+                    endodoncia: '#993556',
+                    corona: '#185FA5',
+                    implante: '#3C3489',
+                  }[val.estado] || '#0B4F5E',
+                };
 
                 return (
                   <span
@@ -553,13 +541,37 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
                     style={{ backgroundColor: colores.bg, color: colores.text }}
                     title={tipoLabel}
                   >
-                    D{num} · {descripcion}
+                    D{num} · {val.estado}
                     {tipoKey === 'ortodoncia' && <span className="opacity-60"> (Orto)</span>}
                   </span>
                 );
               })
             )}
           </div>
+
+          {elasticosActuales.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-teal-border">
+              <p className="text-[11px] text-teal-muted uppercase tracking-wide font-medium mb-2">
+                Elásticos activos
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {elasticosActuales.map((el) => {
+                  const tipoInfo = TIPOS_ELASTICO.find((t) => t.key === el.tipo);
+                  const color = COLOR_ELASTICO[el.tipo] || '#7C3AED';
+                  return (
+                    <span
+                      key={el.id}
+                      className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-white border"
+                      style={{ borderColor: color, color }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                      {el.desde} → {el.hasta} · {tipoInfo?.label || el.tipo}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
         </div>
       ) : (
@@ -798,4 +810,3 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
     </div>
   );
 }
-
