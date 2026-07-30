@@ -23,66 +23,7 @@ import {
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
 import { useApp } from '../context/Appcontext';
-
-// Datos simulados de Generaciones RIPS por periodo
-const GENERACIONES_RIPS_MOCK = [
-  {
-    id: 1,
-    periodo: 'Junio 2025 (01/06/2025 - 30/06/2025)',
-    fechaInicial: '2025-06-01',
-    fechaFinal: '2025-06-30',
-    fechaGeneracion: '02/07/2025 10:30 AM',
-    cantidadRegistros: 42,
-    pacientesCount: 28,
-    procedimientosCount: 42,
-    profesionales: 'Dra. Ana López, Dr. Carlos Ruiz',
-    estado: 'Generado',
-    inconsistencias: []
-  },
-  {
-    id: 2,
-    periodo: 'Julio 2025 (01/07/2025 - 15/07/2025)',
-    fechaInicial: '2025-07-01',
-    fechaFinal: '2025-07-15',
-    fechaGeneracion: '—',
-    cantidadRegistros: 25,
-    pacientesCount: 18,
-    procedimientosCount: 25,
-    profesionales: 'Dra. Ana López, Dr. Carlos Ruiz',
-    estado: 'Con observaciones',
-    inconsistencias: [
-      'Diagnóstico CIE-10 faltante en atención #104 (Paciente: Juan Pérez)',
-      'Procedimiento sin configurar en el catálogo del consultorio en atención #108 (CUPS 890206)',
-      'Finalidad de la consulta no especificada en atención #112 (Paciente: María Rodríguez)'
-    ]
-  },
-  {
-    id: 3,
-    periodo: 'Mayo 2025 (01/05/2025 - 31/05/2025)',
-    fechaInicial: '2025-05-01',
-    fechaFinal: '2025-05-31',
-    fechaGeneracion: '02/06/2025 04:15 PM',
-    cantidadRegistros: 38,
-    pacientesCount: 24,
-    procedimientosCount: 38,
-    profesionales: 'Dra. Ana López',
-    estado: 'Generado',
-    inconsistencias: []
-  },
-  {
-    id: 4,
-    periodo: 'Abril 2025 (01/04/2025 - 30/04/2025)',
-    fechaInicial: '2025-04-01',
-    fechaFinal: '2025-04-30',
-    fechaGeneracion: '—',
-    cantidadRegistros: 15,
-    pacientesCount: 10,
-    procedimientosCount: 15,
-    profesionales: 'Dr. Carlos Ruiz',
-    estado: 'Pendiente',
-    inconsistencias: []
-  }
-];
+import { api } from '../api';
 
 export default function Rips() {
   const { pacientes } = useApp();
@@ -104,36 +45,30 @@ export default function Rips() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    // Carga inicial simulada
-    setTimeout(() => {
-      setData(GENERACIONES_RIPS_MOCK);
+  const cargarGeneraciones = async (filters = {}) => {
+    setLoading(true);
+    try {
+      const res = await api.getRips({
+        fecha_inicio: filters.fechaInicial ?? fechaInicial,
+        fecha_fin: filters.fechaFinal ?? fechaFinal,
+        profesional: filters.profesional ?? profesional,
+        estado: filters.estadoFilter ?? estadoFilter
+      });
+      setData(Array.isArray(res) ? res : res.data || []);
+    } catch (err) {
+      console.error('Error al cargar RIPS:', err);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
+  };
+
+  useEffect(() => {
+    cargarGeneraciones();
   }, []);
 
   const handleBuscar = () => {
-    setLoading(true);
-    setTimeout(() => {
-      let filtered = GENERACIONES_RIPS_MOCK;
-
-      if (fechaInicial) {
-        filtered = filtered.filter(item => item.fechaInicial >= fechaInicial);
-      }
-      if (fechaFinal) {
-        filtered = filtered.filter(item => item.fechaFinal <= fechaFinal);
-      }
-      if (profesional !== 'Todos') {
-        filtered = filtered.filter(item => item.profesionales.includes(profesional));
-      }
-      if (estadoFilter !== 'Todos') {
-        filtered = filtered.filter(item => item.estado === estadoFilter);
-      }
-
-      setData(filtered);
-      setCurrentPage(1);
-      setLoading(false);
-    }, 350);
+    setCurrentPage(1);
+    cargarGeneraciones();
   };
 
   const showToast = (msg) => {
@@ -141,12 +76,29 @@ export default function Rips() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const confirmGenerar = () => {
+  const confirmGenerar = async () => {
     if (!generarModal) return;
-    if (generarModal.inconsistencias.length > 0) return;
 
-    setGenerarModal(null);
-    showToast('Archivo RIPS generado exitosamente (Simulación)');
+    try {
+      const res = await api.generarRips({
+        fecha_inicio: generarModal.fechaInicial,
+        fecha_fin: generarModal.fechaFinal
+      });
+
+      if (res.valido) {
+        showToast('Archivo RIPS generado exitosamente');
+        setGenerarModal(null);
+        cargarGeneraciones();
+      } else {
+        setGenerarModal(prev => ({
+          ...prev,
+          inconsistencias: res.inconsistencias || []
+        }));
+      }
+    } catch (err) {
+      console.error('Error generando RIPS:', err);
+      showToast(err.error || 'Error al generar RIPS');
+    }
   };
 
   // Indicadores de resumen

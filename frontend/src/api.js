@@ -77,118 +77,15 @@ async function request(path, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
-// ── Catálogo CUPS Oficial (Solo Lectura) ──────────────────────────────────
-export const CATALOGO_CUPS_OFICIAL = [
-  // Promoción y prevención
-  { codigo: '890201', nombreOficial: 'CONSULTA DE PRIMERA VEZ POR ODONTOLOGÍA GENERAL', categoria: 'Promoción y prevención', frecuente: true },
-  { codigo: '890202', nombreOficial: 'CONTROL DE PRIMERA VEZ POR ODONTOLOGÍA GENERAL', categoria: 'Promoción y prevención', frecuente: true },
-  { codigo: '890203', nombreOficial: 'PROFILAXIS DENTAL Y CONTROL DE PLACA', categoria: 'Promoción y prevención', frecuente: true },
-  { codigo: '890204', nombreOficial: 'APLICACIÓN TÓPICA DE FLÚOR EN GEL O BARNIZ', categoria: 'Promoción y prevención', frecuente: true },
-  { codigo: '890205', nombreOficial: 'APLICACIÓN DE SELLANTES DE FOSAS Y FISURAS', categoria: 'Promoción y prevención', frecuente: true },
-  { codigo: '890206', nombreOficial: 'RADIOGRAFÍA PERIAPICAL O CORONAL', categoria: 'Promoción y prevención', frecuente: false },
-
-  // Restaurador
-  { codigo: '890301', nombreOficial: 'RESTAURACIÓN DENTAL CON RESINA DE FOTOCURADO', categoria: 'Restaurador', frecuente: true },
-  { codigo: '890302', nombreOficial: 'RESTAURACIÓN ODONTOLÓGICA CON AMALGAMA', categoria: 'Restaurador', frecuente: false },
-  { codigo: '890303', nombreOficial: 'INCRUSTACIÓN METÁLICA O ESTÉTICA (INLAY/ONLAY)', categoria: 'Restaurador', frecuente: false },
-  { codigo: '890304', nombreOficial: 'RECONSTRUCCIÓN DE MUÑÓN CON NÚCLEO PREFABRICADO', categoria: 'Restaurador', frecuente: true },
-
-  // Endodoncia
-  { codigo: '890401', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE UNIRRADICULAR', categoria: 'Endodoncia', frecuente: true },
-  { codigo: '890402', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE BIRRADICULAR', categoria: 'Endodoncia', frecuente: true },
-  { codigo: '890403', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE MULTIRRADICULAR', categoria: 'Endodoncia', frecuente: false },
-  { codigo: '890404', nombreOficial: 'RETRATAMIENTO ENDODÓNTICO EN DIENTE UNIRRADICULAR O MULTIRRADICULAR', categoria: 'Endodoncia', frecuente: false },
-
-  // Ortodoncia
-  { codigo: '890701', nombreOficial: 'INSTALACIÓN DE APARATOLOGÍA FIJA DE ORTODONCIA (BRACKETS)', categoria: 'Ortodoncia', frecuente: true },
-  { codigo: '890702', nombreOficial: 'CONTROL MENSUAL DE TRATAMIENTO DE ORTODONCIA', categoria: 'Ortodoncia', frecuente: true },
-  { codigo: '890703', nombreOficial: 'ELABORACIÓN E INSTALACIÓN DE RETENEDORES DE ORTODONCIA', categoria: 'Ortodoncia', frecuente: false },
-
-  // Cirugía
-  { codigo: '890501', nombreOficial: 'EXODONCIA DE DIENTE PERMANENTE UNIRRADICULAR O MULTIRRADICULAR', categoria: 'Cirugía', frecuente: true },
-  { codigo: '890502', nombreOficial: 'EXODONCIA QUIRÚRGICA DE TERCER MOLAR RETENIDO O INCLUIDO', categoria: 'Cirugía', frecuente: true },
-  { codigo: '890503', nombreOficial: 'FRENECTOMÍA LABIAL O LINGUAL', categoria: 'Cirugía', frecuente: false },
-
-  // Rehabilitación
-  { codigo: '890801', nombreOficial: 'COLOCACIÓN DE CORONA COMPLETA INDIVIDUAL EN METAL-CERÁMICA O ZIRCONIO', categoria: 'Rehabilitación', frecuente: true },
-  { codigo: '890802', nombreOficial: 'PRÓTESIS PARCIAL REMOVIBLE ACRÍLICA O METÁLICA', categoria: 'Rehabilitación', frecuente: false },
-  { codigo: '890803', nombreOficial: 'PRÓTESIS TOTAL SUPERIOR E INFERIOR ACRÍLICA', categoria: 'Rehabilitación', frecuente: false },
-  { codigo: '890804', nombreOficial: 'IMPLANTE DENTAL OSEOINTEGRADO INDIVIDUAL', categoria: 'Rehabilitación', frecuente: true },
-];
-
-const CUPS_KEY = 'oralyn_procedimientos_cups';
-
-const CUPS_SEED = [
-  { id: 'cups_1',  codigo: '890201', nombreOficial: 'CONSULTA DE PRIMERA VEZ POR ODONTOLOGÍA GENERAL', nombre: 'Valoración inicial', categoria: 'Promoción y prevención', valorBase: 50000, activo: true },
-  { id: 'cups_2',  codigo: '890203', nombreOficial: 'PROFILAXIS DENTAL Y CONTROL DE PLACA', nombre: 'Profilaxis dental', categoria: 'Promoción y prevención', valorBase: 60000, activo: true },
-  { id: 'cups_3',  codigo: '890301', nombreOficial: 'RESTAURACIÓN DENTAL CON RESINA DE FOTOCURADO', nombre: 'Resina compuesta', categoria: 'Restaurador', valorBase: 120000, activo: true },
-  { id: 'cups_4',  codigo: '890401', nombreOficial: 'TRATAMIENTO DE CONDUCTOS EN DENTICIÓN PERMANENTE UNIRRADICULAR', nombre: 'Endodoncia unirradicular', categoria: 'Endodoncia', valorBase: 400000, activo: true },
-  { id: 'cups_5',  codigo: '890501', nombreOficial: 'EXODONCIA DE DIENTE PERMANENTE UNIRRADICULAR O MULTIRRADICULAR', nombre: 'Exodoncia simple', categoria: 'Cirugía', valorBase: 80000, activo: true },
-  { id: 'cups_6',  codigo: '890502', nombreOficial: 'EXODONCIA QUIRÚRGICA DE TERCER MOLAR RETENIDO O INCLUIDO', nombre: 'Cirugía de terceros molares', categoria: 'Cirugía', valorBase: 350000, activo: true },
-  { id: 'cups_7',  codigo: '890702', nombreOficial: 'CONTROL MENSUAL DE TRATAMIENTO DE ORTODONCIA', nombre: 'Control de ortodoncia', categoria: 'Ortodoncia', valorBase: 80000, activo: true },
-  { id: 'cups_8',  codigo: '890801', nombreOficial: 'COLOCACIÓN DE CORONA COMPLETA INDIVIDUAL EN METAL-CERÁMICA O ZIRCONIO', nombre: 'Corona dental', categoria: 'Rehabilitación', valorBase: 800000, activo: true },
-  { id: 'cups_9',  codigo: '890804', nombreOficial: 'IMPLANTE DENTAL OSEOINTEGRADO INDIVIDUAL', nombre: 'Implante dental', categoria: 'Rehabilitación', valorBase: 2500000, activo: true },
-];
-
-/** Retorna todos los procedimientos desde localStorage, inicializando el seed si no existe */
-function _cupsRead() {
-  const raw = localStorage.getItem(CUPS_KEY);
-  if (!raw) {
-    const seeded = CUPS_SEED.map((p) => ({ ...p, createdAt: new Date().toISOString() }));
-    localStorage.setItem(CUPS_KEY, JSON.stringify(seeded));
-    return seeded;
-  }
-  return JSON.parse(raw);
-}
-
-function _cupsWrite(data) {
-  localStorage.setItem(CUPS_KEY, JSON.stringify(data));
-}
-
-function _delay(ms = 120) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-async function getCatalogoOficial() {
-  await _delay();
-  return CATALOGO_CUPS_OFICIAL;
-}
-
-async function getProcedimientos() {
-  await _delay();
-  return _cupsRead();
-}
-
-async function crearProcedimiento(data) {
-  await _delay();
-  const list = _cupsRead();
-  const nuevo = {
-    ...data,
-    id: `cups_${Date.now()}`,
-    activo: data.activo !== false,
-    createdAt: new Date().toISOString(),
-  };
-  _cupsWrite([...list, nuevo]);
-  return nuevo;
-}
-
-async function actualizarProcedimiento(id, data) {
-  await _delay();
-  const list = _cupsRead();
-  const idx = list.findIndex((p) => p.id === id);
-  if (idx === -1) throw { status: 404, error: 'Procedimiento no encontrado' };
-  const updated = { ...list[idx], ...data, id };
-  list[idx] = updated;
-  _cupsWrite(list);
-  return updated;
-}
-
-async function eliminarProcedimiento(id) {
-  await _delay();
-  const list = _cupsRead();
-  const filtered = list.filter((p) => p.id !== id);
-  _cupsWrite(filtered);
-  return null;
+function buildQuery(params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== '') {
+      query.append(key, val)
+    }
+  })
+  const str = query.toString()
+  return str ? `?${str}` : ''
 }
 
 // Agrega esta función junto a verHistoriaPDF:
@@ -302,7 +199,6 @@ export const api = {
     request(`/certificados/${id}/anular`, { method: 'PATCH', body: JSON.stringify({ motivo_anulacion }) }),
   eliminarCertificado:    (id)         => request(`/certificados/${id}`, { method: 'DELETE' }),
 
-
   // Dashboard
   getDashboard: () => request('/dashboard'),
 
@@ -310,11 +206,34 @@ export const api = {
   getConfiguracion: () => request('/configuracion'),
   actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Catálogo de Procedimientos CUPS (mock localStorage — reemplazar por request() cuando el backend esté listo)
-  getCatalogoOficial:        ()         => getCatalogoOficial(),
-  getProcedimientos:         ()         => getProcedimientos(),
-  crearProcedimiento:        (data)     => crearProcedimiento(data),
-  actualizarProcedimiento:   (id, data) => actualizarProcedimiento(id, data),
-  eliminarProcedimiento:     (id)       => eliminarProcedimiento(id),
+  // Catálogo de Procedimientos CUPS (Backend Real)
+  getCatalogoOficial: (params) => request(`/catalogo-cups${buildQuery(params)}`),
+  getProcedimientos: (params) => request(`/procedimientos${buildQuery(params)}`),
+  crearProcedimiento: (data) =>
+    request('/procedimientos', {
+      method: 'POST',
+      body: JSON.stringify({
+        catalogo_oficial_id: data.catalogo_oficial_id || data.id,
+        nombre_visible: data.nombre_visible || data.nombre,
+        precio: data.precio !== undefined ? data.precio : data.valorBase,
+        activo: data.activo !== false
+      }),
+    }),
+  actualizarProcedimiento: (id, data) =>
+    request(`/procedimientos/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        nombre_visible: data.nombre_visible || data.nombre,
+        precio: data.precio !== undefined ? data.precio : data.valorBase,
+        activo: data.activo
+      }),
+    }),
+  eliminarProcedimiento: (id) => request(`/procedimientos/${id}`, { method: 'DELETE' }),
+
+  // Módulo de RIPS (Backend Real)
+  getRips: (params) => request(`/rips${buildQuery(params)}`),
+  getRip: (id) => request(`/rips/${id}`),
+  generarRips: (data) => request('/rips/generar', { method: 'POST', body: JSON.stringify(data) })
 }
+
 
