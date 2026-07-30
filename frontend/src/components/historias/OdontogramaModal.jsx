@@ -554,6 +554,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
   const prevIsOpen = useRef(false);
   const dienteRefsMap = useRef({});
   const arcadasContainerRef = useRef(null);
+  const scrollableRef = useRef(null);
 
   const registerDienteRef = useCallback((numero, el) => {
     if (el) dienteRefsMap.current[numero] = el;
@@ -609,9 +610,10 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
   }, [modoMulti, modoElastico, elasticoOrigen, elasticoDestino]);
 
   // ── Recalcular posiciones de las flechas de elásticos ──
+  // Usamos coordenadas de VIEWPORT (sin restar contRect) porque el SVG
+  // overlay es position:fixed, así es inmune a cambios de layout del panel.
   const recalcularLineasElasticos = useCallback(() => {
-    const contenedor = arcadasContainerRef.current;
-    if (!contenedor || tipoOdontograma !== 'ortodoncia') {
+    if (tipoOdontograma !== 'ortodoncia') {
       setLineasElasticos([]);
       return;
     }
@@ -620,8 +622,9 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
       setLineasElasticos([]);
       return;
     }
-    const contRect = contenedor.getBoundingClientRect();
-    setOverlaySize({ width: contRect.width, height: contRect.height });
+
+    setOverlaySize({ width: window.innerWidth, height: window.innerHeight });
+
     const nuevas = elasticosActuales
       .map((el) => {
         const nodoOrigen = dienteRefsMap.current[el.desde];
@@ -629,27 +632,61 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
         if (!nodoOrigen || !nodoDestino) return null;
         const rOrigen = nodoOrigen.getBoundingClientRect();
         const rDestino = nodoDestino.getBoundingClientRect();
+        if (rOrigen.width === 0 || rDestino.width === 0) return null;
+
         return {
           id: el.id,
           tipo: el.tipo,
-          x1: rOrigen.left + rOrigen.width / 2 - contRect.left,
-          y1: rOrigen.top + rOrigen.height / 2 - contRect.top,
-          x2: rDestino.left + rDestino.width / 2 - contRect.left,
-          y2: rDestino.top + rDestino.height / 2 - contRect.top,
+          // Coordenadas absolutas de viewport — el SVG fixed las usa directamente
+          x1: rOrigen.left + rOrigen.width / 2,
+          y1: rOrigen.top + rOrigen.height / 2,
+          x2: rDestino.left + rDestino.width / 2,
+          y2: rDestino.top + rDestino.height / 2,
         };
       })
       .filter(Boolean);
     setLineasElasticos(nuevas);
   }, [local, tipoOdontograma]);
 
-  useEffect(() => {
-    recalcularLineasElasticos();
-  }, [recalcularLineasElasticos, vistaLingual, seleccionado]);
-
+  // Recalcular cuando cambia algo que afecta el layout
   useEffect(() => {
     if (!isOpen) return;
-    window.addEventListener('resize', recalcularLineasElasticos);
-    return () => window.removeEventListener('resize', recalcularLineasElasticos);
+    recalcularLineasElasticos();
+  }, [recalcularLineasElasticos, isOpen]);
+
+  // Recalcular durante la animación del panel lateral (200ms transition)
+  useEffect(() => {
+    if (!isOpen) return;
+    let rafId;
+    const start = Date.now();
+    const animate = () => {
+      recalcularLineasElasticos();
+      if (Date.now() - start < 260) rafId = requestAnimationFrame(animate);
+    };
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
+  }, [seleccionado, isOpen, recalcularLineasElasticos]);
+
+  // ResizeObserver + scroll del div interno + window resize
+  useEffect(() => {
+    if (!isOpen) return;
+    const contenedor = arcadasContainerRef.current;
+    const scrollable = scrollableRef.current;
+
+    const ro = new ResizeObserver(recalcularLineasElasticos);
+    if (contenedor) ro.observe(contenedor);
+
+    const onWindowResize = () => recalcularLineasElasticos();
+    const onScroll = () => recalcularLineasElasticos();
+
+    window.addEventListener('resize', onWindowResize);
+    if (scrollable) scrollable.addEventListener('scroll', onScroll);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', onWindowResize);
+      if (scrollable) scrollable.removeEventListener('scroll', onScroll);
+    };
   }, [isOpen, recalcularLineasElasticos]);
 
   function actualizarDiente(numero, datos) {
@@ -881,7 +918,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
         {/* ── Body ── */}
         <div className="flex flex-1 overflow-hidden">
 
-          <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div ref={scrollableRef} className="flex-1 overflow-y-auto px-6 py-5">
 
             {/* Banner de error */}
             {error && (
@@ -1051,36 +1088,6 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
                 />
               ))}
 
-              {tipoOdontograma === 'ortodoncia' && lineasElasticos.length > 0 && (
-                <svg
-                  width={overlaySize.width}
-                  height={overlaySize.height}
-                  className="absolute top-0 left-0 pointer-events-none"
-                  style={{ overflow: 'visible' }}
-                >
-                  <defs>
-                    <marker id="flecha-elastico" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto-start-reverse">
-                      <path d="M0,0 L6,3 L0,6 Z" fill="context-stroke" />
-                    </marker>
-                  </defs>
-                  {lineasElasticos.map((l) => {
-                    const color = COLOR_ELASTICO[l.tipo] || '#7C3AED';
-                    const mx = (l.x1 + l.x2) / 2;
-                    const my = (l.y1 + l.y2) / 2 - 16;
-                    return (
-                      <path
-                        key={l.id}
-                        d={`M ${l.x1} ${l.y1} Q ${mx} ${my} ${l.x2} ${l.y2}`}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth={1.5}
-                        strokeDasharray="4 3"
-                        markerEnd="url(#flecha-elastico)"
-                      />
-                    );
-                  })}
-                </svg>
-              )}
             </div>
 
             {/* ── Leyenda ── */}
@@ -1134,6 +1141,49 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
             </button>
           </div>
         </div>
+
+        {/* ── Overlay fixed de elásticos: inmune a scroll y animaciones del panel ── */}
+        {tipoOdontograma === 'ortodoncia' && lineasElasticos.length > 0 && (
+          <svg
+            width={overlaySize.width}
+            height={overlaySize.height}
+            className="fixed top-0 left-0 pointer-events-none"
+            style={{ zIndex: 9999, overflow: 'visible' }}
+          >
+            <defs>
+              {Object.entries(COLOR_ELASTICO).map(([tipoKey, col]) => (
+                <marker
+                  key={tipoKey}
+                  id={`flecha-elastico-${tipoKey}`}
+                  markerWidth="8"
+                  markerHeight="8"
+                  refX="6"
+                  refY="3"
+                  orient="auto"
+                >
+                  <path d="M0,0 L6,3 L0,6 Z" fill={col} />
+                </marker>
+              ))}
+            </defs>
+            {lineasElasticos.map((l) => {
+              const color = COLOR_ELASTICO[l.tipo] || '#7C3AED';
+              const mx = (l.x1 + l.x2) / 2;
+              const my = (l.y1 + l.y2) / 2 - 20;
+              const markerId = COLOR_ELASTICO[l.tipo] ? `flecha-elastico-${l.tipo}` : 'flecha-elastico-cruzado';
+              return (
+                <path
+                  key={l.id}
+                  d={`M ${l.x1} ${l.y1} Q ${mx} ${my} ${l.x2} ${l.y2}`}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={1.8}
+                  strokeDasharray="5 3"
+                  markerEnd={`url(#${markerId})`}
+                />
+              );
+            })}
+          </svg>
+        )}
 
       </div>
     </div>
