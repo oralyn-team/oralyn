@@ -74,13 +74,73 @@ model Configuracion {
   logo_url             String?
   creado_en            DateTime @default(now())
 
-  usuarios        Usuario[]
-  pacientes       Paciente[]
-  citas           Cita[]
-  cotizaciones    Cotizacion[]
-  pagos           Pago[]
-  consentimientos Consentimiento[]
-  certificados    CertificadoDental[]
+  usuarios                   Usuario[]
+  pacientes                  Paciente[]
+  citas                      Cita[]
+  cotizaciones               Cotizacion[]
+  pagos                      Pago[]
+  consentimientos            Consentimiento[]
+  certificados               CertificadoDental[]
+  procedimientos_consultorio ProcedimientoConsultorio[]
+  rips_generaciones          RipsGeneracion[]
+}
+
+// ─── CATÁLOGO OFICIAL CUPS ──────────────────────────────────
+
+model CatalogoOficialCups {
+  id             Int      @id @default(autoincrement())
+  codigo_cups    String   @unique
+  nombre_oficial String
+  categoria      String
+  descripcion    String?
+  es_frecuente   Boolean  @default(false)
+  activo         Boolean  @default(true)
+  creado_en      DateTime @default(now())
+  actualizado_en DateTime @default(now()) @updatedAt
+
+  procedimientos_consultorio ProcedimientoConsultorio[]
+
+  @@map("catalogo_oficial_cups")
+}
+
+// ─── PROCEDIMIENTOS DEL CONSULTORIO ─────────────────────────
+
+model ProcedimientoConsultorio {
+  id                  Int                 @id @default(autoincrement())
+  consultorio_id      Int
+  consultorio         Configuracion       @relation(fields: [consultorio_id], references: [id])
+  catalogo_oficial_id Int
+  catalogo_oficial    CatalogoOficialCups @relation(fields: [catalogo_oficial_id], references: [id])
+  nombre_visible      String
+  precio              Decimal?            @db.Decimal(10, 2)
+  activo              Boolean             @default(true)
+  creado_en           DateTime            @default(now())
+  actualizado_en      DateTime            @default(now()) @updatedAt
+
+  procedimientos_cotizacion ProcedimientoCotizacion[]
+  citas                     Cita[]
+  evoluciones               HojaEvolucion[]
+
+  @@unique([consultorio_id, catalogo_oficial_id])
+  @@index([consultorio_id])
+  @@map("procedimientos_consultorio")
+}
+
+// ─── RIPS GENERACIONES (SNAPSHOT) ───────────────────────────
+
+model RipsGeneracion {
+  id                 Int           @id @default(autoincrement())
+  consultorio_id     Int
+  consultorio        Configuracion @relation(fields: [consultorio_id], references: [id])
+  fecha_inicio       DateTime
+  fecha_fin          DateTime
+  cantidad_registros Int           @default(0)
+  estado             String        @default("generado")
+  json_generado      Json?
+  creado_en          DateTime      @default(now())
+
+  @@index([consultorio_id])
+  @@map("rips_generaciones")
 }
 
 // ─── USUARIOS ───────────────────────────────────────────────
@@ -248,20 +308,22 @@ model HcOdontograma {
 // ─── HOJA DE EVOLUCIÓN ──────────────────────────────────────
 
 model HojaEvolucion {
-  id              Int             @id @default(autoincrement())
-  historia_id     Int
-  historia        HistoriaClinica @relation(fields: [historia_id], references: [id])
-  fecha           DateTime
-  doctor          String?
-  motivo          String?
-  diagnostico     String?
-  procedimiento   String?
-  piezas_tratadas String?
-  tratamiento     String?
-  estado_clinico  String?
-  recomendaciones String?
-  proximo_control DateTime?
-  observaciones   String?
+  id                           Int                       @id @default(autoincrement())
+  historia_id                  Int
+  historia                     HistoriaClinica           @relation(fields: [historia_id], references: [id])
+  fecha                        DateTime
+  doctor                       String?
+  motivo                       String?
+  diagnostico                  String?
+  procedimiento                String?
+  procedimiento_consultorio_id Int?
+  procedimiento_consultorio    ProcedimientoConsultorio? @relation(fields: [procedimiento_consultorio_id], references: [id])
+  piezas_tratadas              String?
+  tratamiento                  String?
+  estado_clinico               String?
+  recomendaciones              String?
+  proximo_control              DateTime?
+  observaciones                String?
 
   @@index([historia_id])
 }
@@ -355,21 +417,23 @@ model Cotizacion {
 // ─── PROCEDIMIENTOS DEL TRATAMIENTO ─────────────────────────
 
 model ProcedimientoCotizacion {
-  id             Int                 @id @default(autoincrement())
-  cotizacion_id  Int
-  cotizacion     Cotizacion          @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade)
-  procedimiento  String
-  descripcion    String?
-  aplica_en      AplicaEn            @default(general)
-  dientes        Int[]
-  cuadrante      String?
-  cantidad       Int                 @default(1)
-  valor_unitario Decimal             @db.Decimal(10, 2)
-  descuento      Decimal             @default(0) @db.Decimal(5, 2)
-  subtotal       Decimal             @db.Decimal(12, 2)
-  estado         EstadoProcedimiento @default(pendiente)
-  observaciones  String?
-  orden          Int                 @default(0)
+  id                           Int                       @id @default(autoincrement())
+  cotizacion_id                Int
+  cotizacion                   Cotizacion                @relation(fields: [cotizacion_id], references: [id], onDelete: Cascade)
+  procedimiento                String
+  procedimiento_consultorio_id Int?
+  procedimiento_consultorio    ProcedimientoConsultorio? @relation(fields: [procedimiento_consultorio_id], references: [id])
+  descripcion                  String?
+  aplica_en                    AplicaEn                  @default(general)
+  dientes                      Int[]
+  cuadrante                    String?
+  cantidad                     Int                       @default(1)
+  valor_unitario               Decimal                   @db.Decimal(10, 2)
+  descuento                    Decimal                   @default(0) @db.Decimal(5, 2)
+  subtotal                     Decimal                   @db.Decimal(12, 2)
+  estado                       EstadoProcedimiento       @default(pendiente)
+  observaciones                String?
+  orden                        Int                       @default(0)
 
   @@index([cotizacion_id])
 }
@@ -398,22 +462,24 @@ model Pago {
 // ─── CITAS ──────────────────────────────────────────────────
 
 model Cita {
-  id                 Int           @id @default(autoincrement())
-  consultorio_id     Int
-  consultorio        Configuracion @relation(fields: [consultorio_id], references: [id])
-  paciente_id        Int
-  paciente           Paciente      @relation(fields: [paciente_id], references: [id])
-  fecha_hora         DateTime
-  doctor             String?
-  procedimiento      String
-  codigo_cups        String?
-  codigo_cie10       String?
-  valor_cobrado      Decimal?      @db.Decimal(10, 2)
-  estado             EstadoCita    @default(pendiente)
-  observaciones      String?
-  causas_no_atencion String?
-  creado_en          DateTime      @default(now())
-  certificados       CertificadoDental[]
+  id                           Int                       @id @default(autoincrement())
+  consultorio_id               Int
+  consultorio                  Configuracion             @relation(fields: [consultorio_id], references: [id])
+  paciente_id                  Int
+  paciente                     Paciente                  @relation(fields: [paciente_id], references: [id])
+  fecha_hora                   DateTime
+  doctor                       String?
+  procedimiento                String
+  procedimiento_consultorio_id Int?
+  procedimiento_consultorio    ProcedimientoConsultorio? @relation(fields: [procedimiento_consultorio_id], references: [id])
+  codigo_cups                  String?
+  codigo_cie10                 String?
+  valor_cobrado                Decimal?                  @db.Decimal(10, 2)
+  estado                       EstadoCita                @default(pendiente)
+  observaciones                String?
+  causas_no_atencion           String?
+  creado_en                    DateTime                  @default(now())
+  certificados                 CertificadoDental[]
 
   @@index([consultorio_id])
   @@index([paciente_id])
@@ -472,3 +538,4 @@ model RecomendacionPostQx {
   fecha       DateTime
   creado_en   DateTime         @default(now())
 }
+
