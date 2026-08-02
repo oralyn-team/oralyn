@@ -1,6 +1,4 @@
-jsx
-import { useEffect, useRef, useMemo, useState } from 'react';
-import SignaturePad from 'signature_pad';
+import { useMemo, useState } from 'react';
 import {
   BadgeCheck,
   CalendarDays,
@@ -18,6 +16,7 @@ import Topbar from '../components/layout/Topbar';
 import StatCard from '../components/StatCard';
 import { useApp } from '../context/Appcontext';
 import { api } from '../api';
+import { useSignaturePad } from '../hooks/useSignaturePad';
 
 const TIPOS_CONSENTIMIENTO = [
   { value: 'anestesia', label: 'Anestesia' },
@@ -190,47 +189,6 @@ const inputClass =
 export default function Consentimientos() {
   const { pacientes, loading, error } = useApp();
 
-  // Referencias para la firma
-  const firmaCanvasRef = useRef(null);
-  const signaturePadRef = useRef(null);
-
-  // Inicializar SignaturePad
-  useEffect(() => {
-    if (!firmaCanvasRef.current) return;
-
-    const canvas = firmaCanvasRef.current;
-
-    const ajustarCanvas = () => {
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      const rect = canvas.getBoundingClientRect();
-
-      canvas.width = rect.width * ratio;
-      canvas.height = rect.height * ratio;
-
-      const context = canvas.getContext('2d');
-
-      context.setTransform(1, 0, 0, 1, 0, 0);
-      context.scale(ratio, ratio);
-
-      signaturePadRef.current?.off();
-
-      signaturePadRef.current = new SignaturePad(canvas, {
-        backgroundColor: 'rgb(255, 255, 255)',
-        penColor: 'rgb(26, 58, 58)',
-      });
-    };
-
-    ajustarCanvas();
-
-    window.addEventListener('resize', ajustarCanvas);
-
-    return () => {
-      window.removeEventListener('resize', ajustarCanvas);
-      signaturePadRef.current?.off();
-      signaturePadRef.current = null;
-    };
-  }, []);
-
   const [busqueda, setBusqueda] = useState('');
   const [pacienteId, setPacienteId] = useState('');
   const [consentimientos, setConsentimientos] = useState([]);
@@ -245,6 +203,10 @@ export default function Consentimientos() {
     () => pacientes.find((p) => p.id === Number(pacienteId)) || null,
     [pacientes, pacienteId]
   );
+
+  // Firmas: una para el paciente, otra para la doctora
+  const firmaPaciente = useSignaturePad(pacienteId);
+  const firmaDoctor = useSignaturePad(pacienteId);
 
   const pacientesFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -267,9 +229,7 @@ export default function Consentimientos() {
     detalle: '',
     nombre_paciente_declarado: '',
     cc_paciente_declarado: '',
-    firma_paciente: '',
     cc_profesional: '',
-    firma_doctor: '',
   });
 
   const [certificadoForm, setCertificadoForm] = useState({
@@ -309,14 +269,10 @@ export default function Consentimientos() {
     setConsentimientos([]);
     setCertificados([]);
 
-    // Limpiar firma anterior al cambiar de paciente
-    signaturePadRef.current?.clear();
-
     setConsentimientoForm((prev) => ({
       ...prev,
       nombre_paciente_declarado: nombreCompleto(paciente),
       cc_paciente_declarado: paciente.numero_documento || '',
-      firma_paciente: '',
     }));
 
     cargarDocumentos(paciente.id);
@@ -339,11 +295,6 @@ export default function Consentimientos() {
     setErrorDocs(null);
 
     try {
-      // Obtener firma dibujada como PNG Base64
-      const firmaPaciente = signaturePadRef.current?.isEmpty()
-        ? ''
-        : signaturePadRef.current.toDataURL('image/png');
-
       await api.crearConsentimiento({
         paciente_id: Number(pacienteId),
         tipo: consentimientoForm.tipo,
@@ -359,23 +310,20 @@ export default function Consentimientos() {
         cc_paciente_declarado:
           consentimientoForm.cc_paciente_declarado || null,
 
-        firma_paciente: firmaPaciente || null,
+        firma_paciente: firmaPaciente.obtenerImagen() || null,
 
         cc_profesional: consentimientoForm.cc_profesional || null,
 
-        firma_doctor: consentimientoForm.firma_doctor || null,
+        firma_doctor: firmaDoctor.obtenerImagen() || null,
       });
 
-      // Limpiar formulario
       setConsentimientoForm((prev) => ({
         ...prev,
         detalle: '',
-        firma_paciente: '',
-        firma_doctor: '',
       }));
 
-      // Limpiar visualmente el canvas
-      signaturePadRef.current?.clear();
+      firmaPaciente.limpiar();
+      firmaDoctor.limpiar();
 
       await cargarDocumentos(pacienteId);
 
@@ -780,7 +728,7 @@ export default function Consentimientos() {
                             <div className="border border-teal-border rounded-lg overflow-hidden bg-white">
 
                               <canvas
-                                ref={firmaCanvasRef}
+                                ref={firmaPaciente.canvasRef}
                                 className="w-full h-32 cursor-crosshair touch-none"
                               />
 
@@ -788,14 +736,7 @@ export default function Consentimientos() {
 
                             <button
                               type="button"
-                              onClick={() => {
-                                signaturePadRef.current?.clear();
-
-                                setConsentimientoForm((prev) => ({
-                                  ...prev,
-                                  firma_paciente: '',
-                                }));
-                              }}
+                              onClick={firmaPaciente.limpiar}
                               className="mt-2 text-[11px] text-status-red hover:underline"
                             >
                               Limpiar firma
@@ -806,17 +747,22 @@ export default function Consentimientos() {
                           {/* FIRMA DOCTOR */}
                           <Campo label="Firma doctor">
 
-                            <input
-                              value={consentimientoForm.firma_doctor}
-                              onChange={(e) =>
-                                setConsentimientoForm((prev) => ({
-                                  ...prev,
-                                  firma_doctor: e.target.value,
-                                }))
-                              }
-                              className={inputClass}
-                              placeholder="Texto o base64"
-                            />
+                            <div className="border border-teal-border rounded-lg overflow-hidden bg-white">
+
+                              <canvas
+                                ref={firmaDoctor.canvasRef}
+                                className="w-full h-32 cursor-crosshair touch-none"
+                              />
+
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={firmaDoctor.limpiar}
+                              className="mt-2 text-[11px] text-status-red hover:underline"
+                            >
+                              Limpiar firma
+                            </button>
 
                           </Campo>
 
@@ -843,8 +789,8 @@ export default function Consentimientos() {
                           <button
                             type="button"
                             onClick={() => {
-                              // Limpiar firma del canvas
-                              signaturePadRef.current?.clear();
+                              firmaPaciente.limpiar();
+                              firmaDoctor.limpiar();
 
                               setConsentimientoForm({
                                 tipo: 'anestesia',
@@ -857,9 +803,7 @@ export default function Consentimientos() {
                                 cc_paciente_declarado:
                                   pacienteSeleccionado?.numero_documento ||
                                   '',
-                                firma_paciente: '',
                                 cc_profesional: '',
-                                firma_doctor: '',
                               });
                             }}
                             className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-soft transition-colors"
@@ -1182,7 +1126,6 @@ export default function Consentimientos() {
                               />
                             );
                           })
-
                         )}
 
                       </div>
