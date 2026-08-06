@@ -2,7 +2,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AppProvider } from './context/Appcontext'
+import { AppProvider, useApp } from './context/Appcontext'
 import Login from './pages/login'
 import Dashboard from './pages/Dashboard'
 import Pacientes from './pages/Pacientes'
@@ -15,13 +15,13 @@ import Rips from './pages/Rips'
 import './index.css'
 
 function PrivateRoute({ children }) {
-  const token = localStorage.getItem('token')
-  return token ? children : <Navigate to="/login" />
+  const { token } = useApp()
+  return token ? children : <Navigate to="/login" replace />
 }
 
 // Si ya hay sesión activa, redirigir al dashboard en lugar de mostrar el login
 function PublicRoute({ children }) {
-  const token = localStorage.getItem('token')
+  const { token } = useApp()
   return token ? <Navigate to="/dashboard" replace /> : children
 }
 

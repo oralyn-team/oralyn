@@ -1,9 +1,7 @@
 // src/components/historias/EvolucionForm.jsx
 import { useState, useEffect } from 'react';
 import { X, Save, Stethoscope, ClipboardList, Wrench, CalendarCheck, ChevronDown } from 'lucide-react';
-import { DOCTORES } from '../../data/citasData';
-import { useApp } from '../../context/Appcontext'; 
-
+import { useApp } from '../../context/Appcontext';
 
 // ─── Constantes clínicas ──────────────────────────────────────────────────────
 
@@ -97,8 +95,8 @@ function SectionDivider({ icon: Icon, title }) {
  * @param {function}    [props.onVerOdontograma] - Handler para abrir odontograma
  */
 export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
-  const { configuracion, getProcedimientosAgrupados } = useApp();
-  const doctorDefault = configuracion?.nombre_profesional || '';
+  const { configuracion, getProcedimientosAgrupados, usuariosConsultorio = [] } = useApp();
+  const doctorDefault = usuariosConsultorio.length === 1 ? usuariosConsultorio[0].nombre : (configuracion?.nombre_profesional || '');
   const procedimientosAgrupados = getProcedimientosAgrupados();
 
   const [form, setForm] = useState(() => (
@@ -203,8 +201,8 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
               className={`${inputBase} ${errs.doctor ? inputError : ''}`}
               />
               <datalist id="doctores-lista-evolucion">
-                {DOCTORES.map((d) => <option key={d} value={d} />)}
-                </datalist>
+                {usuariosConsultorio.map((u) => <option key={u.id} value={u.nombre} />)}
+              </datalist>
                 </Field>
           </div>
 

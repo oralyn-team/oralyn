@@ -32,46 +32,46 @@ function normalizeAdjunto(adj) {
 }
 
 function SeccionLabel({ text }) {
-  return <p className="text-[10px] font-medium text-teal-muted uppercase tracking-[0.8px] mb-1">{text}</p>;
+  return <p className="text-[10px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.8px] mb-1.5">{text}</p>;
 }
 
 function EvolucionCard({ ev, onEditar, onEliminar }) {
   const [abierto, setAbierto] = useState(false);
   return (
-    <div className="bg-white border border-teal-border rounded-xl overflow-hidden mb-2">
-      <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-teal-panel transition-colors"
+    <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl overflow-hidden mb-2 shadow-soft-sm">
+      <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-teal-panel dark:hover:bg-slate-800/40 transition-colors"
         onClick={() => setAbierto((v) => !v)}>
-        <div className="w-2 h-2 rounded-full bg-teal flex-shrink-0" />
+        <div className="w-2.5 h-2.5 rounded-full bg-teal flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-primary">{ev.motivo}</p>
-          <p className="text-[11px] text-teal-muted">{ev.fecha} · {ev.doctor}</p>
+          <p className="text-[13px] font-semibold text-primary dark:text-dark-text">{ev.motivo}</p>
+          <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">{ev.fecha} · {ev.doctor}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <button type="button" onClick={(e) => { e.stopPropagation(); onEditar(ev); }}
-            className="p-1.5 rounded-lg border border-teal-border bg-white hover:bg-teal-soft text-primary transition-colors cursor-pointer">
-            <Pencil size={12} />
+            className="p-1.5 rounded-lg border border-teal-border dark:border-dark-border bg-white dark:bg-dark-input hover:bg-teal-soft dark:hover:bg-slate-700 text-primary dark:text-teal transition-colors cursor-pointer touch-target">
+            <Pencil size={13} />
           </button>
           <button type="button" onClick={(e) => { e.stopPropagation(); onEliminar(ev.id); }}
-            className="p-1.5 rounded-lg bg-status-redBg text-status-red border border-status-redBg hover:bg-red-100 transition-colors cursor-pointer">
-            <Trash2 size={12} />
+            className="p-1.5 rounded-lg bg-status-redBg dark:bg-red-950/40 text-status-red dark:text-red-400 border border-status-redBg dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer touch-target">
+            <Trash2 size={13} />
           </button>
-          {abierto ? <ChevronUp size={14} className="text-teal-muted" /> : <ChevronDown size={14} className="text-teal-muted" />}
+          {abierto ? <ChevronUp size={15} className="text-teal-muted dark:text-slate-400" /> : <ChevronDown size={15} className="text-teal-muted dark:text-slate-400" />}
         </div>
       </div>
       {abierto && (
-        <div className="px-4 pb-4 grid grid-cols-2 gap-4 border-t border-teal-soft pt-3 bg-teal-panel">
+        <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-teal-soft dark:border-dark-border pt-3.5 bg-teal-panel/40 dark:bg-slate-800/40">
           <div>
             <SeccionLabel text="Diagnóstico" />
-            <p className="text-[12px] text-[#1a3a3a] leading-snug">{ev.diagnostico}</p>
+            <p className="text-[12px] text-primary dark:text-dark-text leading-relaxed">{ev.diagnostico}</p>
           </div>
           <div>
             <SeccionLabel text="Tratamiento realizado" />
-            <p className="text-[12px] text-[#1a3a3a] leading-snug">{ev.tratamiento}</p>
+            <p className="text-[12px] text-primary dark:text-dark-text leading-relaxed">{ev.tratamiento}</p>
           </div>
           {ev.observaciones && (
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <SeccionLabel text="Observaciones" />
-              <p className="text-[12px] text-[#1a3a3a] leading-snug">{ev.observaciones}</p>
+              <p className="text-[12px] text-primary dark:text-dark-text leading-relaxed">{ev.observaciones}</p>
             </div>
           )}
         </div>
@@ -379,77 +379,77 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
 }
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-5">
+    <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-5 custom-scrollbar">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <button type="button" onClick={onVolver}
-            className="p-2 rounded-lg border border-teal-border bg-white hover:bg-teal-soft transition-colors cursor-pointer">
-            <ArrowLeft size={15} className="text-primary" />
+            className="p-2 rounded-xl border border-teal-border dark:border-dark-border bg-white dark:bg-dark-card hover:bg-teal-soft dark:hover:bg-slate-800 transition-colors cursor-pointer touch-target shadow-soft-sm">
+            <ArrowLeft size={16} className="text-primary dark:text-teal" />
           </button>
           <button
-          type="button"
-          onClick={onVerPDF}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors"
+            type="button"
+            onClick={onVerPDF}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity touch-target cursor-pointer shadow-soft-sm"
           >
-            <FileText size={13} />
+            <FileText size={14} />
             Ver PDF
-            </button>
-          <div>
-            <h2 className="text-[15px] font-medium text-primary">{form.pacienteNombre}</h2>
-            <p className="text-[11px] text-teal-muted">
+          </button>
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-bold text-primary dark:text-dark-text truncate">{form.pacienteNombre}</h2>
+            <p className="text-[11px] text-teal-muted dark:text-slate-400 truncate">
               Cédula {form.cedula} · Historia desde{' '}
               {new Date(form.fechaCreacion).toLocaleDateString('es-CO')}
               {form.tipoSangre && ` · ${form.tipoSangre}${form.rh || ''}`}
-              </p>
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           {errorGuardar && (
-            <span className="text-[11px] text-status-red bg-status-redBg px-3 py-1.5 rounded-lg border border-red-200">
+            <span className="text-[11px] text-status-red dark:text-red-400 bg-status-redBg dark:bg-red-950/40 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/50 font-medium">
               {errorGuardar}
             </span>
           )}
           {editando ? (
             <>
               <button type="button" onClick={cancelar} disabled={guardando}
-                className="flex items-center gap-1.5 px-3 py-2 text-[12px] text-primary font-sans bg-white border border-teal-border rounded-lg cursor-pointer hover:bg-teal-info transition-colors disabled:opacity-50">
-                <X size={13} /> Cancelar
+                className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-primary dark:text-slate-300 font-sans bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl cursor-pointer hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors disabled:opacity-50 touch-target">
+                <X size={14} /> Cancelar
               </button>
               <button type="button" onClick={guardarDatos} disabled={guardando}
-                className="flex items-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
-                <Save size={13} />
+                className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-white font-semibold font-sans bg-primary dark:bg-teal dark:text-slate-900 rounded-xl border-none cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-70 disabled:cursor-not-allowed touch-target shadow-soft-sm">
+                <Save size={14} />
                 {guardando ? 'Guardando…' : 'Guardar'}
               </button>
             </>
           ) : (
             <button type="button" onClick={() => { setEditando(true); setTab('clinica'); }}
-              className="flex items-center gap-1.5 px-3 py-2 text-[12px] text-primary font-sans bg-white border border-teal-border rounded-lg cursor-pointer hover:bg-teal-soft transition-colors">
-              <Pencil size={13} /> Editar historia
+              className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-primary dark:text-slate-300 font-medium font-sans bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl cursor-pointer hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors touch-target shadow-soft-sm">
+              <Pencil size={14} /> Editar historia
             </button>
           )}
         </div>
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex items-center gap-1 bg-white border border-teal-border rounded-xl p-1 mb-4 w-fit">
+      <div className="flex items-center gap-1 bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl p-1 mb-4 w-full sm:w-fit overflow-x-auto custom-scrollbar shadow-soft-sm">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" onClick={() => setTab(id)}
             className={[
-              'flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-medium font-sans border-none cursor-pointer transition-colors',
-              tab === id ? 'bg-primary text-white' : 'text-teal-muted hover:bg-teal-soft',
+              'flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-medium font-sans border-none cursor-pointer transition-colors whitespace-nowrap touch-target',
+              tab === id ? 'bg-primary dark:bg-teal text-white dark:text-slate-900 font-semibold shadow-soft-sm' : 'text-teal-muted dark:text-slate-400 hover:bg-teal-soft dark:hover:bg-slate-800/40 hover:text-primary dark:hover:text-dark-text',
             ].join(' ')}>
-            <Icon size={13} />
+            <Icon size={14} />
             {label}
             {id === 'evoluciones' && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === id ? 'bg-white/20 text-white' : 'bg-teal-soft text-teal-muted'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === id ? 'bg-white/20 text-white dark:bg-slate-900/30 dark:text-slate-900' : 'bg-teal-soft dark:bg-slate-800 text-teal-muted dark:text-slate-300'}`}>
                 {form.evoluciones?.length ?? 0}
               </span>
             )}
             {id === 'adjuntos' && (form.adjuntos?.length > 0) && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === id ? 'bg-white/20 text-white' : 'bg-teal-soft text-teal-muted'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tab === id ? 'bg-white/20 text-white dark:bg-slate-900/30 dark:text-slate-900' : 'bg-teal-soft dark:bg-slate-800 text-teal-muted dark:text-slate-300'}`}>
                 {form.adjuntos.length}
               </span>
             )}
@@ -594,23 +594,23 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
 
       {/* ── Tab: Evoluciones ── */}
       {tab === 'evoluciones' && (
-        <div className="bg-white border border-teal-border rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-teal-soft">
-            <h3 className="text-[13px] font-medium text-primary">Evoluciones del paciente</h3>
-            <div className="flex gap-2">
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl overflow-hidden shadow-soft-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 border-b border-teal-soft dark:border-dark-border bg-teal-panel/40 dark:bg-slate-800/40">
+            <h3 className="text-[13px] font-bold text-primary dark:text-dark-text">Evoluciones del paciente</h3>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <button type="button" onClick={() => api.verRecomendacionesPDF()}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-teal-dark hover:text-teal-muted font-medium font-sans bg-teal-panel border border-teal-border rounded-lg cursor-pointer hover:bg-teal-soft transition-colors">
-                <FileText size={13} /> Recomendaciones Post-Qx
+                className="flex items-center gap-1.5 px-3 py-2 text-[12px] text-teal-dark dark:text-teal hover:text-teal-muted dark:hover:text-teal-light font-medium font-sans bg-teal-panel dark:bg-slate-800 border border-teal-border dark:border-dark-border rounded-xl cursor-pointer hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors touch-target shadow-soft-sm">
+                <FileText size={14} /> Recomendaciones Post-Qx
               </button>
               <button type="button" onClick={() => { setEvEditar(null); setModalEv(true); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors">
-                <Plus size={13} /> Nueva evolución
+                className="flex items-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium font-sans bg-primary dark:bg-teal dark:text-slate-900 rounded-xl border-none cursor-pointer hover:opacity-90 transition-opacity touch-target shadow-soft-sm">
+                <Plus size={14} /> Nueva evolución
               </button>
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-4 bg-white dark:bg-dark-card">
             {!form.evoluciones?.length ? (
-              <p className="text-center text-[12px] text-teal-muted py-8">Sin evoluciones registradas</p>
+              <p className="text-center text-[12px] text-teal-muted dark:text-slate-400 py-8">Sin evoluciones registradas</p>
             ) : (
               form.evoluciones
                 .slice()
@@ -627,22 +627,22 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
 
      {/* ── Tab: Tratamientos ── */}
 {tab === 'tratamientos' && (
-  <div className="bg-white border border-teal-border rounded-xl overflow-hidden">
-    <div className="flex items-center justify-between px-4 py-3 border-b border-teal-soft">
+  <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl overflow-hidden shadow-soft-sm">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 border-b border-teal-soft dark:border-dark-border bg-teal-panel/40 dark:bg-slate-800/40">
       <div>
-        <h3 className="text-[13px] font-medium text-primary">
+        <h3 className="text-[13px] font-bold text-primary dark:text-dark-text">
           Planes de tratamiento y cotizaciones
         </h3>
-        <p className="text-[11px] text-teal-muted mt-0.5">
+        <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5 font-medium">
           Presupuestos y tratamientos odontológicos del paciente
         </p>
       </div>
       <button
         type="button"
         onClick={() => { setTratamientoEditar(null); setModalTratamiento(true); }}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors"
+        className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-white font-medium font-sans bg-primary dark:bg-teal dark:text-slate-900 rounded-xl border-none cursor-pointer hover:opacity-90 transition-opacity touch-target shadow-soft-sm self-end sm:self-auto"
       >
-        <Plus size={13} /> Nuevo tratamiento
+        <Plus size={14} /> Nuevo tratamiento
       </button>
     </div>
 

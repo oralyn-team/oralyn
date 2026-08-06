@@ -198,30 +198,26 @@ export default function PacienteForm({
 
   return (
     <div
-      className="absolute inset-0 bg-primary/35 flex items-center justify-center z-10"
-      onClick={(e) =>
-        e.target === e.currentTarget && onClose()
-      }
+      className="fixed inset-0 bg-primary/40 dark:bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-fade-in"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-[14px] w-[380px] max-h-[92vh] border border-teal-border overflow-hidden flex flex-col">
+      <div className="bg-white dark:bg-dark-card rounded-t-2xl sm:rounded-2xl w-full max-w-[440px] max-h-[90vh] border border-teal-border dark:border-dark-border overflow-hidden flex flex-col shadow-soft-lg">
         
-        <div className="flex items-center justify-between px-5 py-4 bg-primary">
-          <h2 className="text-[14px] font-medium text-white">
-            {pacienteEditar
-              ? 'Editar paciente'
-              : '+ Nuevo paciente'}
+        <div className="flex items-center justify-between px-5 py-4 bg-primary dark:bg-slate-900 text-white flex-shrink-0">
+          <h2 className="text-[14px] font-semibold text-white">
+            {pacienteEditar ? 'Editar paciente' : '+ Nuevo paciente'}
           </h2>
 
           <button
             type="button"
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-white/15 text-white text-[14px] flex items-center justify-center border-none cursor-pointer hover:bg-white/25 transition-colors"
+            className="w-7 h-7 rounded-lg bg-white/10 text-white text-[14px] flex items-center justify-center border-none cursor-pointer hover:bg-white/20 transition-colors touch-target"
           >
-            x
+            ✕
           </button>
         </div>
 
-        <div className="px-5 py-5 overflow-y-auto">
+        <div className="px-5 py-5 overflow-y-auto custom-scrollbar flex-1 space-y-1 bg-white dark:bg-dark-card text-primary dark:text-dark-text">
           
           <Field
             name="nombres"
@@ -232,136 +228,127 @@ export default function PacienteForm({
             error={errs.nombres}
           />
 
-          <Field
-            name="primer_apellido"
-            label="Primer apellido"
-            placeholder="Ej: González"
-            value={form.primer_apellido}
-            onChange={handleChange}
-            error={errs.primer_apellido}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+            <Field
+              name="primer_apellido"
+              label="Primer apellido"
+              placeholder="Ej: González"
+              value={form.primer_apellido}
+              onChange={handleChange}
+              error={errs.primer_apellido}
+            />
 
-          <Field
-            name="segundo_apellido"
-            label="Segundo apellido"
-            placeholder="Ej: Pérez"
-            value={form.segundo_apellido}
-            onChange={handleChange}
-          />
+            <Field
+              name="segundo_apellido"
+              label="Segundo apellido"
+              placeholder="Ej: Pérez"
+              value={form.segundo_apellido}
+              onChange={handleChange}
+            />
+          </div>
 
-          <SelectField
-            name="tipo_documento"
-            label="Tipo de documento"
-            value={form.tipo_documento}
-            onChange={handleChange}
-            error={errs.tipo_documento}
-          >
-            <option value="CC">CC</option>
-            <option value="TI">TI</option>
-            <option value="CE">CE</option>
-            <option value="PA">Pasaporte</option>
-            <option value="RC">Registro civil</option>
-          </SelectField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+            <SelectField
+              name="tipo_documento"
+              label="Tipo de documento"
+              value={form.tipo_documento}
+              onChange={handleChange}
+              error={errs.tipo_documento}
+            >
+              <option value="CC">CC</option>
+              <option value="TI">TI</option>
+              <option value="CE">CE</option>
+              <option value="PA">Pasaporte</option>
+              <option value="RC">Registro civil</option>
+            </SelectField>
 
-          <Field
-            name="numero_documento"
-            label="Número de documento"
-            placeholder="Ej: 1234567890"
-            value={form.numero_documento}
-            onChange={handleChange}
-            error={errs.numero_documento}
-          />
+            <Field
+              name="numero_documento"
+              label="Número de documento"
+              placeholder="Ej: 1234567890"
+              value={form.numero_documento}
+              onChange={handleChange}
+              error={errs.numero_documento}
+            />
+          </div>
 
-          <Field
-            name="fecha_nacimiento"
-            label="Fecha de nacimiento"
-            type="date"
-            value={form.fecha_nacimiento}
-            onChange={handleChange}
-            error={errs.fecha_nacimiento}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+            <Field
+              name="fecha_nacimiento"
+              label="Fecha de nacimiento"
+              type="date"
+              value={form.fecha_nacimiento}
+              onChange={handleChange}
+              error={errs.fecha_nacimiento}
+            />
 
-          <SelectField
-            name="sexo"
-            label="Sexo"
-            value={form.sexo}
-            onChange={handleChange}
-            error={errs.sexo}
-          >
-            <option value="" disabled>
-              Selecciona una opción
-            </option>
+            <SelectField
+              name="sexo"
+              label="Sexo"
+              value={form.sexo}
+              onChange={handleChange}
+              error={errs.sexo}
+            >
+              <option value="" disabled>
+                Selecciona una opción
+              </option>
+              <option value="femenino">Femenino</option>
+              <option value="masculino">Masculino</option>
+              <option value="otro">Otro</option>
+            </SelectField>
+          </div>
 
-            <option value="femenino">
-              Femenino
-            </option>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+            <Field
+              name="telefono"
+              label="Teléfono"
+              placeholder="Ej: 3001234567"
+              type="tel"
+              value={form.telefono}
+              onChange={handleChange}
+            />
 
-            <option value="masculino">
-              Masculino
-            </option>
+            <Field
+              name="correo"
+              label="Correo"
+              placeholder="Ej: maria@email.com"
+              type="email"
+              value={form.correo}
+              onChange={handleChange}
+            />
+          </div>
 
-            <option value="otro">
-              Otro
-            </option>
-          </SelectField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
+            <Field
+              name="municipio_ciudad"
+              label="Municipio / ciudad"
+              placeholder="Ej: Villavicencio"
+              value={form.municipio_ciudad}
+              onChange={handleChange}
+              error={errs.municipio_ciudad}
+            />
 
-          <Field
-            name="telefono"
-            label="Teléfono"
-            placeholder="Ej: 3001234567"
-            type="tel"
-            value={form.telefono}
-            onChange={handleChange}
-          />
-
-          <Field
-            name="correo"
-            label="Correo"
-            placeholder="Ej: maria@email.com"
-            type="email"
-            value={form.correo}
-            onChange={handleChange}
-          />
-
-          <Field
-            name="municipio_ciudad"
-            label="Municipio / ciudad"
-            placeholder="Ej: Villavicencio"
-            value={form.municipio_ciudad}
-            onChange={handleChange}
-            error={errs.municipio_ciudad}
-          />
-
-          <SelectField
-            name="estado"
-            label="Estado"
-            value={form.estado}
-            onChange={handleChange}
-          >
-            <option value="" disabled>
-              Selecciona una opción
-            </option>
-
-            <option value="Nuevo">
-              Nuevo
-            </option>
-
-            <option value="Al día">
-              Al día
-            </option>
-
-            <option value="Pendiente">
-              Pendiente
-            </option>
-          </SelectField>
+            <SelectField
+              name="estado"
+              label="Estado"
+              value={form.estado}
+              onChange={handleChange}
+            >
+              <option value="" disabled>
+                Selecciona una opción
+              </option>
+              <option value="Nuevo">Nuevo</option>
+              <option value="Al día">Al día</option>
+              <option value="Pendiente">Pendiente</option>
+            </SelectField>
+          </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-3 border-t border-teal-soft">
-          
+        <div className="flex justify-end gap-2.5 px-5 py-3.5 border-t border-teal-soft dark:border-dark-border bg-teal-panel/40 dark:bg-slate-800/40 flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-[7px] text-[12px] text-primary font-sans bg-white border border-teal-border rounded-lg cursor-pointer hover:bg-teal-info transition-colors"
+            className="px-4 py-2 text-[12px] text-primary dark:text-slate-300 font-medium bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-lg cursor-pointer hover:bg-teal-info dark:hover:bg-slate-700 transition-colors touch-target"
           >
             Cancelar
           </button>
@@ -369,14 +356,12 @@ export default function PacienteForm({
           <button
             type="button"
             onClick={handleSubmit}
-            className="px-3.5 py-[7px] text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors"
+            className="px-4 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-lg cursor-pointer hover:opacity-90 transition-opacity touch-target shadow-soft-sm"
           >
-            {pacienteEditar
-              ? 'Actualizar paciente'
-              : 'Guardar paciente'}
+            {pacienteEditar ? 'Actualizar paciente' : 'Guardar paciente'}
           </button>
         </div>
       </div>
     </div>
   );
-}
+}

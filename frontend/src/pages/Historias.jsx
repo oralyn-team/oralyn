@@ -166,8 +166,8 @@ export default function Historias() {
   const [historias, setHistorias]           = useState([]);
   const [historiaActiva, setHistoriaActiva] = useState(null);
   const [loadingH, setLoadingH]             = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ── Carga historias con detalle completo ──────────────────────────────
   useEffect(() => {
     if (pacientes.length === 0) {
       setHistorias([]);
@@ -184,7 +184,7 @@ export default function Historias() {
             Promise.all(
               historiasPaciente.map((historia) =>
                 Promise.all([
-                  api.getHistoriaDetalle(historia.id),  // trae antecedentes, examen, odontogramas
+                  api.getHistoriaDetalle(historia.id),
                   api.getEvoluciones(historia.id),
                 ])
                 .then(([detalle, evoluciones]) => ({
@@ -205,7 +205,6 @@ export default function Historias() {
       .finally(() => setLoadingH(false));
   }, [pacientes]);
 
-  // Abrir historia desde URL ?pacienteId=X
   useEffect(() => {
     const params    = new URLSearchParams(window.location.search);
     const pacienteId = Number(params.get('pacienteId'));
@@ -229,28 +228,28 @@ export default function Historias() {
   const stats = buildStats(historias, pacientes);
 
   return (
-    <div className="flex min-h-screen bg-teal-bg font-sans">
-      <Sidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar pacientes={pacientes} />
+    <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+      <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
 
         {historiaActiva ? (
           <HistoriaDetalle
-          historia={historiaActiva}
-          onVolver={handleVolver}
-          onActualizar={handleActualizar}
-          onVerPDF={() => api.verHistoriaPDF(historiaActiva.id)} 
+            historia={historiaActiva}
+            onVolver={handleVolver}
+            onActualizar={handleActualizar}
+            onVerPDF={() => api.verHistoriaPDF(historiaActiva.id)} 
           />
         ) : (
-          <main className="flex-1 overflow-y-auto px-6 py-5">
-            <div className="grid grid-cols-4 gap-3 mb-5">
+          <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-5 custom-scrollbar">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
               {stats.map((s) => <StatCard key={s.label} {...s} />)}
             </div>
 
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-[15px] font-medium text-primary">Historias Clínicas</h2>
-                <p className="text-[11px] text-teal mt-0.5">
+                <h2 className="text-[15px] font-semibold text-primary dark:text-dark-text">Historias Clínicas</h2>
+                <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
                   {loadingH
                     ? 'Cargando...'
                     : `${historias.length} expedientes · Haz clic en un paciente para ver su historia`}
@@ -259,13 +258,15 @@ export default function Historias() {
             </div>
 
             {loadingH ? (
-              <p className="text-[13px] text-teal-muted px-1">Cargando historias...</p>
+              <p className="text-[13px] text-teal-muted dark:text-slate-400 px-1 text-center py-8">Cargando historias...</p>
             ) : (
-              <HistoriaLista historias={historias} onSeleccionar={setHistoriaActiva} />
+              <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+                <HistoriaLista historias={historias} onSeleccionar={setHistoriaActiva} />
+              </div>
             )}
           </main>
         )}
       </div>
     </div>
   );
-}
+}

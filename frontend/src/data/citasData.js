@@ -14,12 +14,6 @@ export const MOTIVOS = [
   'Urgencia',
 ];
 
-export const DOCTORES = [
-  'Dr. Rivera',
-  'Dra. Salcedo',
-  'Dr. Mendez',
-];
-
 export const ESTADO_ESTILOS = {
   Pendiente: { badge: 'bg-status-amberBg text-status-amber', dot: 'bg-status-amberMid', border: 'border-l-status-amberMid' },
   Asistio: { badge: 'bg-status-greenBg text-status-green', dot: 'bg-[#3B6D11]', border: 'border-l-[#5DC2A4]' },

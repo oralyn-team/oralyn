@@ -198,6 +198,7 @@ export default function Consentimientos() {
   const [procesandoDoc, setProcesandoDoc] = useState(null);
   const [mensaje, setMensaje] = useState(null);
   const [errorDocs, setErrorDocs] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const pacienteSeleccionado = useMemo(
     () => pacientes.find((p) => p.id === Number(pacienteId)) || null,
@@ -438,70 +439,69 @@ export default function Consentimientos() {
   ];
 
   if (loading) {
-    return <p style={{ padding: 32 }}>Cargando pacientes...</p>;
+    return (
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 flex items-center justify-center p-6">
+            <p className="text-[13px] text-teal-muted dark:text-slate-400">Cargando pacientes...</p>
+          </main>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <p style={{ padding: 32, color: 'red' }}>
-        {error}
-      </p>
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 flex items-center justify-center p-6">
+            <p className="text-[13px] text-status-red dark:text-red-400">{error}</p>
+          </main>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-teal-bg font-sans relative">
-      <Sidebar />
-
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar pacientes={pacientes} />
-
-        <main className="flex-1 overflow-y-auto px-6 py-5">
-
-          {/* ESTADISTICAS */}
-          <div className="grid grid-cols-4 gap-3 mb-5">
-            {stats.map((stat) => (
-              <StatCard key={stat.label} {...stat} />
-            ))}
+    <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+      <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+        
+        <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-5 custom-scrollbar">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
+            {stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
           </div>
 
-          <div className="grid grid-cols-[320px_1fr] gap-4 items-start">
-
-            {/* LISTA DE PACIENTES */}
-            <section className="bg-white border border-teal-border rounded-xl overflow-hidden">
-
-              <div className="px-4 py-3 border-b border-teal-soft">
-                <h2 className="text-[13px] font-medium text-primary">
-                  Seleccionar paciente
-                </h2>
-
-                <p className="text-[11px] text-teal-muted mt-0.5">
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr] gap-4 items-start">
+            <section className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+              <div className="px-4 py-3.5 border-b border-teal-soft dark:border-dark-border bg-teal-panel/40 dark:bg-slate-800/40">
+                <h2 className="text-[13px] font-semibold text-primary dark:text-dark-text">Seleccionar paciente</h2>
+                <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
                   Elige un paciente para crear y consultar documentos
                 </p>
               </div>
 
-              <div className="p-4 border-b border-teal-soft bg-teal-panel">
+              <div className="p-3 border-b border-teal-soft dark:border-dark-border bg-teal-panel dark:bg-slate-800/60">
                 <div className="relative">
-                  <Search
-                    size={13}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-teal"
-                  />
-
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal" />
                   <input
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    placeholder="Buscar por nombre o cedula..."
-                    className={`${inputClass} pl-8`}
+                    placeholder="Buscar por nombre o cédula..."
+                    className="w-full pl-9 pr-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors"
                   />
                 </div>
               </div>
 
-              <div className="max-h-[620px] overflow-y-auto divide-y divide-teal-soft">
-
+              <div className="max-h-[350px] lg:max-h-[600px] overflow-y-auto custom-scrollbar divide-y divide-teal-soft dark:divide-dark-border">
                 {pacientesFiltrados.length === 0 ? (
-                  <p className="text-[12px] text-teal-muted p-4 text-center">
-                    No hay pacientes encontrados
-                  </p>
+                  <p className="text-[12px] text-teal-muted dark:text-slate-400 p-4 text-center">No hay pacientes encontrados</p>
                 ) : (
                   pacientesFiltrados.map((paciente) => {
                     const activo =
@@ -513,19 +513,13 @@ export default function Consentimientos() {
                         type="button"
                         onClick={() => seleccionarPaciente(paciente)}
                         className={[
-                          'w-full text-left px-4 py-3 transition-colors cursor-pointer',
-                          activo
-                            ? 'bg-teal-soft'
-                            : 'bg-white hover:bg-teal-panel',
+                          'w-full text-left px-4 py-3 transition-colors cursor-pointer touch-target',
+                          activo ? 'bg-teal-soft dark:bg-slate-800 font-semibold' : 'bg-white dark:bg-dark-card hover:bg-teal-panel dark:hover:bg-slate-800/40',
                         ].join(' ')}
                       >
-                        <p className="text-[12px] font-medium text-primary">
-                          {nombreCompleto(paciente)}
-                        </p>
-
-                        <p className="text-[11px] text-teal-muted mt-0.5">
-                          {paciente.tipo_documento || 'CC'}{' '}
-                          {paciente.numero_documento || 'Sin documento'}
+                        <p className="text-[12px] font-medium text-primary dark:text-dark-text">{nombreCompleto(paciente)}</p>
+                        <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
+                          {paciente.tipo_documento || 'CC'} {paciente.numero_documento || 'Sin documento'}
                         </p>
                       </button>
                     );
@@ -535,25 +529,13 @@ export default function Consentimientos() {
               </div>
             </section>
 
-            {/* CONTENIDO */}
-            <section className="space-y-4">
-
+            <section className="space-y-4 min-w-0">
               {!pacienteSeleccionado ? (
-
-                <div className="bg-white border border-dashed border-teal-border rounded-xl p-10 text-center">
-
-                  <FileBadge
-                    size={34}
-                    className="text-teal mx-auto mb-3"
-                  />
-
-                  <p className="text-[14px] font-medium text-primary">
-                    Selecciona un paciente
-                  </p>
-
-                  <p className="text-[12px] text-teal-muted mt-1">
-                    Aqui apareceran sus consentimientos,
-                    certificados y formularios de creacion.
+                <div className="bg-white dark:bg-dark-card border border-dashed border-teal-border dark:border-dark-border rounded-2xl p-10 text-center shadow-soft-sm">
+                  <FileBadge size={40} className="text-teal mx-auto mb-3" />
+                  <p className="text-[14px] font-semibold text-primary dark:text-dark-text">Selecciona un paciente</p>
+                  <p className="text-[12px] text-teal-muted dark:text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
+                    Aquí aparecerán sus consentimientos informados, certificados y formularios de creación.
                   </p>
 
                 </div>
@@ -561,18 +543,13 @@ export default function Consentimientos() {
               ) : (
 
                 <>
-
-                  {/* PACIENTE SELECCIONADO */}
-                  <div className="bg-white border border-teal-border rounded-xl px-4 py-3 flex items-center justify-between">
-
+                  <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl px-5 py-3.5 flex items-center justify-between shadow-soft-sm">
                     <div>
-                      <h2 className="text-[14px] font-semibold text-primary">
+                      <h2 className="text-[14px] font-bold text-primary dark:text-dark-text">
                         {nombreCompleto(pacienteSeleccionado)}
                       </h2>
-
-                      <p className="text-[11px] text-teal-muted mt-0.5">
-                        {pacienteSeleccionado.tipo_documento || 'CC'}{' '}
-                        {pacienteSeleccionado.numero_documento}
+                      <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
+                        {pacienteSeleccionado.tipo_documento || 'CC'} {pacienteSeleccionado.numero_documento}
                       </p>
                     </div>
 
@@ -580,17 +557,9 @@ export default function Consentimientos() {
                       type="button"
                       onClick={() => cargarDocumentos()}
                       disabled={cargandoDocs}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-soft transition-colors disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-primary dark:text-slate-300 bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors disabled:opacity-60 cursor-pointer touch-target shadow-soft-sm font-medium"
                     >
-                      {cargandoDocs ? (
-                        <Loader2
-                          size={13}
-                          className="animate-spin"
-                        />
-                      ) : (
-                        <RefreshCw size={13} />
-                      )}
-
+                      {cargandoDocs ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                       Actualizar
                     </button>
 
@@ -598,46 +567,24 @@ export default function Consentimientos() {
 
                   {/* ERROR */}
                   {errorDocs && (
-                    <div className="text-[12px] text-status-red bg-status-redBg px-3 py-2 rounded-lg border border-red-200">
+                    <div className="text-[12px] text-status-red dark:text-red-400 bg-status-redBg dark:bg-red-950/40 px-4 py-3 rounded-xl border border-red-200 dark:border-red-900/50 font-medium">
                       {errorDocs}
                     </div>
                   )}
 
-                  {/* FORMULARIOS */}
-                  <div className="grid grid-cols-2 gap-4">
-
-                    {/* CONSENTIMIENTO */}
-                    <form
-                      onSubmit={crearConsentimiento}
-                      className="bg-white border border-teal-border rounded-xl overflow-hidden"
-                    >
-
-                      <div className="px-4 py-3 border-b border-teal-soft flex items-center gap-2">
-
-                        <PenLine
-                          size={15}
-                          className="text-primary"
-                        />
-
-                        <h3 className="text-[13px] font-medium text-primary">
-                          Nuevo consentimiento
-                        </h3>
-
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <form onSubmit={crearConsentimiento} className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+                      <div className="px-5 py-3.5 border-b border-teal-soft dark:border-dark-border flex items-center gap-2 bg-teal-panel/40 dark:bg-slate-800/40">
+                        <PenLine size={16} className="text-primary dark:text-teal" />
+                        <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text">Nuevo consentimiento</h3>
                       </div>
-
-                      <div className="p-4 space-y-3">
-
+                      <div className="p-4 sm:p-5 space-y-3">
                         <Campo label="Tipo">
 
                           <select
                             value={consentimientoForm.tipo}
-                            onChange={(e) =>
-                              setConsentimientoForm((prev) => ({
-                                ...prev,
-                                tipo: e.target.value,
-                              }))
-                            }
-                            className={inputClass}
+                            onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, tipo: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
                           >
                             {TIPOS_CONSENTIMIENTO.map((tipo) => (
                               <option
@@ -655,13 +602,8 @@ export default function Consentimientos() {
 
                           <input
                             value={consentimientoForm.ciudad}
-                            onChange={(e) =>
-                              setConsentimientoForm((prev) => ({
-                                ...prev,
-                                ciudad: e.target.value,
-                              }))
-                            }
-                            className={inputClass}
+                            onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, ciudad: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
                           />
 
                         </Campo>
@@ -669,17 +611,9 @@ export default function Consentimientos() {
                         <Campo label="Nombre declarado">
 
                           <input
-                            value={
-                              consentimientoForm.nombre_paciente_declarado
-                            }
-                            onChange={(e) =>
-                              setConsentimientoForm((prev) => ({
-                                ...prev,
-                                nombre_paciente_declarado:
-                                  e.target.value,
-                              }))
-                            }
-                            className={inputClass}
+                            value={consentimientoForm.nombre_paciente_declarado}
+                            onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, nombre_paciente_declarado: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
                           />
 
                         </Campo>
@@ -687,23 +621,13 @@ export default function Consentimientos() {
                         <Campo label="Documento declarado">
 
                           <input
-                            value={
-                              consentimientoForm.cc_paciente_declarado
-                            }
-                            onChange={(e) =>
-                              setConsentimientoForm((prev) => ({
-                                ...prev,
-                                cc_paciente_declarado:
-                                  e.target.value,
-                              }))
-                            }
-                            className={inputClass}
+                            value={consentimientoForm.cc_paciente_declarado}
+                            onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, cc_paciente_declarado: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
                           />
 
                         </Campo>
-
-                        <Campo label="Detalles especificos">
-
+                        <Campo label="Detalles específicos">
                           <textarea
                             value={consentimientoForm.detalle}
                             onChange={(e) =>
@@ -713,57 +637,29 @@ export default function Consentimientos() {
                               }))
                             }
                             rows={3}
-                            className={`${inputClass} resize-none`}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors resize-none"
                             placeholder="Observaciones, procedimiento o condiciones particulares"
                           />
 
                         </Campo>
-
-                        {/* FIRMAS */}
-                        <div className="grid grid-cols-2 gap-3">
-
-                          {/* FIRMA PACIENTE */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Campo label="Firma paciente">
-
-                            <div className="border border-teal-border rounded-lg overflow-hidden bg-white">
-
-                              <canvas
-                                ref={firmaPaciente.canvasRef}
-                                className="w-full h-32 cursor-crosshair touch-none"
-                              />
-
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={firmaPaciente.limpiar}
-                              className="mt-2 text-[11px] text-status-red hover:underline"
-                            >
-                              Limpiar firma
-                            </button>
-
+                            <input
+                              value={consentimientoForm.firma_paciente}
+                              onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, firma_paciente: e.target.value }))}
+                              className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                              placeholder="Texto o base64"
+                            />
                           </Campo>
 
                           {/* FIRMA DOCTOR */}
                           <Campo label="Firma doctor">
-
-                            <div className="border border-teal-border rounded-lg overflow-hidden bg-white">
-
-                              <canvas
-                                ref={firmaDoctor.canvasRef}
-                                className="w-full h-32 cursor-crosshair touch-none"
-                              />
-
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={firmaDoctor.limpiar}
-                              className="mt-2 text-[11px] text-status-red hover:underline"
-                            >
-                              Limpiar firma
-                            </button>
-
+                            <input
+                              value={consentimientoForm.firma_doctor}
+                              onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, firma_doctor: e.target.value }))}
+                              className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                              placeholder="Texto o base64"
+                            />
                           </Campo>
 
                         </div>
@@ -772,61 +668,35 @@ export default function Consentimientos() {
 
                           <input
                             value={consentimientoForm.cc_profesional}
-                            onChange={(e) =>
-                              setConsentimientoForm((prev) => ({
-                                ...prev,
-                                cc_profesional: e.target.value,
-                              }))
-                            }
-                            className={inputClass}
+                            onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, cc_profesional: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
                           />
 
                         </Campo>
-
-                        {/* BOTONES */}
-                        <div className="flex gap-2">
-
+                        <div className="flex gap-2 pt-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              firmaPaciente.limpiar();
-                              firmaDoctor.limpiar();
-
-                              setConsentimientoForm({
-                                tipo: 'anestesia',
-                                ciudad: 'Villavicencio',
-                                detalle: '',
-                                nombre_paciente_declarado:
-                                  nombreCompleto(
-                                    pacienteSeleccionado
-                                  ),
-                                cc_paciente_declarado:
-                                  pacienteSeleccionado?.numero_documento ||
-                                  '',
-                                cc_profesional: '',
-                              });
-                            }}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-soft transition-colors"
+                            onClick={() => setConsentimientoForm({
+                              tipo: 'anestesia',
+                              ciudad: 'Villavicencio',
+                              detalle: '',
+                              nombre_paciente_declarado: nombreCompleto(pacienteSeleccionado),
+                              cc_paciente_declarado: pacienteSeleccionado?.numero_documento || '',
+                              firma_paciente: '',
+                              cc_profesional: '',
+                              firma_doctor: '',
+                            })}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] text-primary dark:text-slate-300 bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors touch-target font-medium cursor-pointer"
                           >
                             Cancelar
                           </button>
 
                           <button
                             type="submit"
-                            disabled={
-                              guardando === 'consentimiento'
-                            }
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-70"
+                            disabled={guardando === 'consentimiento'}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-70 touch-target cursor-pointer shadow-soft-sm"
                           >
-                            {guardando === 'consentimiento' ? (
-                              <Loader2
-                                size={13}
-                                className="animate-spin"
-                              />
-                            ) : (
-                              <Plus size={13} />
-                            )}
-
+                            {guardando === 'consentimiento' ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                             Crear consentimiento
                           </button>
 
@@ -835,56 +705,28 @@ export default function Consentimientos() {
                       </div>
                     </form>
 
-                    {/* CERTIFICADO */}
-                    <form
-                      onSubmit={crearCertificado}
-                      className="bg-white border border-teal-border rounded-xl overflow-hidden"
-                    >
-
-                      <div className="px-4 py-3 border-b border-teal-soft flex items-center gap-2">
-
-                        <FileBadge
-                          size={15}
-                          className="text-primary"
-                        />
-
-                        <h3 className="text-[13px] font-medium text-primary">
-                          Nuevo certificado
-                        </h3>
-
+                    <form onSubmit={crearCertificado} className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+                      <div className="px-5 py-3.5 border-b border-teal-soft dark:border-dark-border flex items-center gap-2 bg-teal-panel/40 dark:bg-slate-800/40">
+                        <FileBadge size={16} className="text-primary dark:text-teal" />
+                        <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text">Nuevo certificado</h3>
                       </div>
-
-                      <div className="p-4 space-y-3">
-
-                        <Campo label="Tipo de cita o atencion">
-
+                      <div className="p-4 sm:p-5 space-y-3">
+                        <Campo label="Tipo de cita o atención">
                           <input
                             value={certificadoForm.tipo_cita_texto}
-                            onChange={(e) =>
-                              setCertificadoForm((prev) => ({
-                                ...prev,
-                                tipo_cita_texto: e.target.value,
-                              }))
-                            }
-                            className={inputClass}
-                            placeholder="Ej. Consulta odontologica"
+                            onChange={(e) => setCertificadoForm((prev) => ({ ...prev, tipo_cita_texto: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            placeholder="Ej. Consulta odontológica"
                             required
                           />
 
                         </Campo>
-
-                        <Campo label="Fecha de expedicion">
-
+                        <Campo label="Fecha de expedición">
                           <input
                             type="date"
                             value={certificadoForm.fecha_expedicion}
-                            onChange={(e) =>
-                              setCertificadoForm((prev) => ({
-                                ...prev,
-                                fecha_expedicion: e.target.value,
-                              }))
-                            }
-                            className={inputClass}
+                            onChange={(e) => setCertificadoForm((prev) => ({ ...prev, fecha_expedicion: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
                             required
                           />
 
@@ -894,45 +736,27 @@ export default function Consentimientos() {
 
                           <input
                             value={certificadoForm.ciudad}
-                            onChange={(e) =>
-                              setCertificadoForm((prev) => ({
-                                ...prev,
-                                ciudad: e.target.value,
-                              }))
-                            }
-                            className={inputClass}
+                            onChange={(e) => setCertificadoForm((prev) => ({ ...prev, ciudad: e.target.value }))}
+                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
                           />
 
                         </Campo>
-
-                        <div className="bg-teal-panel border border-teal-soft rounded-xl p-4">
-
-                          <p className="text-[12px] font-medium text-primary">
-                            Vista rapida
-                          </p>
-
-                          <p className="text-[11px] text-teal-muted mt-1 leading-relaxed">
-                            Se emitira un certificado para{' '}
-                            {nombreCompleto(pacienteSeleccionado)}{' '}
-                            con el texto de atencion indicado.
+                        <div className="bg-teal-panel dark:bg-slate-800/60 border border-teal-soft dark:border-dark-border rounded-xl p-4">
+                          <p className="text-[12px] font-semibold text-primary dark:text-dark-text">Vista previa</p>
+                          <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-1 leading-relaxed">
+                            Se emitirá un certificado para {nombreCompleto(pacienteSeleccionado)} con la fecha y tipo de atención indicados.
                           </p>
 
                         </div>
-
-                        <div className="flex gap-2">
-
+                        <div className="flex gap-2 pt-2">
                           <button
                             type="button"
-                            onClick={() =>
-                              setCertificadoForm({
-                                tipo_cita_texto: '',
-                                fecha_expedicion: fechaInputHoy(),
-                                ciudad:
-                                  certificadoForm.ciudad ||
-                                  'Villavicencio',
-                              })
-                            }
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-soft transition-colors"
+                            onClick={() => setCertificadoForm({
+                              tipo_cita_texto: '',
+                              fecha_expedicion: fechaInputHoy(),
+                              ciudad: 'Villavicencio',
+                            })}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] text-primary dark:text-slate-300 bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors touch-target font-medium cursor-pointer"
                           >
                             Cancelar
                           </button>
@@ -940,17 +764,9 @@ export default function Consentimientos() {
                           <button
                             type="submit"
                             disabled={guardando === 'certificado'}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] text-white font-medium bg-primary rounded-lg hover:bg-primary-light transition-colors disabled:opacity-70"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-70 touch-target cursor-pointer shadow-soft-sm"
                           >
-                            {guardando === 'certificado' ? (
-                              <Loader2
-                                size={13}
-                                className="animate-spin"
-                              />
-                            ) : (
-                              <Plus size={13} />
-                            )}
-
+                            {guardando === 'certificado' ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                             Crear certificado
                           </button>
 
@@ -961,38 +777,19 @@ export default function Consentimientos() {
 
                   </div>
 
-                  {/* DOCUMENTOS EXISTENTES */}
-                  <div className="grid grid-cols-2 gap-4">
-
-                    {/* CONSENTIMIENTOS */}
-                    <div className="bg-white border border-teal-border rounded-xl overflow-hidden">
-
-                      <div className="px-4 py-3 border-b border-teal-soft flex items-center justify-between">
-
-                        <h3 className="text-[13px] font-medium text-primary">
-                          Consentimientos
-                        </h3>
-
-                        <span className="text-[11px] text-teal-muted">
-                          {consentimientos.length}
-                        </span>
-
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+                      <div className="px-5 py-3.5 border-b border-teal-soft dark:border-dark-border flex items-center justify-between bg-teal-panel/40 dark:bg-slate-800/40">
+                        <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text">Consentimientos</h3>
+                        <span className="text-[11px] text-teal-muted dark:text-slate-400 font-bold">{consentimientos.length}</span>
                       </div>
 
                       <div className="p-4 space-y-3">
 
                         {cargandoDocs ? (
-
-                          <p className="text-[12px] text-teal-muted text-center py-6">
-                            Cargando...
-                          </p>
-
+                          <p className="text-[12px] text-teal-muted dark:text-slate-400 text-center py-6">Cargando...</p>
                         ) : consentimientos.length === 0 ? (
-
-                          <p className="text-[12px] text-teal-muted text-center py-6">
-                            Sin consentimientos registrados
-                          </p>
-
+                          <p className="text-[12px] text-teal-muted dark:text-slate-400 text-center py-6">Sin consentimientos registrados</p>
                         ) : (
 
                           consentimientos.map((consentimiento) => {
@@ -1049,35 +846,18 @@ export default function Consentimientos() {
                       </div>
                     </div>
 
-                    {/* CERTIFICADOS */}
-                    <div className="bg-white border border-teal-border rounded-xl overflow-hidden">
-
-                      <div className="px-4 py-3 border-b border-teal-soft flex items-center justify-between">
-
-                        <h3 className="text-[13px] font-medium text-primary">
-                          Certificados
-                        </h3>
-
-                        <span className="text-[11px] text-teal-muted">
-                          {certificados.length}
-                        </span>
-
+                    <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+                      <div className="px-5 py-3.5 border-b border-teal-soft dark:border-dark-border flex items-center justify-between bg-teal-panel/40 dark:bg-slate-800/40">
+                        <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text">Certificados</h3>
+                        <span className="text-[11px] text-teal-muted dark:text-slate-400 font-bold">{certificados.length}</span>
                       </div>
 
                       <div className="p-4 space-y-3">
 
                         {cargandoDocs ? (
-
-                          <p className="text-[12px] text-teal-muted text-center py-6">
-                            Cargando...
-                          </p>
-
+                          <p className="text-[12px] text-teal-muted dark:text-slate-400 text-center py-6">Cargando...</p>
                         ) : certificados.length === 0 ? (
-
-                          <p className="text-[12px] text-teal-muted text-center py-6">
-                            Sin certificados registrados
-                          </p>
-
+                          <p className="text-[12px] text-teal-muted dark:text-slate-400 text-center py-6">Sin certificados registrados</p>
                         ) : (
 
                           certificados.map((certificado) => {
@@ -1143,7 +923,7 @@ export default function Consentimientos() {
 
       {/* MENSAJE */}
       {mensaje && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white text-[12px] px-4 py-2 rounded-full whitespace-nowrap z-20 animate-toast">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 animate-toast border border-white/10 shadow-soft-lg">
           {mensaje}
         </div>
       )}
@@ -1151,3 +931,4 @@ export default function Consentimientos() {
     </div>
   );
 }
+

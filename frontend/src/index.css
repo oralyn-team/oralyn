@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,30 +7,83 @@
 @layer base {
   * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background-color: #EAF6F6;
-    color: #1a3a3a;
+  html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    background-color: #EAF6F6;
+    color: #1A3A3A;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+
+  .dark body, body.dark {
+    background-color: #0F172A;
+    color: #F8FAFC;
+  }
+
+  /* Accessibility Focus Rings */
+  *:focus-visible {
+    outline: 2px solid #0B4F5E;
+    outline-offset: 2px;
+  }
+
+  .dark *:focus-visible {
+    outline: 2px solid #3ECFCF;
+  }
+
+  /* Form control defaults */
+  input, select, textarea, button {
+    font-family: inherit;
   }
 }
 
 @layer utilities {
-  /* Borde izquierdo de acento en stat cards — no tiene border-radius */
+  /* Borde izquierdo de acento en stat cards */
   .stat-accent-left {
     border-radius: 0;
   }
 
+  /* Custom scrollbar for clean UI */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(11, 79, 94, 0.2);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(11, 79, 94, 0.4);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.2);
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.4);
+  }
+
+  /* Touch friendly targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   /* Toast fade in/out */
   @keyframes fadeInOut {
-    0%   { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    0%   { opacity: 0; transform: translateX(-50%) translateY(12px); }
     15%  { opacity: 1; transform: translateX(-50%) translateY(0);   }
     75%  { opacity: 1; }
-    100% { opacity: 0; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-8px); }
   }
   .animate-toast {
-    animation: fadeInOut 2.2s ease forwards;
+    animation: fadeInOut 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
-}
+}

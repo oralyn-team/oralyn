@@ -5,30 +5,37 @@ import { useApp } from '../context/Appcontext'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { guardarToken } = useApp()
+  const { guardarToken, sesionExpirada, limpiarSesionExpirada } = useApp()
   const [form, setForm] = useState({ email: '', password: '' })
   const [showPass, setShowPass] = useState(false)
-  const [error, setError] = useState(false)
+  const [errorMsg, setErrorMsg] = useState(null)
   const [loading, setLoading] = useState(false)
 
   function handleChange(e) {
+    if (sesionExpirada) limpiarSesionExpirada()
+    if (errorMsg) setErrorMsg(null)
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
   async function handleSubmit(e) {
-  e.preventDefault()
-  setLoading(true)
-  setError(false)
-  try {
-    const { token } = await api.login(form.email, form.password)
-    guardarToken(token)      
-    navigate('/dashboard')
-  } catch {
-    setError(true)
-  } finally {
-    setLoading(false)
+    e.preventDefault()
+    if (sesionExpirada) limpiarSesionExpirada()
+    setLoading(true)
+    setErrorMsg(null)
+    try {
+      const { token } = await api.login(form.email, form.password)
+      guardarToken(token)      
+      navigate('/dashboard')
+    } catch (err) {
+      if (err?.status === 429) {
+        setErrorMsg('Demasiados intentos de inicio de sesión. Intenta de nuevo en unos minutos.')
+      } else {
+        setErrorMsg(err?.error || 'Correo o contraseña incorrectos')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-teal-bg font-sans">
@@ -94,9 +101,15 @@ export default function Login() {
             </div>
           </div>
 
-          {error && (
-            <p className="text-[12px] text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">
-              Correo o contraseña incorrectos
+          {sesionExpirada && (
+            <p className="text-[12px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+              Tu sesión expiró, inicia sesión nuevamente.
+            </p>
+          )}
+
+          {errorMsg && (
+            <p className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+              {errorMsg}
             </p>
           )}
 

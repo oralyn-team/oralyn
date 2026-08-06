@@ -11,7 +11,7 @@ export default function SearchBar({ busqueda, onBuscar }) {
   return (
     <div className="relative flex-1">
       {/* Ícono lupa */}
-      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-teal pointer-events-none">
+      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-teal dark:text-teal-light pointer-events-none">
         <Search size={14} />
       </span>
 
@@ -23,10 +23,10 @@ export default function SearchBar({ busqueda, onBuscar }) {
         placeholder="Buscar por nombre o cédula..."
         className={[
           'w-full pl-8 pr-3 py-[7px]',
-          'border border-teal-border rounded-lg',
-          'text-[13px] font-sans text-[#1a3a3a] bg-white',
-          'outline-none placeholder:text-teal-light',
-          'focus:border-teal transition-colors duration-150',
+          'border border-teal-border dark:border-dark-border rounded-lg',
+          'text-[13px] font-sans text-primary dark:text-dark-text bg-white dark:bg-dark-input',
+          'outline-none placeholder:text-teal-light dark:placeholder:text-slate-500',
+          'focus:border-primary dark:focus:border-teal transition-colors duration-150',
         ].join(' ')}
       />
     </div>

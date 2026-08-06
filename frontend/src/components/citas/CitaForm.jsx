@@ -1,11 +1,11 @@
 // src/components/citas/CitaForm.jsx
 import { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, Stethoscope, FileText, DollarSign } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
+import { api } from '../../api';
 
 import {
   ESTADOS_CITA,
-  DOCTORES,
 } from '../../data/citasData';
 
 
@@ -17,6 +17,11 @@ const VACIO = {
   hora: '',
 
   procedimiento: '',
+  procedimiento_consultorio_id: '',
+  codigo_cups: '',
+  codigo_cie10: '',
+  valor_cobrado: '',
+
   doctor: '',
 
   estado: 'Pendiente',
@@ -31,11 +36,12 @@ function getFechaHoy() {
 }
 
 const inputBase = [
-  'w-full px-2.5 py-2 border border-teal-border rounded-lg',
-  'text-[13px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
-  'outline-none transition-colors duration-150',
-  'focus:border-teal focus:bg-white placeholder:text-teal-light',
+  'w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-lg',
+  'text-[13px] font-sans text-primary dark:text-dark-text bg-white dark:bg-dark-input',
+  'outline-none transition-colors duration-150 min-h-[40px]',
+  'focus:border-primary dark:focus:border-teal placeholder:text-teal-muted/60 dark:placeholder:text-slate-500',
 ].join(' ');
+
 
 function Field({ label, error, children }) {
   return (
@@ -59,9 +65,36 @@ function Field({ label, error, children }) {
 }
 
 export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) {
-  const { configuracion, getProcedimientosAgrupados } = useApp();
-  const doctorDefault = configuracion?.nombre_profesional || '';
-  const procedimientosAgrupados = getProcedimientosAgrupados();
+  const { configuracion, procedimientosCatalog, usuariosConsultorio = [] } = useApp();
+
+  const [catalogoCie10, setCatalogoCie10] = useState([]);
+  const [loadingCie10, setLoadingCie10] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingCie10(true);
+    api.getCatalogoCie10()
+      .then((data) => {
+        if (isMounted) {
+          setCatalogoCie10(data || []);
+          setLoadingCie10(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoadingCie10(false);
+      });
+    return () => { isMounted = false; };
+  }, []);
+
+  function calcDoctorDefault() {
+    if (usuariosConsultorio.length === 1) {
+      return usuariosConsultorio[0].nombre;
+    }
+    if (usuariosConsultorio.length > 1) {
+      return '';
+    }
+    return configuracion?.nombre_profesional || '';
+  }
 
   const [form, setForm] = useState(() => (
     citaEditar
@@ -70,21 +103,28 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
           ...citaEditar,
           pacienteId: citaEditar.pacienteId ?? citaEditar.paciente_id ?? '',
           pacienteNombre: citaEditar.pacienteNombre ?? '',
-          fecha: citaEditar.fecha ?? '',
-          hora: citaEditar.hora ?? '',
+          fecha: citaEditar.fecha ? String(citaEditar.fecha).split('T')[0] : (citaEditar.fecha_hora ? String(citaEditar.fecha_hora).split('T')[0] : ''),
+          hora: citaEditar.hora ? citaEditar.hora : (citaEditar.fecha_hora ? String(citaEditar.fecha_hora).split('T')[1]?.slice(0, 5) : ''),
           procedimiento: citaEditar.procedimiento ?? citaEditar.motivo ?? '',
+          procedimiento_consultorio_id: citaEditar.procedimiento_consultorio_id ?? citaEditar.procedimientoConsultorioId ?? '',
+          codigo_cups: citaEditar.codigo_cups ?? citaEditar.codigoCups ?? '',
+          codigo_cie10: citaEditar.codigo_cie10 ?? citaEditar.codigoCie10 ?? '',
+          valor_cobrado: citaEditar.valor_cobrado ?? citaEditar.valorCobrado ?? '',
           estado: citaEditar.estado || 'Pendiente',
         }
-      : { ...VACIO, fecha: getFechaHoy(), doctor: doctorDefault }
+      : { ...VACIO, fecha: getFechaHoy(), doctor: calcDoctorDefault() }
   ));
   const [errs, setErrs] = useState({});
   const esEdicion = Boolean(citaEditar);
 
   useEffect(() => {
-    if (!esEdicion && !form.doctor && configuracion?.nombre_profesional) {
-      setForm((prev) => ({ ...prev, doctor: configuracion.nombre_profesional }));
+    if (!esEdicion && !form.doctor) {
+      const def = calcDoctorDefault();
+      if (def) {
+        setForm((prev) => ({ ...prev, doctor: def }));
+      }
     }
-  }, [configuracion]);
+  }, [usuariosConsultorio, configuracion]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -114,6 +154,35 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
     }
   }
 
+  function handleSelectProcedimiento(e) {
+    const val = e.target.value;
+    if (!val) {
+      setForm((prev) => ({
+        ...prev,
+        procedimiento_consultorio_id: '',
+        procedimiento: '',
+        codigo_cups: '',
+      }));
+      return;
+    }
+
+    const item = procedimientosCatalog.find(p => String(p.id) === String(val));
+    if (item) {
+      const precioItem = item.precio !== undefined && item.precio !== null ? item.precio : item.valorBase;
+      setForm((prev) => ({
+        ...prev,
+        procedimiento_consultorio_id: item.id,
+        procedimiento: item.nombre || item.nombre_visible,
+        codigo_cups: item.codigo || item.codigo_cups || '',
+        valor_cobrado: prev.valor_cobrado || (precioItem ? String(precioItem) : ''),
+      }));
+    }
+
+    if (errs.procedimiento) {
+      setErrs((prev) => ({ ...prev, procedimiento: '' }));
+    }
+  }
+
   function validar() {
     const e = {};
 
@@ -130,6 +199,10 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
     if (!form.procedimiento)
       e.procedimiento = 'Selecciona un procedimiento.';
+
+    if (form.valor_cobrado !== '' && form.valor_cobrado !== null && (isNaN(Number(form.valor_cobrado)) || Number(form.valor_cobrado) < 0)) {
+      e.valor_cobrado = 'El valor cobrado debe ser un número ≥ 0.';
+    }
 
     return e;
   }
@@ -150,6 +223,10 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
       fecha_hora: `${form.fecha}T${form.hora}:00`,
 
       procedimiento: form.procedimiento,
+      procedimiento_consultorio_id: form.procedimiento_consultorio_id ? Number(form.procedimiento_consultorio_id) : null,
+      codigo_cups: form.codigo_cups || null,
+      codigo_cie10: form.codigo_cie10 || null,
+      valor_cobrado: form.valor_cobrado !== '' && form.valor_cobrado !== null ? Number(form.valor_cobrado) : null,
 
       doctor: form.doctor,
 
@@ -161,17 +238,17 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
   return (
     <div
-      className="fixed inset-0 bg-primary/40 flex items-center justify-center z-20"
+      className="fixed inset-0 bg-primary/40 dark:bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-fade-in"
       onClick={(e) =>
         e.target === e.currentTarget && onClose()
       }
     >
-      <div className="bg-white rounded-2xl w-[480px] max-h-[90vh] border border-teal-border overflow-hidden flex flex-col shadow-xl">
+      <div className="bg-white dark:bg-dark-card rounded-t-2xl sm:rounded-2xl w-full max-w-[520px] max-h-[90vh] border border-teal-border dark:border-dark-border overflow-hidden flex flex-col shadow-soft-lg">
 
         {/* HEADER */}
 
-        <div className="flex items-center justify-between px-5 py-4 bg-primary flex-shrink-0">
-          <h2 className="text-[14px] font-medium text-white">
+        <div className="flex items-center justify-between px-5 py-4 bg-primary dark:bg-slate-900 text-white flex-shrink-0">
+          <h2 className="text-[14px] font-semibold text-white">
             {esEdicion
               ? '✏ Editar cita'
               : '+ Nueva cita'}
@@ -180,11 +257,12 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
           <button
             type="button"
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-white/15 text-white flex items-center justify-center border-none cursor-pointer hover:bg-white/25 transition-colors"
+            className="w-7 h-7 rounded-lg bg-white/10 text-white flex items-center justify-center border-none cursor-pointer hover:bg-white/20 transition-colors touch-target"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
+
 
         {/* BODY */}
 
@@ -262,9 +340,9 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
             error={errs.procedimiento}
           >
             <select
-              name="procedimiento"
-              value={form.procedimiento}
-              onChange={handleChange}
+              name="procedimiento_consultorio_id"
+              value={form.procedimiento_consultorio_id}
+              onChange={handleSelectProcedimiento}
               className={`${inputBase} ${
                 errs.procedimiento
                   ? 'border-status-red'
@@ -272,41 +350,88 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
               }`}
             >
               <option value="">
-                Seleccionar procedimiento...
+                Seleccionar procedimiento del catálogo...
               </option>
 
-              {procedimientosAgrupados.map((grupo) => (
-                <optgroup
-                  key={grupo.grupo}
-                  label={grupo.grupo}
+              {procedimientosCatalog.map((proc) => (
+                <option
+                  key={proc.id}
+                  value={proc.id}
                 >
-                  {grupo.items.map((item) => (
-                    <option
-                      key={item.id}
-                      value={item.nombre}
-                    >
-                      {item.nombre}
-                    </option>
-                  ))}
-                </optgroup>
+                  {proc.nombre || proc.nombre_visible} {!proc.activo ? '(inactivo)' : ''}
+                </option>
               ))}
             </select>
+
+            {form.codigo_cups && (
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-teal-muted dark:text-teal bg-teal-soft/80 dark:bg-slate-800 px-2 py-0.5 rounded font-semibold border border-teal-border/60 dark:border-dark-border">
+                  CUPS: {form.codigo_cups}
+                </span>
+                <span className="text-[11px] text-teal-muted dark:text-slate-400">
+                  ({form.procedimiento})
+                </span>
+              </div>
+            )}
           </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field
+              label="Diagnóstico CIE-10"
+            >
+              <select
+                name="codigo_cie10"
+                value={form.codigo_cie10}
+                onChange={handleChange}
+                className={inputBase}
+              >
+                <option value="">
+                  {loadingCie10 ? 'Cargando diagnósticos...' : 'Seleccionar CIE-10...'}
+                </option>
+                {catalogoCie10.map((c) => (
+                  <option key={c.codigo_cie10 || c.codigo} value={c.codigo_cie10 || c.codigo}>
+                    {c.codigo_cie10 || c.codigo} - {c.nombre_oficial || c.nombreOficial}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field
+              label="Valor cobrado (COP)"
+              error={errs.valor_cobrado}
+            >
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted text-[12px] font-bold">$</span>
+                <input
+                  type="number"
+                  name="valor_cobrado"
+                  min="0"
+                  step="1000"
+                  value={form.valor_cobrado}
+                  onChange={handleChange}
+                  placeholder="0"
+                  className={`${inputBase} pl-7 ${
+                    errs.valor_cobrado ? 'border-status-red' : ''
+                  }`}
+                />
+              </div>
+            </Field>
+          </div>
 
           <Field label="Doctor">
             <input
-            type="text"
-            name="doctor"
-            list="doctores-lista-cita"
-            value={form.doctor}
-            onChange={handleChange}
-            placeholder="Nombre del doctor..."
-            className={inputBase}
+              type="text"
+              name="doctor"
+              list="doctores-lista-cita"
+              value={form.doctor}
+              onChange={handleChange}
+              placeholder="Nombre del doctor..."
+              className={inputBase}
             />
             <datalist id="doctores-lista-cita">
-              {DOCTORES.map((d) => <option key={d} value={d} />)}
-              </datalist>
-              </Field>
+              {usuariosConsultorio.map((u) => <option key={u.id} value={u.nombre} />)}
+            </datalist>
+          </Field>
 
           <Field label="Estado">
             <select
@@ -368,3 +493,4 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
     </div>
   );
 }
+

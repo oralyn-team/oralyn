@@ -19,8 +19,8 @@ export default function FiltroChips({ activo, onChange, pacientes }) {
   }
 
   return (
-    <div className="flex items-center gap-2 px-5 py-2.5 border-b border-teal-soft bg-white flex-wrap">
-      <span className="text-[11px] text-teal-muted uppercase tracking-[0.7px] mr-1">
+    <div className="flex items-center gap-2 px-5 py-2.5 border-b border-teal-soft dark:border-dark-border bg-white dark:bg-dark-card flex-wrap">
+      <span className="text-[11px] text-teal-muted dark:text-slate-400 font-semibold uppercase tracking-[0.7px] mr-1">
         Estado:
       </span>
 
@@ -32,18 +32,17 @@ export default function FiltroChips({ activo, onChange, pacientes }) {
             type="button"
             onClick={() => onChange(label)}
             className={[
-              'flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium',
-              'border transition-all duration-150 cursor-pointer font-sans',
+              'flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-150 cursor-pointer font-sans border touch-target',
               isActive
-                ? `${color} shadow-sm scale-[1.03]`
-                : 'bg-white text-teal-muted border-teal-border hover:bg-teal-soft',
+                ? `${color} shadow-soft-sm scale-[1.03]`
+                : 'bg-white dark:bg-dark-input text-teal-muted dark:text-slate-400 border-teal-border dark:border-dark-border hover:bg-teal-soft dark:hover:bg-slate-800',
             ].join(' ')}
           >
             {label}
             <span
               className={[
                 'text-[10px] font-semibold px-1.5 py-0.5 rounded-full',
-                isActive ? 'bg-white/50' : 'bg-teal-soft',
+                isActive ? 'bg-white/30 dark:bg-black/25' : 'bg-teal-soft dark:bg-slate-800',
               ].join(' ')}
             >
               {conteo(label)}

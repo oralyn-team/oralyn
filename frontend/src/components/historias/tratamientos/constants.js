@@ -1,14 +1,5 @@
 // src/components/tratamientos/constants.js
 
-export const DOCTORES = [
-  'Dr. Andrés Molina',
-  'Dra. Carolina Vargas',
-  'Dr. Felipe Torres',
-  'Dra. Marcela Ríos',
-  'Dr. Sebastián Peña',
-  'Dra. Laura Mendoza',
-];
-
 /**
  * @deprecated — El catálogo de procedimientos ya no se define aquí.
  * Usa `getProcedimientosAgrupados()` o `procedimientosCatalog` del AppContext.

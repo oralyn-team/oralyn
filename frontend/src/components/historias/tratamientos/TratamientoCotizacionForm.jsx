@@ -5,7 +5,7 @@ import {
   Activity, CreditCard, Download, ChevronDown, AlertCircle,
 } from 'lucide-react';
 
-import { DOCTORES, TIPOS_TRATAMIENTO, PRIORIDADES, ESTADOS_TRATAMIENTO } from './constants';
+import { TIPOS_TRATAMIENTO, PRIORIDADES, ESTADOS_TRATAMIENTO } from './constants';
 import {
   fmt, getToday,
   calcTotales, PROC_VACIO, PAGO_VACIO, FORM_VACIO,
@@ -108,8 +108,8 @@ function StatusBadge({ estado }) {
  */
 export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamientoEditar }) {
   const esEdicion = Boolean(tratamientoEditar);
-  const { configuracion } = useApp();
-  const doctorDefault = configuracion?.nombre_profesional || '';
+  const { configuracion, usuariosConsultorio = [] } = useApp();
+  const doctorDefault = usuariosConsultorio.length === 1 ? usuariosConsultorio[0].nombre : (configuracion?.nombre_profesional || '');
 
   const [form,   setForm]   = useState(() => ({
     ...FORM_VACIO,
@@ -332,8 +332,8 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
                 className={`${input} ${errs.doctor ? inputErr : ''}`}
                 />
                 <datalist id="doctores-lista-tratamiento">
-                  {DOCTORES.map((d) => <option key={d} value={d} />)}
-                  </datalist>
+                  {usuariosConsultorio.map((u) => <option key={u.id} value={u.nombre} />)}
+                </datalist>
                   </Field>
               <Field label="Tipo de tratamiento" error={errs.tipo}>
                 <SelectBox
