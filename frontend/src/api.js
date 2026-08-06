@@ -1,8 +1,14 @@
 const BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
-function getToken() {
-  return localStorage.getItem('token')
+let onUnauthorized = null
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn
+}
+
+function getAuthHeaders() {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 async function verPDF(tipo, id) {
@@ -23,11 +29,14 @@ async function verPDF(tipo, id) {
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${getToken()}`,
+      ...getAuthHeaders(),
     },
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      onUnauthorized?.();
+    }
     const error = await response.text();
     console.error(error);
     throw new Error('Error al obtener el PDF');
@@ -44,11 +53,14 @@ async function verHistoriaPDF(historiaId) {
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${getToken()}`,
+      ...getAuthHeaders(),
     },
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      onUnauthorized?.();
+    }
     throw new Error('Error al obtener el PDF');
   }
 
@@ -61,12 +73,15 @@ async function request(path, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
+      ...getAuthHeaders(),
       ...options.headers,
     },
   });
 
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      onUnauthorized?.();
+    }
     const error = await res.json().catch(() => ({}));
     throw { status: res.status, ...error };
   }
@@ -88,17 +103,19 @@ function buildQuery(params = {}) {
   return str ? `?${str}` : ''
 }
 
-// Agrega esta función junto a verHistoriaPDF:
 async function verCotizacionPDF(cotizacionId) {
   const url = `${BASE_URL}/cotizaciones/${cotizacionId}/pdf`;
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${getToken()}`,
+      ...getAuthHeaders(),
     },
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      onUnauthorized?.();
+    }
     throw new Error('Error al obtener el PDF');
   }
 
@@ -111,11 +128,14 @@ async function verRecomendacionesPDF() {
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${getToken()}`,
+      ...getAuthHeaders(),
     },
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      onUnauthorized?.();
+    }
     throw new Error('Error al obtener el PDF');
   }
 
@@ -135,9 +155,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  getUsuarios: () => request('/usuarios'),
 
   // Pacientes
-  getPacientes:       ()         => request('/pacientes'),
+  getPacientes:       (params)   => request(`/pacientes${buildQuery(params)}`),
   buscarPacientes:    (q)        => request(`/pacientes/buscar?q=${encodeURIComponent(q)}`),
   getPaciente:        (id)       => request(`/pacientes/${id}`),
   crearPaciente:      (data)     => request('/pacientes', { method: 'POST', body: JSON.stringify(data) }),
@@ -206,8 +227,9 @@ export const api = {
   getConfiguracion: () => request('/configuracion'),
   actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Catálogo de Procedimientos CUPS (Backend Real)
+  // Catálogo de Procedimientos CUPS y CIE-10 (Backend Real)
   getCatalogoOficial: (params) => request(`/catalogo-cups${buildQuery(params)}`),
+  getCatalogoCie10: (params) => request(`/catalogo-cie10${buildQuery(params)}`),
   getProcedimientos: (params) => request(`/procedimientos${buildQuery(params)}`),
   crearProcedimiento: (data) =>
     request('/procedimientos', {
@@ -233,7 +255,40 @@ export const api = {
   // Módulo de RIPS (Backend Real)
   getRips: (params) => request(`/rips${buildQuery(params)}`),
   getRip: (id) => request(`/rips/${id}`),
-  generarRips: (data) => request('/rips/generar', { method: 'POST', body: JSON.stringify(data) })
+  generarRips: (data) => request('/rips/generar', { method: 'POST', body: JSON.stringify(data) }),
+  descargarRipsFile: async (id, formato = 'json') => {
+    const url = `${BASE_URL}/rips/${id}/descargar?formato=${encodeURIComponent(formato)}`;
+    const response = await fetch(url, {
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        onUnauthorized?.();
+      }
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al descargar el archivo RIPS');
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `rips_${id}.${formato}`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 

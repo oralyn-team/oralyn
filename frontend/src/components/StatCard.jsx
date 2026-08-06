@@ -1,28 +1,19 @@
-// src/components/StatCard.jsx
-
-/**
- * @param {object} props
- * @param {string} props.label       - Etiqueta de la métrica
- * @param {number} props.value       - Valor numérico
- * @param {string} props.sub         - Subtexto descriptivo
- * @param {string} props.accentColor - Color hex del acento izquierdo
- */
 export default function StatCard({ label, value, sub, accentColor }) {
   return (
-    <div className="relative bg-white border border-teal-border rounded-[10px] px-4 py-3.5 overflow-hidden">
+    <div className="relative bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl px-4 py-3.5 overflow-hidden shadow-soft-sm hover:shadow-soft-md transition-all duration-200">
       {/* Barra de acento izquierda */}
       <span
-        className="absolute top-0 left-0 w-[3px] h-full rounded-none"
-        style={{ backgroundColor: accentColor }}
+        className="absolute top-0 left-0 w-1 h-full rounded-l-xl"
+        style={{ backgroundColor: accentColor || '#3ECFCF' }}
       />
 
-      <p className="text-[11px] text-teal-muted uppercase tracking-[0.8px] mb-1.5">
+      <p className="text-[10px] sm:text-[11px] font-semibold text-teal-muted dark:text-dark-muted uppercase tracking-[0.8px] mb-1.5 truncate">
         {label}
       </p>
-      <p className="text-[22px] font-medium text-primary leading-none">
+      <p className="text-[20px] sm:text-[24px] font-bold text-primary dark:text-dark-text leading-none tracking-tight">
         {value}
       </p>
-      <p className="text-[11px] text-teal mt-1">{sub}</p>
+      <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-1 truncate">{sub}</p>
     </div>
   );
-}
+}

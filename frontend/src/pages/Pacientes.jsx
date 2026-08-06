@@ -26,11 +26,35 @@ export default function Pacientes() {
   const [filtroEstado, setFiltro] = useState('Todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast]         = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // DESPUÉS de todos los useState
-  if (loading) return <p style={{ padding: 32 }}>Cargando pacientes...</p>;
-  if (error)   return <p style={{ padding: 32, color: 'red' }}>{error}</p>;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 flex items-center justify-center p-6">
+            <p className="text-[13px] text-teal-muted dark:text-slate-400">Cargando pacientes...</p>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 flex items-center justify-center p-6">
+            <p className="text-[13px] text-status-red dark:text-red-400">{error}</p>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   const pacientesFiltrados = pacientes.filter((p) => {
     const t = busqueda.toLowerCase().trim();
@@ -56,34 +80,37 @@ export default function Pacientes() {
     setTimeout(() => setToast(null), 2200);
   }
 
-  function handleEditar() {
-  recargarPacientes();
-  mostrarToast('Paciente actualizado correctamente');
-}
-
   const stats = buildStats(pacientes);
 
   return (
-    <div className="flex min-h-screen bg-teal-bg font-sans relative">
-      <Sidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar pacientes={pacientes} />
-        <main className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="grid grid-cols-4 gap-3 mb-5">
+    <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+      <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+        
+        <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-5 custom-scrollbar">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
             {stats.map((s) => <StatCard key={s.label} {...s} />)}
           </div>
 
-          <div className="bg-white border border-teal-border rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-teal-soft">
-              <h2 className="text-[13px] font-medium text-primary">
+          {/* Main Card container */}
+          <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 py-4 border-b border-teal-soft dark:border-dark-border bg-teal-panel/40 dark:bg-slate-800/40 gap-2">
+              <h2 className="text-[14px] font-semibold text-primary dark:text-dark-text">
                 Pacientes registrados ({pacientesFiltrados.length})
               </h2>
             </div>
 
-            <div className="flex items-center gap-2.5 px-5 py-3 bg-teal-panel border-b border-teal-soft">
-              <SearchBar busqueda={busqueda} onBuscar={setBusqueda} />
-              <button type="button" onClick={() => setModalOpen(true)}
-                className="text-[12px] text-white font-medium font-sans px-3.5 py-[7px] bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors whitespace-nowrap flex items-center gap-1.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 px-4 sm:px-5 py-3 bg-teal-panel dark:bg-slate-800/60 border-b border-teal-soft dark:border-dark-border">
+              <div className="flex-1 min-w-0">
+                <SearchBar busqueda={busqueda} onBuscar={setBusqueda} />
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setModalOpen(true)}
+                className="text-[12px] text-white font-medium px-4 py-2.5 bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap flex items-center justify-center gap-1.5 touch-target cursor-pointer shadow-soft-sm"
+              >
                 + Nuevo paciente
               </button>
             </div>
@@ -99,10 +126,10 @@ export default function Pacientes() {
       )}
 
       {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white text-[12px] px-4 py-2 rounded-full whitespace-nowrap z-20 animate-toast">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 shadow-soft-lg animate-toast border border-white/10">
           ✓ {toast}
         </div>
       )}
     </div>
   );
-}
+}

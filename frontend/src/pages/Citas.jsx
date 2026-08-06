@@ -78,17 +78,15 @@ export default function Citas() {
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const pacientesParaSelector = useMemo(() => (
     pacientes.map((p) => ({ id: p.id, nombre: nombreCompletoPaciente(p) }))
   ), [pacientes]);
 
-  // Ref para que normalizeCita siempre tenga los pacientes más recientes
-  // sin que el useEffect de carga se dispare cada vez que cambian
   const pacientesRef = useRef(pacientes);
   useEffect(() => { pacientesRef.current = pacientes; }, [pacientes]);
 
-  // Cargar citas solo al montar el componente
   useEffect(() => {
     let activo = true;
 
@@ -108,7 +106,7 @@ export default function Citas() {
 
     cargarCitas();
     return () => { activo = false; };
-  }, []); // ← Solo se ejecuta al montar, NO cuando cambian pacientes
+  }, []);
 
   function mostrarToast(msg) {
     setToast(msg);
@@ -141,7 +139,7 @@ export default function Citas() {
       mostrarToast(citaEditar ? 'Cita actualizada correctamente' : 'Cita creada correctamente');
       setModalOpen(false);
       setCitaEditar(null);
-      recargarPacientes(); // Actualiza notificaciones y contadores
+      recargarPacientes();
     } catch (err) {
       console.error('Error guardando cita:', err);
       mostrarToast(err.error || 'No se pudo guardar la cita');
@@ -175,53 +173,54 @@ export default function Citas() {
   const stats = buildStats(citas);
 
   return (
-    <div className="flex min-h-screen bg-teal-bg font-sans relative">
-      <Sidebar />
+    <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+      <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
 
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar pacientes={pacientes} />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="grid grid-cols-4 gap-3 mb-5">
+        <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-5 custom-scrollbar">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5">
             {stats.map((s) => <StatCard key={s.label} {...s} />)}
           </div>
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-[15px] font-medium text-primary">Gestion de Citas</h2>
-              <p className="text-[11px] text-teal mt-0.5">
+              <h2 className="text-[15px] font-semibold text-primary dark:text-dark-text">Gestión de Citas</h2>
+              <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
                 {loading ? 'Cargando citas...' : `${citas.length} citas registradas`}
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center bg-white border border-teal-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <div className="flex items-center bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl overflow-hidden p-0.5 shadow-soft-sm">
                 <button
                   type="button"
                   onClick={() => setVista('tabla')}
                   className={[
-                    'flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium font-sans border-none cursor-pointer transition-colors',
-                    vista === 'tabla' ? 'bg-primary text-white' : 'bg-white text-teal-muted hover:bg-teal-soft',
+                    'flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium font-sans border-none cursor-pointer rounded-lg transition-colors touch-target',
+                    vista === 'tabla' ? 'bg-primary text-white dark:bg-teal dark:text-slate-900' : 'bg-transparent text-teal-muted dark:text-slate-400 hover:text-primary dark:hover:text-white',
                   ].join(' ')}
                 >
-                  <List size={13} /> Lista
+                  <List size={14} /> Lista
                 </button>
                 <button
                   type="button"
                   onClick={() => setVista('calendario')}
                   className={[
-                    'flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium font-sans border-none cursor-pointer transition-colors',
-                    vista === 'calendario' ? 'bg-primary text-white' : 'bg-white text-teal-muted hover:bg-teal-soft',
+                    'flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium font-sans border-none cursor-pointer rounded-lg transition-colors touch-target',
+                    vista === 'calendario' ? 'bg-primary text-white dark:bg-teal dark:text-slate-900' : 'bg-transparent text-teal-muted dark:text-slate-400 hover:text-primary dark:hover:text-white',
                   ].join(' ')}
                 >
-                  <CalendarDays size={13} /> Calendario
+                  <CalendarDays size={14} /> Calendario
                 </button>
               </div>
 
               <button
                 type="button"
                 onClick={abrirCrear}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity touch-target cursor-pointer shadow-soft-sm whitespace-nowrap"
               >
                 + Nueva cita
               </button>
@@ -229,22 +228,26 @@ export default function Citas() {
           </div>
 
           {error && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-status-red">
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/40 p-3 text-[12px] text-status-red dark:text-red-400 font-medium">
               {error}
             </div>
           )}
 
           {loading ? (
-            <p className="text-[13px] text-teal-muted px-1">Cargando citas...</p>
+            <p className="text-[13px] text-teal-muted dark:text-slate-400 px-1 py-8 text-center">Cargando citas...</p>
           ) : vista === 'tabla' ? (
-            <CitaTabla
-              citas={citas}
-              onEditar={abrirEditar}
-              onEliminar={eliminarCita}
-              onCambiarEstado={cambiarEstado}
-            />
+            <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+              <CitaTabla
+                citas={citas}
+                onEditar={abrirEditar}
+                onEliminar={eliminarCita}
+                onCambiarEstado={cambiarEstado}
+              />
+            </div>
           ) : (
-            <CitaCalendario citas={citas} />
+            <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-4 sm:p-5 shadow-soft-sm">
+              <CitaCalendario citas={citas} />
+            </div>
           )}
         </main>
       </div>
@@ -259,10 +262,11 @@ export default function Citas() {
       )}
 
       {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white text-[12px] px-4 py-2 rounded-full whitespace-nowrap z-20 animate-toast">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 animate-toast border border-white/10 shadow-soft-lg">
           {toast}
         </div>
       )}
     </div>
   );
 }
+

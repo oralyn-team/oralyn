@@ -1,6 +1,6 @@
-// src/context/AppContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../api';
+import { api, setUnauthorizedHandler } from '../api';
+import { tokenExpirado } from '../utils/jwt';
 import { calcTotales } from '../components/historias/tratamientos/helpers';
 
 const AppContext = createContext(null);
@@ -110,31 +110,91 @@ function normalizeCotizacion(cotizacion = {}) {
 }
 
 export function AppProvider({ children }) {
-  const [token, setToken]             = useState(() => localStorage.getItem('token'));
+  const [token, setToken]             = useState(() => {
+    const t = localStorage.getItem('token');
+    return t && !tokenExpirado(t) ? t : null;
+  });
+  const [sesionExpirada, setSesionExpirada] = useState(false);
+  const [darkMode, setDarkMode]       = useState(() => localStorage.getItem('theme') === 'dark');
   const [pacientes, setPacientes]     = useState([]);
   const [historias, setHistorias]     = useState([]);
   const [configuracion, setConfiguracion] = useState(null);
   const [procedimientosCatalog, setProcedimientosCatalog] = useState([]);
+  const [usuariosConsultorio, setUsuariosConsultorio] = useState([]);
   const [loadingProcedimientos, setLoadingProcedimientos] = useState(false);
-  const [loading, setLoading]         = useState(true);
+  const [loadingPacientes, setLoadingPacientes] = useState(true);
   const [error, setError]             = useState(null);
+
+  // Registrar handler para peticiones no autorizadas (401/403)
+  useEffect(() => {
+    setUnauthorizedHandler(() => cerrarSesion({ expirada: true }));
+  }, []);
+
+  // Timer ligero (cada 60s) para verificar expiración proactiva del token
+  useEffect(() => {
+    if (!token) return;
+    const interval = setInterval(() => {
+      if (tokenExpirado(token)) {
+        cerrarSesion({ expirada: true });
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // Sync dark class on document element
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode((prev) => !prev);
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  function guardarToken(nuevoToken) {
+    localStorage.setItem('token', nuevoToken);
+    setToken(nuevoToken);
+    setSesionExpirada(false);
+  }
+
+  function cerrarSesion(options = {}) {
+    const isExpirada = typeof options === 'object' && options?.expirada === true;
+    localStorage.removeItem('token');
+    setToken(null);
+    setPacientes([]);
+    setHistorias([]);
+    setConfiguracion(null);
+    setProcedimientosCatalog([]);
+    setUsuariosConsultorio([]);
+    if (isExpirada) {
+      setSesionExpirada(true);
+    }
+  }
+
+  function limpiarSesionExpirada() {
+    setSesionExpirada(false);
+  }
 
   // ── Carga inicial de pacientes ────────────────────────────────────────────
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
-    setLoading(true);
+    if (!token) { setLoadingPacientes(false); return; }
+    setLoadingPacientes(true);
     setError(null);
     api.getPacientes()
-      .then((data) => setPacientes(data))
+      .then((data) => setPacientes(Array.isArray(data) ? data : (data?.data || [])))
       .catch((err) => {
         console.error('Error cargando pacientes:', err);
         if (err.status === 401 || err.status === 403) {
-          cerrarSesion();
+          cerrarSesion({ expirada: true });
         } else {
           setError('No se pudieron cargar los pacientes');
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingPacientes(false));
   }, [token]);
 
   // ── Carga inicial de configuración ────────────────────────────────────────
@@ -143,6 +203,14 @@ export function AppProvider({ children }) {
     api.getConfiguracion()
       .then(setConfiguracion)
       .catch(() => {}); // Si no existe aún, simplemente queda null
+  }, [token]);
+
+  // ── Carga inicial de usuarios del consultorio ──────────────────────────────
+  useEffect(() => {
+    if (!token) return;
+    api.getUsuarios()
+      .then((data) => setUsuariosConsultorio(Array.isArray(data) ? data : []))
+      .catch(() => setUsuariosConsultorio([]));
   }, [token]);
 
   // ── Carga inicial del catálogo de procedimientos CUPS ─────────────────────
@@ -154,21 +222,6 @@ export function AppProvider({ children }) {
       .catch(() => {})
       .finally(() => setLoadingProcedimientos(false));
   }, [token]);
-
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  function guardarToken(nuevoToken) {
-    localStorage.setItem('token', nuevoToken);
-    setToken(nuevoToken);
-  }
-
-  function cerrarSesion() {
-    localStorage.removeItem('token');
-    setToken(null);
-    setPacientes([]);
-    setHistorias([]);
-    setConfiguracion(null);
-    setProcedimientosCatalog([]);
-  }
 
   // ── Pacientes ─────────────────────────────────────────────────────────────
   async function recargarPacientes() {
@@ -332,7 +385,15 @@ export function AppProvider({ children }) {
 
   async function crearProcedimientoCtx(data) {
     const nuevo = await api.crearProcedimiento(data);
-    setProcedimientosCatalog((prev) => [...prev, nuevo]);
+    setProcedimientosCatalog((prev) => {
+      const idx = prev.findIndex(p => p.id === nuevo.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = nuevo;
+        return next;
+      }
+      return [...prev, nuevo];
+    });
     return nuevo;
   }
 
@@ -343,18 +404,21 @@ export function AppProvider({ children }) {
   }
 
   async function eliminarProcedimientoCtx(id) {
-    await api.eliminarProcedimiento(id);
-    setProcedimientosCatalog((prev) => prev.filter((p) => p.id !== id));
+    const res = await api.eliminarProcedimiento(id);
+    setProcedimientosCatalog((prev) => prev.map((p) => (p.id === id ? { ...p, activo: false } : p)));
+    return res;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <AppContext.Provider value={{
-      // Auth
-      token, guardarToken, cerrarSesion,
+      // Auth & Theme
+      token, guardarToken, cerrarSesion, sesionExpirada, limpiarSesionExpirada,
+      darkMode, toggleDarkMode,
       // Pacientes
       pacientes, setPacientes,
       agregarPaciente, eliminarPaciente, recargarPacientes,
+
       // Historias
       historias, setHistorias,
       actualizarHistoria, crearEvolucion, eliminarEvolucion, actualizarOdontograma,
@@ -364,6 +428,7 @@ export function AppProvider({ children }) {
       getPagosPaciente, registrarPago,
       // Configuración
       configuracion, setConfiguracion,
+      usuariosConsultorio,
       // Catálogo Procedimientos CUPS
       procedimientosCatalog, loadingProcedimientos,
       getProcedimientosAgrupados,
@@ -371,7 +436,9 @@ export function AppProvider({ children }) {
       actualizarProcedimiento: actualizarProcedimientoCtx,
       eliminarProcedimiento:   eliminarProcedimientoCtx,
       // Estado global
-      loading, error,
+      loadingPacientes,
+      loading: loadingPacientes, // deprecated: alias para no romper consumidores existentes
+      error,
     }}>
       {children}
     </AppContext.Provider>
