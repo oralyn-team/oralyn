@@ -17,6 +17,7 @@ import Topbar from '../components/layout/Topbar';
 import StatCard from '../components/StatCard';
 import { useApp } from '../context/Appcontext';
 import { api } from '../api';
+import { useSignaturePad } from '../hooks/useSignaturePad';
 
 const TIPOS_CONSENTIMIENTO = [
   { value: 'anestesia', label: 'Anestesia' },
@@ -174,6 +175,10 @@ export default function Consentimientos() {
     [pacientes, pacienteId]
   );
 
+  // Firmas: una para el paciente, otra para la doctora
+  const firmaPaciente = useSignaturePad(pacienteId);
+  const firmaDoctor = useSignaturePad(pacienteId);
+
   const pacientesFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     if (!texto) return pacientes;
@@ -189,9 +194,7 @@ export default function Consentimientos() {
     detalle: '',
     nombre_paciente_declarado: '',
     cc_paciente_declarado: '',
-    firma_paciente: '',
     cc_profesional: '',
-    firma_doctor: '',
   });
 
   const [certificadoForm, setCertificadoForm] = useState({
@@ -251,11 +254,13 @@ export default function Consentimientos() {
           : null,
         nombre_paciente_declarado: consentimientoForm.nombre_paciente_declarado || null,
         cc_paciente_declarado: consentimientoForm.cc_paciente_declarado || null,
-        firma_paciente: consentimientoForm.firma_paciente || null,
+        firma_paciente: firmaPaciente.obtenerImagen() || null,
         cc_profesional: consentimientoForm.cc_profesional || null,
-        firma_doctor: consentimientoForm.firma_doctor || null,
+        firma_doctor: firmaDoctor.obtenerImagen() || null,
       });
-      setConsentimientoForm((prev) => ({ ...prev, detalle: '', firma_paciente: '', firma_doctor: '' }));
+      setConsentimientoForm((prev) => ({ ...prev, detalle: '' }));
+      firmaPaciente.limpiar();
+      firmaDoctor.limpiar();
       await cargarDocumentos(pacienteId);
       mostrarMensaje('Consentimiento creado correctamente');
     } catch (err) {
@@ -541,20 +546,34 @@ export default function Consentimientos() {
                         </Campo>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Campo label="Firma paciente">
-                            <input
-                              value={consentimientoForm.firma_paciente}
-                              onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, firma_paciente: e.target.value }))}
-                              className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
-                              placeholder="Texto o base64"
-                            />
+                            <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden bg-white">
+                              <canvas
+                                ref={firmaPaciente.canvasRef}
+                                className="w-full h-32 cursor-crosshair touch-none"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={firmaPaciente.limpiar}
+                              className="mt-1.5 text-[11px] text-status-red dark:text-red-400 hover:underline cursor-pointer"
+                            >
+                              Limpiar firma
+                            </button>
                           </Campo>
                           <Campo label="Firma doctor">
-                            <input
-                              value={consentimientoForm.firma_doctor}
-                              onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, firma_doctor: e.target.value }))}
-                              className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
-                              placeholder="Texto o base64"
-                            />
+                            <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden bg-white">
+                              <canvas
+                                ref={firmaDoctor.canvasRef}
+                                className="w-full h-32 cursor-crosshair touch-none"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={firmaDoctor.limpiar}
+                              className="mt-1.5 text-[11px] text-status-red dark:text-red-400 hover:underline cursor-pointer"
+                            >
+                              Limpiar firma
+                            </button>
                           </Campo>
                         </div>
                         <Campo label="CC profesional">
@@ -567,16 +586,18 @@ export default function Consentimientos() {
                         <div className="flex gap-2 pt-2">
                           <button
                             type="button"
-                            onClick={() => setConsentimientoForm({
-                              tipo: 'anestesia',
-                              ciudad: 'Villavicencio',
-                              detalle: '',
-                              nombre_paciente_declarado: nombreCompleto(pacienteSeleccionado),
-                              cc_paciente_declarado: pacienteSeleccionado?.numero_documento || '',
-                              firma_paciente: '',
-                              cc_profesional: '',
-                              firma_doctor: '',
-                            })}
+                            onClick={() => {
+                              firmaPaciente.limpiar();
+                              firmaDoctor.limpiar();
+                              setConsentimientoForm({
+                                tipo: 'anestesia',
+                                ciudad: 'Villavicencio',
+                                detalle: '',
+                                nombre_paciente_declarado: nombreCompleto(pacienteSeleccionado),
+                                cc_paciente_declarado: pacienteSeleccionado?.numero_documento || '',
+                                cc_profesional: '',
+                              });
+                            }}
                             className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] text-primary dark:text-slate-300 bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors touch-target font-medium cursor-pointer"
                           >
                             Cancelar
