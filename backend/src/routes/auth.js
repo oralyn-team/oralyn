@@ -1,9 +1,18 @@
 const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { rateLimit } = require('express-rate-limit')
 const prisma = require('../lib/prisma')
 
 const router = express.Router()
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10, // 10 intentos por IP en la ventana
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en unos minutos.' }
+})
 
 // POST /api/auth/registro
 router.post('/registro', async (req, res) => {
@@ -53,7 +62,7 @@ router.post('/registro', async (req, res) => {
 })
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body
 
   if (!email || !password) {

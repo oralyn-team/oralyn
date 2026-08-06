@@ -34,10 +34,6 @@ async function construirRips(consultorioId, fechaInicio, fechaFin) {
   const profesionalesSet = new Set()
   const procedimientosList = []
 
-  if (consultorio?.nombre_profesional) {
-    profesionalesSet.add(consultorio.nombre_profesional)
-  }
-
   for (const cita of citas) {
     if (cita.doctor) profesionalesSet.add(cita.doctor)
 
@@ -69,7 +65,7 @@ async function construirRips(consultorioId, fechaInicio, fechaFin) {
       codigoCups,
       nombreProcedimiento,
       codigoCie10: cita.codigo_cie10 || 'Z012',
-      doctor: cita.doctor || consultorio?.nombre_profesional || 'Profesional General',
+      doctor: cita.doctor || null,
       valorCobrado: cita.valor_cobrado ? Number(cita.valor_cobrado) : 0,
       observaciones: cita.observaciones || ''
     })

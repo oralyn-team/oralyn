@@ -103,6 +103,21 @@ model CatalogoOficialCups {
   @@map("catalogo_oficial_cups")
 }
 
+// ─── CATÁLOGO OFICIAL CIE-10 ────────────────────────────────
+
+model CatalogoOficialCie10 {
+  id             Int      @id @default(autoincrement())
+  codigo_cie10   String   @unique
+  nombre_oficial String
+  categoria      String
+  descripcion    String?
+  activo         Boolean  @default(true)
+  creado_en      DateTime @default(now())
+  actualizado_en DateTime @default(now()) @updatedAt
+
+  @@map("catalogo_oficial_cie10")
+}
+
 // ─── PROCEDIMIENTOS DEL CONSULTORIO ─────────────────────────
 
 model ProcedimientoConsultorio {

@@ -93,94 +93,126 @@ router.post('/', async (req, res) => {
   }
 })
 
-// GET /api/pacientes — listar todos
+function mapPacienteSummary(p, ahora = new Date()) {
+  const citasPasadas = (p.citas || []).filter(c => new Date(c.fecha_hora) <= ahora)
+  const citasFuturas = (p.citas || []).filter(c => new Date(c.fecha_hora) > ahora && c.estado === 'pendiente')
+
+  const tieneCitasPasadas = citasPasadas.length > 0
+  const totalSaldoPendiente = (p.cotizaciones || []).reduce((sum, c) => sum + Number(c.saldo ?? 0), 0)
+  const tieneSaldo = totalSaldoPendiente > 0
+  const tratamientosPendientes = (p.cotizaciones || []).filter(c => Number(c.saldo ?? 0) > 0).length
+
+  let estado = 'Nuevo'
+  if (tieneCitasPasadas && tieneSaldo) estado = 'Pendiente'
+  else if (tieneCitasPasadas && !tieneSaldo) estado = 'Al día'
+
+  const ultimaCitaPasada = citasPasadas[0]
+  const ultimaVisita = ultimaCitaPasada?.fecha_hora
+    ? new Date(ultimaCitaPasada.fecha_hora).toISOString().split('T')[0]
+    : null
+
+  const proximaCitaObj = citasFuturas.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora))[0]
+  const proximaCita = proximaCitaObj?.fecha_hora
+    ? new Date(proximaCitaObj.fecha_hora).toISOString()
+    : null
+
+  return {
+    id: p.id,
+    primer_apellido: p.primer_apellido,
+    segundo_apellido: p.segundo_apellido,
+    nombres: p.nombres,
+    tipo_documento: p.tipo_documento,
+    numero_documento: p.numero_documento,
+    fecha_nacimiento: p.fecha_nacimiento
+      ? new Date(p.fecha_nacimiento).toISOString().split('T')[0]
+      : null,
+    sexo: p.sexo,
+    telefono: p.telefono,
+    correo: p.correo,
+    municipio_ciudad: p.municipio_ciudad,
+    creado_en: p.creado_en,
+    ultimaVisita,
+    estado,
+    saldoPendiente: totalSaldoPendiente,
+    tratamientosPendientes,
+    citasPendientes: citasFuturas.length,
+    proximaCita,
+  }
+}
+
+// GET /api/pacientes — listar (con paginación opcional)
 router.get('/', async (req, res) => {
   try {
+    const { page, limit, q } = req.query
     const ahora = new Date()
+    const where = { consultorio_id: req.usuario.consultorio_id }
+
+    if (q && q.trim()) {
+      where.OR = [
+        { nombres: { contains: q.trim(), mode: 'insensitive' } },
+        { primer_apellido: { contains: q.trim(), mode: 'insensitive' } },
+        { numero_documento: { contains: q.trim(), mode: 'insensitive' } },
+      ]
+    }
+
+    const select = {
+      id: true,
+      primer_apellido: true,
+      segundo_apellido: true,
+      nombres: true,
+      tipo_documento: true,
+      numero_documento: true,
+      fecha_nacimiento: true,
+      sexo: true,
+      telefono: true,
+      correo: true,
+      municipio_ciudad: true,
+      creado_en: true,
+      citas: {
+        select: { id: true, fecha_hora: true, estado: true },
+        orderBy: { fecha_hora: 'desc' },
+      },
+      cotizaciones: {
+        where: { estado: { not: 'cancelado' } },
+        select: { id: true, total: true, saldo: true, estado: true }
+      },
+      pagos: {
+        select: { monto: true }
+      }
+    }
+
+    if (page || limit) {
+      const pageNum = Math.max(1, parseInt(page) || 1)
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20))
+
+      const [total, items] = await Promise.all([
+        prisma.paciente.count({ where }),
+        prisma.paciente.findMany({
+          where,
+          orderBy: { primer_apellido: 'asc' },
+          select,
+          skip: (pageNum - 1) * limitNum,
+          take: limitNum,
+        })
+      ])
+
+      const resultado = items.map(p => mapPacienteSummary(p, ahora))
+      return res.json({
+        data: resultado,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
+      })
+    }
 
     const pacientes = await prisma.paciente.findMany({
-      where: { consultorio_id: req.usuario.consultorio_id },
+      where,
       orderBy: { primer_apellido: 'asc' },
-      select: {
-        id: true,
-        primer_apellido: true,
-        segundo_apellido: true,
-        nombres: true,
-        tipo_documento: true,
-        numero_documento: true,
-        fecha_nacimiento: true,
-        sexo: true,
-        telefono: true,
-        correo: true,
-        municipio_ciudad: true,
-        creado_en: true,
-        citas: {
-          select: { id: true, fecha_hora: true, estado: true },
-          orderBy: { fecha_hora: 'desc' },
-        },
-        cotizaciones: {
-          where: { estado: { not: 'cancelado' } },
-          select: { id: true, total: true, saldo: true, estado: true }
-        },
-        pagos: {
-          select: { monto: true }
-        }
-      }
+      select
     })
 
-    const resultado = pacientes.map(p => {
-      const citasPasadas = p.citas.filter(c => new Date(c.fecha_hora) <= ahora)
-      const citasFuturas = p.citas.filter(c => new Date(c.fecha_hora) > ahora && c.estado === 'pendiente')
-
-      const tieneCitasPasadas = citasPasadas.length > 0
-
-      // Saldo pendiente: suma de saldos de todas las cotizaciones no canceladas
-      const totalSaldoPendiente = p.cotizaciones.reduce((sum, c) => sum + Number(c.saldo ?? 0), 0)
-      const tieneSaldo = totalSaldoPendiente > 0
-
-      // Tratamientos pendientes de pago (cotizaciones activas con saldo > 0)
-      const tratamientosPendientes = p.cotizaciones.filter(c => Number(c.saldo ?? 0) > 0).length
-
-      let estado = 'Nuevo'
-      if (tieneCitasPasadas && tieneSaldo) estado = 'Pendiente'
-      else if (tieneCitasPasadas && !tieneSaldo) estado = 'Al día'
-
-      // Última cita pasada
-      const ultimaCitaPasada = citasPasadas[0]
-      const ultimaVisita = ultimaCitaPasada?.fecha_hora
-        ? new Date(ultimaCitaPasada.fecha_hora).toISOString().split('T')[0]
-        : null
-
-      // Próxima cita futura pendiente
-      const proximaCitaObj = citasFuturas.sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora))[0]
-      const proximaCita = proximaCitaObj?.fecha_hora
-        ? new Date(proximaCitaObj.fecha_hora).toISOString()
-        : null
-
-      return {
-        id: p.id,
-        primer_apellido: p.primer_apellido,
-        segundo_apellido: p.segundo_apellido,
-        nombres: p.nombres,
-        tipo_documento: p.tipo_documento,
-        numero_documento: p.numero_documento,
-        fecha_nacimiento: p.fecha_nacimiento
-          ? p.fecha_nacimiento.toISOString().split('T')[0]
-          : null,
-        sexo: p.sexo,
-        telefono: p.telefono,
-        correo: p.correo,
-        municipio_ciudad: p.municipio_ciudad,
-        creado_en: p.creado_en,
-        ultimaVisita,
-        estado,
-        saldoPendiente: totalSaldoPendiente,
-        tratamientosPendientes,
-        citasPendientes: citasFuturas.length,
-        proximaCita,
-      }
-    })
-
+    const resultado = pacientes.map(p => mapPacienteSummary(p, ahora))
     res.json(resultado)
   } catch (error) {
     console.error(error)

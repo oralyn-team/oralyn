@@ -120,7 +120,13 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Procedimiento del Catálogo Oficial no encontrado.' })
     }
 
-    // Validar que el consultorio no haya registrado ya este procedimiento oficial
+    const valorNum = (precio !== undefined && precio !== null && precio !== '')
+      ? Number(precio)
+      : (valorBase !== undefined && valorBase !== null && valorBase !== '')
+        ? Number(valorBase)
+        : null
+
+    // Validar si el consultorio ya registró este procedimiento oficial
     const existe = await prisma.procedimientoConsultorio.findUnique({
       where: {
         consultorio_id_catalogo_oficial_id: {
@@ -130,15 +136,43 @@ router.post('/', async (req, res) => {
       }
     })
 
-    if (existe) {
-      return res.status(400).json({ error: 'Este procedimiento del catálogo oficial ya se encuentra registrado en el consultorio.' })
+    if (existe && existe.activo) {
+      return res.status(400).json({ error: 'Este procedimiento del catálogo oficial ya se encuentra registrado y activo en el consultorio.' })
     }
 
-    const valorNum = (precio !== undefined && precio !== null && precio !== '')
-      ? Number(precio)
-      : (valorBase !== undefined && valorBase !== null && valorBase !== '')
-        ? Number(valorBase)
-        : null
+    if (existe && !existe.activo) {
+      // Reactivar en vez de crear uno nuevo
+      const reactivado = await prisma.procedimientoConsultorio.update({
+        where: { id: existe.id },
+        data: {
+          activo: true,
+          nombre_visible: nombreFinal,
+          precio: valorNum
+        },
+        include: { catalogo_oficial: true }
+      })
+
+      const respuesta = {
+        id: reactivado.id,
+        consultorio_id: reactivado.consultorio_id,
+        catalogo_oficial_id: reactivado.catalogo_oficial_id,
+        codigo: reactivado.catalogo_oficial?.codigo_cups || '',
+        codigo_cups: reactivado.catalogo_oficial?.codigo_cups || '',
+        nombreOficial: reactivado.catalogo_oficial?.nombre_oficial || '',
+        nombre_oficial: reactivado.catalogo_oficial?.nombre_oficial || '',
+        nombre: reactivado.nombre_visible,
+        nombre_visible: reactivado.nombre_visible,
+        categoria: reactivado.catalogo_oficial?.categoria || 'General',
+        valorBase: reactivado.precio ? Number(reactivado.precio) : 0,
+        precio: reactivado.precio ? Number(reactivado.precio) : 0,
+        activo: reactivado.activo,
+        createdAt: reactivado.creado_en,
+        updatedAt: reactivado.actualizado_en,
+        _reactivado: true
+      }
+
+      return res.status(200).json(respuesta)
+    }
 
     const nuevo = await prisma.procedimientoConsultorio.create({
       data: {
@@ -263,12 +297,25 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Procedimiento no encontrado' })
     }
 
+    const citasFuturasPendientes = await prisma.cita.count({
+      where: {
+        procedimiento_consultorio_id: id,
+        estado: 'pendiente',
+        fecha_hora: { gte: new Date() }
+      }
+    })
+
     await prisma.procedimientoConsultorio.update({
       where: { id },
       data: { activo: false }
     })
 
-    res.status(200).json({ message: 'Procedimiento desactivado correctamente' })
+    res.status(200).json({
+      message: 'Procedimiento desactivado correctamente',
+      advertencia: citasFuturasPendientes > 0
+        ? `Este procedimiento tiene ${citasFuturasPendientes} cita(s) pendiente(s) que aún lo referencian.`
+        : null
+    })
   } catch (error) {
     console.error('Error al desactivar procedimiento:', error)
     res.status(500).json({ error: 'Error interno del servidor' })

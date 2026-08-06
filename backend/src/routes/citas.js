@@ -12,6 +12,7 @@ router.post('/', async (req, res) => {
     fecha_hora,
     doctor,
     procedimiento,
+    procedimiento_consultorio_id,
     codigo_cups,
     codigo_cie10,
     valor_cobrado,
@@ -23,11 +24,37 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Paciente, fecha y procedimiento son obligatorios' })
   }
 
+  if (valor_cobrado !== undefined && valor_cobrado !== null && valor_cobrado !== '') {
+    const val = Number(valor_cobrado)
+    if (isNaN(val) || val < 0) {
+      return res.status(400).json({ error: 'El valor cobrado debe ser un número mayor o igual a 0' })
+    }
+  }
+
   try {
     const paciente = await prisma.paciente.findFirst({
       where: { id: paciente_id, consultorio_id: req.usuario.consultorio_id }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
+
+    let procConsultorio = null
+    let codigoCupsDerivado = codigo_cups ?? null
+    if (procedimiento_consultorio_id !== undefined && procedimiento_consultorio_id !== null && procedimiento_consultorio_id !== '') {
+      const procId = parseInt(procedimiento_consultorio_id)
+      if (isNaN(procId)) {
+        return res.status(400).json({ error: 'procedimiento_consultorio_id debe ser un número válido' })
+      }
+      procConsultorio = await prisma.procedimientoConsultorio.findFirst({
+        where: { id: procId, consultorio_id: req.usuario.consultorio_id },
+        include: { catalogo_oficial: true }
+      })
+      if (!procConsultorio) {
+        return res.status(400).json({ error: 'El procedimiento seleccionado no existe o pertenece a otro consultorio' })
+      }
+      if (!codigoCupsDerivado && procConsultorio.catalogo_oficial?.codigo_cups) {
+        codigoCupsDerivado = procConsultorio.catalogo_oficial.codigo_cups
+      }
+    }
 
     const cita = await prisma.cita.create({
       data: {
@@ -36,9 +63,10 @@ router.post('/', async (req, res) => {
         fecha_hora: new Date(fecha_hora),
         doctor:              doctor              ?? null,
         procedimiento,
-        codigo_cups:         codigo_cups         ?? null,
+        procedimiento_consultorio_id: procConsultorio ? procConsultorio.id : null,
+        codigo_cups:         codigoCupsDerivado,
         codigo_cie10:        codigo_cie10        ?? null,
-        valor_cobrado:       valor_cobrado       ?? null,
+        valor_cobrado:       valor_cobrado !== undefined && valor_cobrado !== null && valor_cobrado !== '' ? Number(valor_cobrado) : null,
         observaciones:       observaciones       ?? null,
         causas_no_atencion:  causas_no_atencion  ?? null,
       }
@@ -157,16 +185,42 @@ router.patch('/:id/estado', async (req, res) => {
 // PUT /api/citas/:id — actualizar cita
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
-  const datos = req.body
+  const datos = { ...req.body }
 
   if (datos.fecha_hora) datos.fecha_hora = new Date(datos.fecha_hora)
   delete datos.consultorio_id
+
+  if (datos.valor_cobrado !== undefined && datos.valor_cobrado !== null && datos.valor_cobrado !== '') {
+    const val = Number(datos.valor_cobrado)
+    if (isNaN(val) || val < 0) {
+      return res.status(400).json({ error: 'El valor cobrado debe ser un número mayor o igual a 0' })
+    }
+    datos.valor_cobrado = val
+  }
 
   try {
     const existe = await prisma.cita.findFirst({
       where: { id, consultorio_id: req.usuario.consultorio_id }
     })
     if (!existe) return res.status(404).json({ error: 'Cita no encontrada' })
+
+    if (datos.procedimiento_consultorio_id !== undefined && datos.procedimiento_consultorio_id !== null && datos.procedimiento_consultorio_id !== '') {
+      const procId = parseInt(datos.procedimiento_consultorio_id)
+      if (isNaN(procId)) {
+        return res.status(400).json({ error: 'procedimiento_consultorio_id debe ser un número válido' })
+      }
+      const procConsultorio = await prisma.procedimientoConsultorio.findFirst({
+        where: { id: procId, consultorio_id: req.usuario.consultorio_id },
+        include: { catalogo_oficial: true }
+      })
+      if (!procConsultorio) {
+        return res.status(400).json({ error: 'El procedimiento seleccionado no existe o pertenece a otro consultorio' })
+      }
+      datos.procedimiento_consultorio_id = procConsultorio.id
+      if (!datos.codigo_cups && procConsultorio.catalogo_oficial?.codigo_cups) {
+        datos.codigo_cups = procConsultorio.catalogo_oficial.codigo_cups
+      }
+    }
 
     const cita = await prisma.cita.update({ where: { id }, data: datos })
     res.json(cita)
