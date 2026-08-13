@@ -53,6 +53,18 @@ function citaToApi(cita) {
     paciente_id: Number(cita.paciente_id ?? cita.pacienteId),
     fecha_hora: cita.fecha_hora,
     procedimiento: cita.procedimiento || cita.motivo,
+    procedimiento_consultorio_id: cita.procedimiento_consultorio_id
+      ? Number(cita.procedimiento_consultorio_id)
+      : null,
+    procedimiento_cotizacion_id: cita.procedimiento_cotizacion_id
+      ? Number(cita.procedimiento_cotizacion_id)
+      : null,
+    codigo_cups: cita.codigo_cups || null,
+    codigo_cie10: cita.codigo_cie10 || null,
+    valor_cobrado:
+      cita.valor_cobrado !== '' && cita.valor_cobrado !== null && cita.valor_cobrado !== undefined
+        ? Number(cita.valor_cobrado)
+        : null,
     doctor: cita.doctor || null,
     estado: ESTADO_UI_TO_API[cita.estado] || 'pendiente',
     observaciones: cita.observaciones || null,
