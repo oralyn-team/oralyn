@@ -47,7 +47,7 @@ function prepararProcedimientos(procedimientos) {
     if (!estadosProcedimientoValidos.includes(estado)) throw new BadRequestError('Estado de procedimiento no válido')
     if (!Number.isFinite(subtotal)) throw new BadRequestError('Valores de procedimiento no válidos')
 
-    return {
+    const item = {
       procedimiento: p.procedimiento,
       descripcion: p.descripcion ?? null,
       aplica_en,
@@ -61,6 +61,12 @@ function prepararProcedimientos(procedimientos) {
       observaciones: p.observaciones ?? null,
       orden: Number.isInteger(Number(p.orden)) ? Number(p.orden) : i
     }
+
+    if (p.id && Number.isInteger(Number(p.id)) && Number(p.id) > 0) {
+      item.id = Number(p.id)
+    }
+
+    return item
   })
 }
 
@@ -279,7 +285,36 @@ router.put('/:id', async (req, res) => {
     const saldo = Math.max(total - totalPagado, 0)
 
     const cotizacion = await prisma.$transaction(async (tx) => {
-      await tx.procedimientoCotizacion.deleteMany({ where: { cotizacion_id: id } })
+      const existentes = await tx.procedimientoCotizacion.findMany({
+        where: { cotizacion_id: id },
+        select: { id: true }
+      })
+      const idsExistentes = new Set(existentes.map(p => p.id))
+      const idsEnPayload = new Set(
+        procedimientosData.filter(p => p.id).map(p => p.id)
+      )
+
+      // 1. Borrar solo los que ya no vienen en el payload
+      const idsABorrar = [...idsExistentes].filter(pid => !idsEnPayload.has(pid))
+      if (idsABorrar.length > 0) {
+        await tx.procedimientoCotizacion.deleteMany({
+          where: { id: { in: idsABorrar }, cotizacion_id: id }
+        })
+      }
+
+      // 2. Actualizar los que ya existían y vienen con id
+      for (const p of procedimientosData.filter(p => p.id && idsExistentes.has(p.id))) {
+        const { id: procId, ...datos } = p
+        await tx.procedimientoCotizacion.update({ where: { id: procId }, data: datos })
+      }
+
+      // 3. Crear los nuevos (sin id, o con id que no existía)
+      const nuevos = procedimientosData.filter(p => !p.id || !idsExistentes.has(p.id))
+      if (nuevos.length > 0) {
+        await tx.procedimientoCotizacion.createMany({
+          data: nuevos.map(({ id: _ignorar, ...datos }) => ({ ...datos, cotizacion_id: id }))
+        })
+      }
 
       await tx.cotizacion.update({
         where: { id },
@@ -294,8 +329,7 @@ router.put('/:id', async (req, res) => {
           motivo,
           tipo_tratamiento,
           prioridad: prioridad || 'media',
-          estado: estado || 'borrador',
-          procedimientos: { create: procedimientosData }
+          estado: estado || 'borrador'
         }
       })
 

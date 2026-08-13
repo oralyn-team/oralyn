@@ -449,6 +449,7 @@ model ProcedimientoCotizacion {
   estado                       EstadoProcedimiento       @default(pendiente)
   observaciones                String?
   orden                        Int                       @default(0)
+  citas                        Cita[]
 
   @@index([cotizacion_id])
 }
@@ -487,6 +488,8 @@ model Cita {
   procedimiento                String
   procedimiento_consultorio_id Int?
   procedimiento_consultorio    ProcedimientoConsultorio? @relation(fields: [procedimiento_consultorio_id], references: [id])
+  procedimiento_cotizacion_id  Int?
+  procedimiento_cotizacion     ProcedimientoCotizacion?  @relation(fields: [procedimiento_cotizacion_id], references: [id], onDelete: SetNull)
   codigo_cups                  String?
   codigo_cie10                 String?
   valor_cobrado                Decimal?                  @db.Decimal(10, 2)
@@ -498,6 +501,7 @@ model Cita {
 
   @@index([consultorio_id])
   @@index([paciente_id])
+  @@index([procedimiento_cotizacion_id])
 }
 
 model Consentimiento {
