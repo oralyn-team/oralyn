@@ -1,6 +1,6 @@
 // src/components/historias/HistoriaDetalle.jsx
 import { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet} from 'lucide-react';
+import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet, BriefcaseMedical } from 'lucide-react';
 import OdontogramaModal, { TIPOS_ELASTICO, COLOR_ELASTICO } from './OdontogramaModal';
 import TratamientosCotizacionesForm from './tratamientos/TratamientoCotizacionForm';
 import EvolucionForm     from './EvolucionForm';
@@ -575,14 +575,12 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
 
         </div>
       ) : (
-        <div className="bg-teal-panel border border-dashed border-teal-border rounded-xl p-8 text-center">
-          <p className="text-[40px] mb-2">🦷</p>
-
-          <p className="text-[13px] text-primary font-medium">
+        <div className="flex flex-col items-center justify-center py-12 border border-dashed border-teal-border dark:border-dark-border rounded-xl p-8 text-center bg-teal-panel/20 dark:bg-slate-800/10">
+          <Activity size={36} className="text-teal-light dark:text-slate-500 mb-2 animate-pulse" />
+          <p className="text-[13px] font-semibold text-primary dark:text-dark-text">
             No hay condiciones registradas
           </p>
-
-          <p className="text-[11px] text-teal-muted mt-1">
+          <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-1">
             Abre el odontograma para comenzar
           </p>
         </div>
@@ -650,10 +648,10 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
       {cargandoTratamientos ? (
         <p className="text-center text-[12px] text-teal-muted py-8">Cargando tratamientos...</p>
       ) : !form.tratamientos?.length ? (
-        <div className="text-center py-10">
-          <div className="text-[42px] mb-2">📋</div>
-          <p className="text-[13px] font-medium text-primary">No hay tratamientos registrados</p>
-          <p className="text-[11px] text-teal-muted mt-1">
+        <div className="flex flex-col items-center justify-center py-12 text-teal-muted dark:text-slate-400">
+          <BriefcaseMedical size={36} className="text-teal-light dark:text-slate-500 mb-2" />
+          <p className="text-[13px] font-semibold text-primary dark:text-dark-text">No hay tratamientos registrados</p>
+          <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-1">
             Agrega cotizaciones y planes de tratamiento
           </p>
         </div>
