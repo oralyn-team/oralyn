@@ -108,9 +108,11 @@ export default function Citas() {
     return () => { activo = false; };
   }, []);
 
-  function mostrarToast(msg) {
+  const toastTimerRef = useRef(null);
+  function mostrarToast(msg, duracion = 2200) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(msg);
-    setTimeout(() => setToast(null), 2200);
+    toastTimerRef.current = setTimeout(() => setToast(null), duracion);
   }
 
   function abrirCrear() {
@@ -160,9 +162,16 @@ export default function Citas() {
 
   async function cambiarEstado(id, nuevoEstado) {
     try {
+      const citaOriginal = citas.find((c) => c.id === id);
       const actualizada = await api.cambiarEstadoCita(id, ESTADO_UI_TO_API[nuevoEstado]);
       setCitas((prev) => prev.map((c) => c.id === id ? normalizeCita(actualizada, pacientes) : c));
-      mostrarToast(`Estado actualizado: ${nuevoEstado}`);
+
+      const cie10Actual = citaOriginal?.codigo_cie10 ?? citaOriginal?.codigoCie10;
+      if (nuevoEstado === 'Asistio' && (cie10Actual === 'Z012' || !cie10Actual)) {
+        mostrarToast('Cita marcada como atendida. Diagnóstico actual: Examen odontológico — revísalo si ya tienes un hallazgo confirmado.', 4500);
+      } else {
+        mostrarToast(`Estado actualizado: ${nuevoEstado}`);
+      }
       recargarPacientes();
     } catch (err) {
       console.error('Error cambiando estado:', err);

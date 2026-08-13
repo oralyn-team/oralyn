@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { OPCIONES_SEXO, OPCIONES_TIPO_DOCUMENTO } from '../data/pacienteOpciones';
 
 const ESTADO_INICIAL = {
   primer_apellido: '',
@@ -183,10 +184,10 @@ export default function PacienteForm({
       telefono: form.telefono.trim() || null,
       correo: form.correo.trim() || null,
       municipio_ciudad: form.municipio_ciudad.trim(),
-      estado: form.estado,
     };
 
     if (pacienteEditar) {
+      payload.estado = form.estado;
       onEditar(pacienteEditar.id, payload);
     } else {
       onAgregar(payload);
@@ -255,11 +256,11 @@ export default function PacienteForm({
               onChange={handleChange}
               error={errs.tipo_documento}
             >
-              <option value="CC">CC</option>
-              <option value="TI">TI</option>
-              <option value="CE">CE</option>
-              <option value="PA">Pasaporte</option>
-              <option value="RC">Registro civil</option>
+              {OPCIONES_TIPO_DOCUMENTO.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </SelectField>
 
             <Field
@@ -292,9 +293,11 @@ export default function PacienteForm({
               <option value="" disabled>
                 Selecciona una opción
               </option>
-              <option value="femenino">Femenino</option>
-              <option value="masculino">Masculino</option>
-              <option value="otro">Otro</option>
+              {OPCIONES_SEXO.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </SelectField>
           </div>
 

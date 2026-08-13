@@ -578,11 +578,10 @@ export default function Consentimientos() {
                       </div>
                       <div className="p-4 sm:p-5 space-y-3">
                         <Campo label="Tipo">
-
                           <select
                             value={consentimientoForm.tipo}
                             onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, tipo: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px] appearance-none"
                           >
                             {TIPOS_CONSENTIMIENTO.map((tipo) => (
                               <option
@@ -593,37 +592,30 @@ export default function Consentimientos() {
                               </option>
                             ))}
                           </select>
-
                         </Campo>
 
                         <Campo label="Ciudad">
-
                           <input
                             value={consentimientoForm.ciudad}
                             onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, ciudad: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                           />
-
                         </Campo>
 
                         <Campo label="Nombre declarado">
-
                           <input
                             value={consentimientoForm.nombre_paciente_declarado}
                             onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, nombre_paciente_declarado: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                           />
-
                         </Campo>
 
                         <Campo label="Documento declarado">
-
                           <input
                             value={consentimientoForm.cc_paciente_declarado}
                             onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, cc_paciente_declarado: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                           />
-
                         </Campo>
                         <Campo label="Detalles específicos">
                           <textarea
@@ -635,7 +627,7 @@ export default function Consentimientos() {
                               }))
                             }
                             rows={3}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors resize-none"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors resize-none"
                             placeholder="Observaciones, procedimiento o condiciones particulares"
                           />
 
@@ -677,13 +669,11 @@ export default function Consentimientos() {
                         </div>
 
                         <Campo label="CC profesional">
-
                           <input
                             value={consentimientoForm.cc_profesional}
                             onChange={(e) => setConsentimientoForm((prev) => ({ ...prev, cc_profesional: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                           />
-
                         </Campo>
                         <div className="flex gap-2 pt-2">
                           <button
@@ -729,31 +719,27 @@ export default function Consentimientos() {
                           <input
                             value={certificadoForm.tipo_cita_texto}
                             onChange={(e) => setCertificadoForm((prev) => ({ ...prev, tipo_cita_texto: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                             placeholder="Ej. Consulta odontológica"
                             required
                           />
-
                         </Campo>
                         <Campo label="Fecha de expedición">
                           <input
                             type="date"
                             value={certificadoForm.fecha_expedicion}
                             onChange={(e) => setCertificadoForm((prev) => ({ ...prev, fecha_expedicion: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px] appearance-none"
                             required
                           />
-
                         </Campo>
 
                         <Campo label="Ciudad">
-
                           <input
                             value={certificadoForm.ciudad}
                             onChange={(e) => setCertificadoForm((prev) => ({ ...prev, ciudad: e.target.value }))}
-                            className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]"
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                           />
-
                         </Campo>
                         <div className="bg-teal-panel dark:bg-slate-800/60 border border-teal-soft dark:border-dark-border rounded-xl p-4">
                           <p className="text-[12px] font-semibold text-primary dark:text-dark-text">Vista previa</p>
