@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getTagEstado } from '../data/pacientesData';
 import { FileText, IdCard, Phone, Trash2, Pencil, X } from 'lucide-react';
 import { api } from '../api';
+import { OPCIONES_SEXO, OPCIONES_TIPO_DOCUMENTO } from '../data/pacienteOpciones';
 
 function getInitiales(p) {
   const n = p.nombres?.trim().charAt(0) || '';
@@ -30,21 +31,17 @@ const CAMPOS = [
     { name: 'segundo_apellido',   label: 'Segundo apellido',type: 'text' },
     { name: 'fecha_nacimiento',   label: 'Fecha nacimiento',type: 'date' },
     { name: 'sexo',               label: 'Sexo',            type: 'select',
-      options: ['Masculino','Femenino','Otro'] },
+      options: OPCIONES_SEXO },
   ]},
   { section: 'Documento', fields: [
     { name: 'tipo_documento',  label: 'Tipo documento', type: 'select',
-      options: ['CC','TI','CE','PP','RC'] },
+      options: OPCIONES_TIPO_DOCUMENTO },
     { name: 'numero_documento', label: 'Número documento', type: 'text' },
   ]},
   { section: 'Contacto', fields: [
     { name: 'telefono',             label: 'Teléfono',     type: 'text' },
     { name: 'correo',               label: 'Correo',       type: 'email' },
     { name: 'municipio_ciudad',     label: 'Municipio',    type: 'text' },
-  ]},
-  { section: 'Estado', fields: [
-    { name: 'estado', label: 'Estado paciente', type: 'select',
-      options: ['Al día','Pendiente','Nuevo'] },
   ]},
 ];
 
@@ -208,37 +205,48 @@ function handleChange(e) {
                 <p className="text-[12px] text-teal-muted dark:text-slate-400 text-center py-6">Cargando datos...</p>
               )}
 
-              {!cargando && form && CAMPOS.map(({ section, fields }) => (
-                <div key={section} className="space-y-2">
-                  <p className="text-[10px] font-bold text-teal-muted dark:text-dark-muted uppercase tracking-wider">{section}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {fields.map(({ name, label, type, options }) => (
-                      <label key={name} className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium text-teal-muted dark:text-slate-300">{label}</span>
-                        {type === 'select' ? (
-                          <select 
-                            name={name} 
-                            value={form[name] ?? ''} 
-                            onChange={handleChange}
-                            className="text-[12px] text-primary dark:text-dark-text border border-teal-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-input focus:outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px] cursor-pointer"
-                          >
-                            <option value=''>— seleccionar —</option>
-                            {options.map(o => <option key={o} value={o}>{o}</option>)}
-                          </select>
-                        ) : (
-                          <input 
-                            type={type} 
-                            name={name} 
-                            value={form[name] ?? ''} 
-                            onChange={handleChange}
-                            className="text-[12px] text-primary dark:text-dark-text border border-teal-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-input focus:outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]" 
-                          />
-                        )}
-                      </label>
-                    ))}
+              {!cargando && form && (
+                <>
+                  {CAMPOS.map(({ section, fields }) => (
+                    <div key={section} className="space-y-2">
+                      <p className="text-[10px] font-bold text-teal-muted dark:text-dark-muted uppercase tracking-wider">{section}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {fields.map(({ name, label, type, options }) => (
+                          <label key={name} className="flex flex-col gap-1">
+                            <span className="text-[11px] font-medium text-teal-muted dark:text-slate-300">{label}</span>
+                            {type === 'select' ? (
+                              <select 
+                                name={name} 
+                                value={form[name] ?? ''} 
+                                onChange={handleChange}
+                                className="text-[12px] text-primary dark:text-dark-text border border-teal-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-input focus:outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px] cursor-pointer"
+                              >
+                                <option value=''>— seleccionar —</option>
+                                {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                              </select>
+                            ) : (
+                              <input 
+                                type={type} 
+                                name={name} 
+                                value={form[name] ?? ''} 
+                                onChange={handleChange}
+                                className="text-[12px] text-primary dark:text-dark-text border border-teal-border dark:border-dark-border rounded-lg px-3 py-2 bg-white dark:bg-dark-input focus:outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[38px]" 
+                              />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="text-[12px] text-teal-muted pt-2 border-t border-teal-soft dark:border-dark-border/60">
+                    Estado actual: <span className="font-semibold text-primary dark:text-dark-text">{paciente.estado}</span>
+                    <span className="block text-[10px] text-teal-light mt-0.5">
+                      Se calcula automáticamente según citas y pagos, no se edita manualmente.
+                    </span>
                   </div>
-                </div>
-              ))}
+                </>
+              )}
 
               {error && <p className="text-[11px] text-status-red dark:text-red-400 font-medium">{error}</p>}
             </div>

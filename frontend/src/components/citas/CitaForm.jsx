@@ -18,6 +18,7 @@ const VACIO = {
 
   procedimiento: '',
   procedimiento_consultorio_id: '',
+  procedimiento_cotizacion_id: '',
   codigo_cups: '',
   codigo_cie10: '',
   valor_cobrado: '',
@@ -69,6 +70,8 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
   const [catalogoCie10, setCatalogoCie10] = useState([]);
   const [loadingCie10, setLoadingCie10] = useState(false);
+  const [cotizacionesPendientes, setCotizacionesPendientes] = useState([]);
+  const [loadingCotizaciones, setLoadingCotizaciones] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,15 +110,52 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
           hora: citaEditar.hora ? citaEditar.hora : (citaEditar.fecha_hora ? String(citaEditar.fecha_hora).split('T')[1]?.slice(0, 5) : ''),
           procedimiento: citaEditar.procedimiento ?? citaEditar.motivo ?? '',
           procedimiento_consultorio_id: citaEditar.procedimiento_consultorio_id ?? citaEditar.procedimientoConsultorioId ?? '',
+          procedimiento_cotizacion_id: citaEditar.procedimiento_cotizacion_id ?? citaEditar.procedimientoCotizacionId ?? '',
           codigo_cups: citaEditar.codigo_cups ?? citaEditar.codigoCups ?? '',
           codigo_cie10: citaEditar.codigo_cie10 ?? citaEditar.codigoCie10 ?? '',
           valor_cobrado: citaEditar.valor_cobrado ?? citaEditar.valorCobrado ?? '',
           estado: citaEditar.estado || 'Pendiente',
         }
-      : { ...VACIO, fecha: getFechaHoy(), doctor: calcDoctorDefault() }
+      : { ...VACIO, fecha: getFechaHoy(), doctor: calcDoctorDefault(), codigo_cie10: 'Z012' }
   ));
   const [errs, setErrs] = useState({});
   const esEdicion = Boolean(citaEditar);
+
+  useEffect(() => {
+    if (!form.pacienteId) {
+      setCotizacionesPendientes([]);
+      return;
+    }
+    let isMounted = true;
+    setLoadingCotizaciones(true);
+    api.getCotizacionesPaciente(form.pacienteId)
+      .then((data) => {
+        if (!isMounted) return;
+        const cotis = Array.isArray(data) ? data : [];
+        const pendientes = [];
+        cotis.forEach((cot) => {
+          if (cot.estado === 'aprobado' || cot.estado === 'en_proceso' || cot.estado === 'pendiente') {
+            (cot.procedimientos || []).forEach((proc) => {
+              if (proc.estado === 'pendiente' || proc.estado === 'en_proceso' || String(proc.id) === String(form.procedimiento_cotizacion_id)) {
+                pendientes.push({
+                  ...proc,
+                  cotizacion_tipo: cot.tipo_tratamiento || 'Plan de tratamiento',
+                  cotizacion_fecha: cot.fecha ? String(cot.fecha).split('T')[0] : ''
+                });
+              }
+            });
+          }
+        });
+        setCotizacionesPendientes(pendientes);
+      })
+      .catch(() => {
+        if (isMounted) setCotizacionesPendientes([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingCotizaciones(false);
+      });
+    return () => { isMounted = false; };
+  }, [form.pacienteId]);
 
   useEffect(() => {
     if (!esEdicion && !form.doctor) {
@@ -174,12 +214,35 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
         procedimiento_consultorio_id: item.id,
         procedimiento: item.nombre || item.nombre_visible,
         codigo_cups: item.codigo || item.codigo_cups || '',
-        valor_cobrado: prev.valor_cobrado || (precioItem ? String(precioItem) : ''),
+        valor_cobrado: precioItem !== undefined && precioItem !== null && precioItem !== '' ? String(precioItem) : '',
       }));
     }
 
     if (errs.procedimiento) {
       setErrs((prev) => ({ ...prev, procedimiento: '' }));
+    }
+  }
+
+  function handleSelectProcedimientoCotizacion(e) {
+    const val = e.target.value;
+    if (!val) {
+      setForm((prev) => ({
+        ...prev,
+        procedimiento_cotizacion_id: '',
+      }));
+      return;
+    }
+
+    const item = cotizacionesPendientes.find((p) => String(p.id) === String(val));
+    if (item) {
+      const subtotalItem = item.subtotal !== undefined && item.subtotal !== null ? String(Number(item.subtotal)) : '';
+      setForm((prev) => ({
+        ...prev,
+        procedimiento_cotizacion_id: item.id,
+        procedimiento: item.procedimiento || prev.procedimiento,
+        valor_cobrado: subtotalItem,
+        procedimiento_consultorio_id: item.procedimiento_consultorio_id || prev.procedimiento_consultorio_id || '',
+      }));
     }
   }
 
@@ -224,6 +287,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
       procedimiento: form.procedimiento,
       procedimiento_consultorio_id: form.procedimiento_consultorio_id ? Number(form.procedimiento_consultorio_id) : null,
+      procedimiento_cotizacion_id: form.procedimiento_cotizacion_id ? Number(form.procedimiento_cotizacion_id) : null,
       codigo_cups: form.codigo_cups || null,
       codigo_cie10: form.codigo_cie10 || null,
       valor_cobrado: form.valor_cobrado !== '' && form.valor_cobrado !== null ? Number(form.valor_cobrado) : null,
@@ -296,6 +360,24 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
               ))}
             </select>
           </Field>
+
+          {cotizacionesPendientes.length > 0 && (
+            <Field label="¿Corresponde a un ítem del plan de tratamiento?">
+              <select
+                name="procedimiento_cotizacion_id"
+                value={form.procedimiento_cotizacion_id}
+                onChange={handleSelectProcedimientoCotizacion}
+                className={`${inputBase} bg-amber-50/50 dark:bg-slate-800/80 border-amber-200 dark:border-amber-900/50`}
+              >
+                <option value="">No vincular (procedimiento independiente)</option>
+                {cotizacionesPendientes.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.procedimiento} — Cotizado: ${Number(item.subtotal).toLocaleString('es-CO')} ({item.cotizacion_tipo})
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
 
@@ -394,6 +476,9 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
                   </option>
                 ))}
               </select>
+              <span className="text-[11px] text-teal-muted dark:text-slate-400 mt-1 block leading-tight">
+                Precargado como "Examen odontológico" para valoraciones iniciales — actualízalo si ya tienes un diagnóstico confirmado.
+              </span>
             </Field>
 
             <Field
@@ -415,6 +500,17 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
                   }`}
                 />
               </div>
+              {(() => {
+                const itemCot = cotizacionesPendientes.find((p) => String(p.id) === String(form.procedimiento_cotizacion_id));
+                if (itemCot && form.valor_cobrado !== '' && form.valor_cobrado !== null && Number(form.valor_cobrado) !== Number(itemCot.subtotal)) {
+                  return (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium flex items-center gap-1">
+                      <span>⚠️</span> Distinto al valor cotizado (${Number(itemCot.subtotal).toLocaleString('es-CO')})
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </Field>
           </div>
 
