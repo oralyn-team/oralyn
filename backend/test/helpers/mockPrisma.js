@@ -9,26 +9,29 @@ function matchesWhere(row, where = {}) {
     }
     
     if (expected && typeof expected === 'object') {
+      let match = true;
       if ('not' in expected) {
-        return row[key] !== expected.not;
+        match = match && (row[key] !== expected.not);
       }
       if ('in' in expected) {
-        return expected.in.includes(row[key]);
+        match = match && expected.in.includes(row[key]);
       }
       if ('contains' in expected) {
         const val = row[key] || '';
         const search = expected.contains || '';
         if (expected.mode === 'insensitive') {
-          return val.toLowerCase().includes(search.toLowerCase());
+          match = match && val.toLowerCase().includes(search.toLowerCase());
+        } else {
+          match = match && val.includes(search);
         }
-        return val.includes(search);
       }
       if ('gte' in expected) {
-        return row[key] >= expected.gte;
+        match = match && (row[key] >= expected.gte);
       }
       if ('lte' in expected) {
-        return row[key] <= expected.lte;
+        match = match && (row[key] <= expected.lte);
       }
+      return match;
     }
     return row[key] === expected;
   });
@@ -78,6 +81,10 @@ function resolveIncludes(modelName, row, include, db) {
     if (key === 'paciente' && (modelName === 'historiaClinica' || modelName === 'cotizacion' || modelName === 'certificadoDental' || modelName === 'consentimiento' || modelName === 'cita')) {
       const p = db.paciente.find(p => p.id === row.paciente_id);
       copy.paciente = p ? resolveIncludes('paciente', p, value.include || value.select, db) : null;
+    }
+    if (key === 'historia' && (modelName === 'hojaEvolucion' || modelName === 'hcAdjunto')) {
+      const h = db.historiaClinica.find(h => h.id === row.historia_id);
+      copy.historia = h ? resolveIncludes('historiaClinica', h, value.include || value.select, db) : null;
     }
     if (key === 'historias' && modelName === 'paciente') {
       let list = db.historiaClinica.filter(h => h.paciente_id === row.id);
@@ -147,12 +154,25 @@ function resolveIncludes(modelName, row, include, db) {
       }
       copy.procedimientos = list;
     }
+    if (key === '_count' && modelName === 'configuracion') {
+      copy._count = {
+        pacientes: db.paciente ? db.paciente.filter(p => p.consultorio_id === row.id).length : 0,
+        usuarios: db.usuario ? db.usuario.filter(u => u.consultorio_id === row.id).length : 0
+      };
+    }
   });
 
   return copy;
 }
 
 function createUnifiedPrismaMock(initialData = {}) {
+  const normalizedData = { ...initialData };
+  if (normalizedData.pacientes && !normalizedData.paciente) normalizedData.paciente = normalizedData.pacientes;
+  if (normalizedData.cotizaciones && !normalizedData.cotizacion) normalizedData.cotizacion = normalizedData.cotizaciones;
+  if (normalizedData.procedimientos && !normalizedData.procedimientoCotizacion) normalizedData.procedimientoCotizacion = normalizedData.procedimientos;
+  if (normalizedData.pagos && !normalizedData.pago) normalizedData.pago = normalizedData.pagos;
+  if (normalizedData.citas && !normalizedData.cita) normalizedData.cita = normalizedData.citas;
+
   const db = {
     usuario: [],
     configuracion: [],
@@ -169,8 +189,41 @@ function createUnifiedPrismaMock(initialData = {}) {
     cotizacion: [],
     procedimientoCotizacion: [],
     pago: [],
-    ...initialData
+    recomendacionPostQx: [],
+    ...normalizedData
   };
+
+  // Aliases for backward compatibility with existing tests
+  Object.defineProperty(db, 'pacientes', {
+    get() { return db.paciente; },
+    set(v) { db.paciente = v; },
+    configurable: true,
+    enumerable: true
+  });
+  Object.defineProperty(db, 'cotizaciones', {
+    get() { return db.cotizacion; },
+    set(v) { db.cotizacion = v; },
+    configurable: true,
+    enumerable: true
+  });
+  Object.defineProperty(db, 'procedimientos', {
+    get() { return db.procedimientoCotizacion; },
+    set(v) { db.procedimientoCotizacion = v; },
+    configurable: true,
+    enumerable: true
+  });
+  Object.defineProperty(db, 'pagos', {
+    get() { return db.pago; },
+    set(v) { db.pago = v; },
+    configurable: true,
+    enumerable: true
+  });
+  Object.defineProperty(db, 'citas', {
+    get() { return db.cita; },
+    set(v) { db.cita = v; },
+    configurable: true,
+    enumerable: true
+  });
 
   const client = {
     __db: db,
@@ -192,7 +245,8 @@ function createUnifiedPrismaMock(initialData = {}) {
     'usuario', 'configuracion', 'paciente', 'historiaClinica',
     'hcAntecedentes', 'hcExamenEstomatologico', 'hcOdontograma',
     'hojaEvolucion', 'hcAdjunto', 'cita', 'consentimiento',
-    'certificadoDental', 'cotizacion', 'procedimientoCotizacion', 'pago'
+    'certificadoDental', 'cotizacion', 'procedimientoCotizacion', 'pago',
+    'recomendacionPostQx'
   ];
 
   modelNames.forEach(modelName => {
@@ -202,23 +256,31 @@ function createUnifiedPrismaMock(initialData = {}) {
         if (args.orderBy) list = sortList(list, args.orderBy);
         if (args.take) list = list.slice(0, args.take);
         return list.map(row => {
-          const rowWithIncludes = resolveIncludes(modelName, row, args.include, db);
+          const rowWithIncludes = resolveIncludes(modelName, row, args.include || args.select, db);
           return applySelectOrSelectOnly(rowWithIncludes, args.select);
         });
       },
       findFirst: async (args = {}) => {
         const row = db[modelName].find(row => matchesWhere(row, args.where));
         if (!row) return null;
-        const rowWithIncludes = resolveIncludes(modelName, row, args.include, db);
+        const rowWithIncludes = resolveIncludes(modelName, row, args.include || args.select, db);
         return applySelectOrSelectOnly(rowWithIncludes, args.select);
       },
       findUnique: async (args = {}) => {
         const row = db[modelName].find(row => matchesWhere(row, args.where));
         if (!row) return null;
-        const rowWithIncludes = resolveIncludes(modelName, row, args.include, db);
+        const rowWithIncludes = resolveIncludes(modelName, row, args.include || args.select, db);
         return applySelectOrSelectOnly(rowWithIncludes, args.select);
       },
       create: async (args = {}) => {
+        if (modelName === 'usuario' && args.data && args.data.email) {
+          const duplicate = db.usuario.some(u => u.email === args.data.email);
+          if (duplicate) {
+            const err = new Error('Unique constraint failed on the fields: (`email`)');
+            err.code = 'P2002';
+            throw err;
+          }
+        }
         const nextId = db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1;
         const item = { id: nextId };
         
@@ -239,7 +301,7 @@ function createUnifiedPrismaMock(initialData = {}) {
         });
         
         db[modelName].push(item);
-        const rowWithIncludes = resolveIncludes(modelName, item, args.include, db);
+        const rowWithIncludes = resolveIncludes(modelName, item, args.include || args.select, db);
         return applySelectOrSelectOnly(rowWithIncludes, args.select);
       },
       createMany: async (args = {}) => {
@@ -278,7 +340,7 @@ function createUnifiedPrismaMock(initialData = {}) {
         });
         
         db[modelName][idx] = updated;
-        const rowWithIncludes = resolveIncludes(modelName, updated, args.include, db);
+        const rowWithIncludes = resolveIncludes(modelName, updated, args.include || args.select, db);
         return applySelectOrSelectOnly(rowWithIncludes, args.select);
       },
       delete: async (args = {}) => {

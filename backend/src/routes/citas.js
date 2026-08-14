@@ -62,10 +62,16 @@ router.get('/', async (req, res) => {
     }
 
     if (fecha) {
-      const inicio = new Date(fecha)
-      inicio.setHours(0, 0, 0, 0)
-      const fin = new Date(fecha)
-      fin.setHours(23, 59, 59, 999)
+      const baseDate = new Date(fecha)
+      if (isNaN(baseDate.getTime())) {
+        return res.status(400).json({ error: 'Fecha no válida' })
+      }
+      const y = baseDate.getUTCFullYear()
+      const m = baseDate.getUTCMonth()
+      const d = baseDate.getUTCDate()
+      
+      const inicio = new Date(Date.UTC(y, m, d, 0, 0, 0, 0))
+      const fin = new Date(Date.UTC(y, m, d, 23, 59, 59, 999))
       where.fecha_hora = { gte: inicio, lte: fin }
     }
 
