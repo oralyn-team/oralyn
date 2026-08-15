@@ -43,6 +43,7 @@ router.post('/', async (req, res) => {
 
     const config = await prisma.configuracion.create({
       data: {
+        id: req.usuario.consultorio_id,
         nombre_consultorio,
         nombre_profesional,
         registro_profesional,

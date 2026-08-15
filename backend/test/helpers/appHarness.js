@@ -38,6 +38,7 @@ async function startAppWithPrisma(prismaMock) {
         ...options,
         headers: {
           'Content-Type': 'application/json',
+          'Connection': 'close',
           ...(options.headers || {})
         }
       })
@@ -52,9 +53,13 @@ async function startAppWithPrisma(prismaMock) {
       return { response, body }
     },
     async close() {
+      if (typeof server.closeAllConnections === 'function') {
+        server.closeAllConnections()
+      }
       await new Promise((resolve, reject) => {
         server.close((error) => error ? reject(error) : resolve())
       })
+      delete require.cache[prismaPath]
     }
   }
 }

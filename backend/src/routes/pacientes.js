@@ -17,8 +17,25 @@ router.post('/', async (req, res) => {
     acudiente_nombre, acudiente_parentesco, acudiente_telefono
   } = req.body
 
-  if (!primer_apellido || !nombres || !tipo_documento || !numero_documento || !fecha_nacimiento || !sexo || !municipio_ciudad) {
+  const trimmedDoc = numero_documento ? String(numero_documento).trim() : ''
+  const trimmedApellido = primer_apellido ? String(primer_apellido).trim() : ''
+  const trimmedNombres = nombres ? String(nombres).trim() : ''
+  const trimmedTipoDoc = tipo_documento ? String(tipo_documento).trim() : ''
+  const trimmedSexo = sexo ? String(sexo).trim() : ''
+  const trimmedMunicipio = municipio_ciudad ? String(municipio_ciudad).trim() : ''
+
+  if (!trimmedApellido || !trimmedNombres || !trimmedTipoDoc || !trimmedDoc || !fecha_nacimiento || !trimmedSexo || !trimmedMunicipio) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' })
+  }
+
+  const tiposValidos = ['CC', 'CE', 'TI', 'RC', 'PEP', 'PPT', 'PAS']
+  if (!tiposValidos.includes(trimmedTipoDoc)) {
+    return res.status(400).json({ error: 'Tipo de documento no válido' })
+  }
+
+  const fechaParsed = new Date(fecha_nacimiento)
+  if (isNaN(fechaParsed.getTime())) {
+    return res.status(400).json({ error: 'Fecha de nacimiento inválida' })
   }
 
   try {
