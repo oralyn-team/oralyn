@@ -175,6 +175,7 @@ function createUnifiedPrismaMock(initialData = {}) {
 
   const db = {
     usuario: [],
+    administrador: [],
     configuracion: [],
     paciente: [],
     historiaClinica: [],
@@ -242,7 +243,7 @@ function createUnifiedPrismaMock(initialData = {}) {
   };
 
   const modelNames = [
-    'usuario', 'configuracion', 'paciente', 'historiaClinica',
+    'usuario', 'administrador', 'configuracion', 'paciente', 'historiaClinica',
     'hcAntecedentes', 'hcExamenEstomatologico', 'hcOdontograma',
     'hojaEvolucion', 'hcAdjunto', 'cita', 'consentimiento',
     'certificadoDental', 'cotizacion', 'procedimientoCotizacion', 'pago',
@@ -273,8 +274,8 @@ function createUnifiedPrismaMock(initialData = {}) {
         return applySelectOrSelectOnly(rowWithIncludes, args.select);
       },
       create: async (args = {}) => {
-        if (modelName === 'usuario' && args.data && args.data.email) {
-          const duplicate = db.usuario.some(u => u.email === args.data.email);
+        if ((modelName === 'usuario' || modelName === 'administrador') && args.data && args.data.email) {
+          const duplicate = db[modelName].some(u => u.email === args.data.email);
           if (duplicate) {
             const err = new Error('Unique constraint failed on the fields: (`email`)');
             err.code = 'P2002';
