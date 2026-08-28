@@ -558,3 +558,14 @@ model RecomendacionPostQx {
   creado_en   DateTime         @default(now())
 }
 
+model Administrador {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password_hash String
+  nombre        String
+  activo        Boolean   @default(true)
+  creado_en     DateTime  @default(now())
+  ultimo_login  DateTime?
+}
+
+
