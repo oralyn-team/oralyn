@@ -2,7 +2,14 @@ const express = require('express')
 const cors = require('cors')
 require('dotenv').config()
 
+// Validar variables de entorno críticas en el arranque antes de cargar rutas
+if (process.env.NODE_ENV !== 'test' && !process.env.JWT_ADMIN_SECRET) {
+  console.error('FATAL: JWT_ADMIN_SECRET no está definida en las variables de entorno.')
+  process.exit(1)
+}
+
 const authRoutes = require('./routes/auth')
+const adminAuthRoutes = require('./routes/adminAuth')
 const usuariosRoutes = require('./routes/usuarios')
 const pacientesRoutes = require('./routes/pacientes')
 const historiasRoutes = require('./routes/historias')
@@ -33,7 +40,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
 app.use(express.json({ limit: '20mb' }))
@@ -51,6 +58,7 @@ app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/pdf', pdfRoutes)
 app.use('/api/certificados', certificadosRoutes)
 app.use('/api/configuracion', configuracionRoutes)
+app.use('/api/admin/auth', adminAuthRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/catalogo-cups', catalogoCupsRoutes)
 app.use('/api/catalogo-cie10', catalogoCie10Routes)
