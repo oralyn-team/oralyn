@@ -95,8 +95,14 @@ router.post('/login', loginLimiter, async (req, res) => {
       { expiresIn: '8h' }
     )
 
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 8 * 60 * 60 * 1000 // 8 horas
+    })
+
     res.json({
-      token,
       usuario: {
         id: usuario.id,
         email: usuario.email,
@@ -108,6 +114,21 @@ router.post('/login', loginLimiter, async (req, res) => {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
+})
+
+// POST /api/auth/logout
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  })
+  res.json({ mensaje: 'Sesión cerrada correctamente' })
+})
+
+// GET /api/auth/me
+router.get('/me', verificarToken, (req, res) => {
+  res.json({ usuario: req.usuario })
 })
 
 // POST /api/auth/change-password
@@ -140,6 +161,12 @@ router.post('/change-password', verificarToken, async (req, res) => {
         password_hash,
         token_version: { increment: 1 }
       }
+    })
+
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     })
 
     res.json({ mensaje: 'Contraseña cambiada con éxito' })

@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors')
+const cookieParser = require('cookie-parser')
 require('dotenv').config()
 
 // Validar variables de entorno críticas en el arranque antes de cargar rutas
@@ -30,6 +31,8 @@ const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
 
+app.use(cookieParser())
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -40,7 +43,8 @@ const allowedOrigins = [
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }))
 
 app.use(express.json({ limit: '20mb' }))
