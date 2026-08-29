@@ -169,6 +169,7 @@ model Usuario {
   nombre         String
   registro       String?
   creado_en      DateTime      @default(now())
+  token_version  Int           @default(0)
 }
 
 // ─── PACIENTES ──────────────────────────────────────────────
