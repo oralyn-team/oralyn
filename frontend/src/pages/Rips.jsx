@@ -18,7 +18,8 @@ import {
   Eye,
   AlertCircle,
   Stethoscope,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
@@ -96,6 +97,20 @@ export default function Rips() {
     }
   };
 
+  const handleEliminar = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este registro de RIPS? Esta acción no se puede deshacer.')) {
+      try {
+        await api.eliminarRips(id);
+        showToast('Registro de RIPS eliminado correctamente');
+        cargarGeneraciones();
+      } catch (err) {
+        console.error('Error al eliminar RIPS:', err);
+        showToast(err.error || 'Error al eliminar el registro de RIPS');
+      }
+    }
+  };
+
+
   const confirmGenerar = async () => {
     if (!generarModal) return;
 
@@ -142,13 +157,36 @@ export default function Rips() {
 
         <main className="flex-1 overflow-y-auto px-3 sm:px-6 py-5 custom-scrollbar">
           {/* Encabezado */}
-          <div className="mb-5">
-            <h2 className="text-[15px] font-semibold text-primary dark:text-dark-text flex items-center gap-2">
-              <FileBarChart size={18} className="text-teal" /> Módulo de RIPS
-            </h2>
-            <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
-              Consulte registros de prestación de servicios, valide inconsistencias y genere archivos RIPS.
-            </p>
+          <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-[15px] font-semibold text-primary dark:text-dark-text flex items-center gap-2">
+                <FileBarChart size={18} className="text-teal" /> Módulo de RIPS
+              </h2>
+              <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
+                Consulte registros de prestación de servicios, valide inconsistencias y genere archivos RIPS.
+              </p>
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!fechaInicial || !fechaFinal) {
+                    showToast("Por favor, selecciona una fecha inicial y final en los filtros.");
+                    return;
+                  }
+                  setGenerarModal({
+                    periodo: `${fechaInicial} a ${fechaFinal}`,
+                    fechaInicial,
+                    fechaFinal,
+                    cantidadRegistros: "—",
+                    inconsistencias: []
+                  });
+                }}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-[12px] text-white font-medium bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors cursor-pointer shadow-soft-sm touch-target"
+              >
+                <Download size={14} /> Generar RIPS para Período
+              </button>
+            </div>
           </div>
 
           {/* Tarjeta de Resumen Indicadores */}
@@ -377,6 +415,14 @@ export default function Rips() {
                                   <Download size={12} /> Generar RIPS
                                 </button>
                               )}
+
+                              <button
+                                onClick={() => handleEliminar(item.id)}
+                                className="flex items-center justify-center p-1.5 text-[11.5px] font-medium text-status-red hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer border border-red-200 dark:border-red-900/50 touch-target"
+                                title="Eliminar registro"
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             </div>
                           </td>
                         </tr>
