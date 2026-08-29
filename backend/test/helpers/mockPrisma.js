@@ -174,7 +174,10 @@ function createUnifiedPrismaMock(initialData = {}) {
   if (normalizedData.citas && !normalizedData.cita) normalizedData.cita = normalizedData.citas;
 
   const db = {
-    usuario: [],
+    usuario: [
+      { id: 1, consultorio_id: 10, email: 'doctor@oralyn.test', password_hash: 'hash', nombre: 'Dra. Test', token_version: 0 },
+      { id: 2, consultorio_id: 99, email: 'doctorB@oralyn.test', password_hash: 'hash', nombre: 'Dr. B', token_version: 0 }
+    ],
     administrador: [],
     configuracion: [],
     paciente: [],
@@ -193,6 +196,15 @@ function createUnifiedPrismaMock(initialData = {}) {
     recomendacionPostQx: [],
     ...normalizedData
   };
+
+  // Normalizar db.usuario para asegurar que siempre tengan token_version
+  if (db.usuario) {
+    db.usuario.forEach(u => {
+      if (u.token_version === undefined) {
+        u.token_version = 0;
+      }
+    });
+  }
 
   // Aliases for backward compatibility with existing tests
   Object.defineProperty(db, 'pacientes', {
@@ -284,6 +296,9 @@ function createUnifiedPrismaMock(initialData = {}) {
         }
         const nextId = db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1;
         const item = { id: nextId };
+        if (modelName === 'usuario') {
+          item.token_version = 0;
+        }
         
         Object.entries(args.data).forEach(([key, val]) => {
           if (val && typeof val === 'object' && 'create' in val) {
@@ -335,6 +350,10 @@ function createUnifiedPrismaMock(initialData = {}) {
                 db[relatedModelName].push(childItem);
               });
             }
+          } else if (val && typeof val === 'object' && 'increment' in val) {
+            updated[key] = (current[key] || 0) + val.increment;
+          } else if (val && typeof val === 'object' && 'decrement' in val) {
+            updated[key] = (current[key] || 0) - val.decrement;
           } else {
             updated[key] = val;
           }
@@ -371,6 +390,9 @@ function createUnifiedPrismaMock(initialData = {}) {
         } else {
           const nextId = db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1;
           const newItem = { id: nextId, ...args.create };
+          if (modelName === 'usuario' && newItem.token_version === undefined) {
+            newItem.token_version = 0;
+          }
           db[modelName].push(newItem);
           return newItem;
         }
