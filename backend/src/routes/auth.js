@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { rateLimit } = require('express-rate-limit')
 const prisma = require('../lib/prisma')
+const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
 
@@ -47,7 +48,8 @@ router.post('/registro', async (req, res) => {
         email,
         password_hash,
         nombre,
-        registro
+        registro,
+        token_version: 0
       }
     })
 
@@ -86,7 +88,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         id: usuario.id,
         consultorio_id: usuario.consultorio_id,
         email: usuario.email,
-        nombre: usuario.nombre
+        nombre: usuario.nombre,
+        tv: usuario.token_version
       },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
@@ -101,6 +104,45 @@ router.post('/login', loginLimiter, async (req, res) => {
         consultorio_id: usuario.consultorio_id
       }
     })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// POST /api/auth/change-password
+router.post('/change-password', verificarToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'La contraseña actual y la nueva son obligatorias' })
+  }
+
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: req.usuario.id }
+    })
+
+    if (!usuario) {
+      return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+
+    const passwordValida = await bcrypt.compare(currentPassword, usuario.password_hash)
+    if (!passwordValida) {
+      return res.status(400).json({ error: 'Contraseña actual incorrecta' })
+    }
+
+    const password_hash = await bcrypt.hash(newPassword, 10)
+
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: {
+        password_hash,
+        token_version: { increment: 1 }
+      }
+    })
+
+    res.json({ mensaje: 'Contraseña cambiada con éxito' })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
