@@ -5,7 +5,7 @@ import { useApp } from '../context/Appcontext'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { guardarToken, sesionExpirada, limpiarSesionExpirada } = useApp()
+  const { iniciarSesion, sesionExpirada, limpiarSesionExpirada } = useApp()
   const [form, setForm] = useState({ email: '', password: '' })
   const [showPass, setShowPass] = useState(false)
   const [errorMsg, setErrorMsg] = useState(null)
@@ -23,8 +23,8 @@ export default function Login() {
     setLoading(true)
     setErrorMsg(null)
     try {
-      const { token } = await api.login(form.email, form.password)
-      guardarToken(token)      
+      const { usuario } = await api.login(form.email, form.password)
+      iniciarSesion(usuario)      
       navigate('/dashboard')
     } catch (err) {
       if (err?.status === 429) {

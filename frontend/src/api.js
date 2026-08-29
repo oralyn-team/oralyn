@@ -6,11 +6,6 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn
 }
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 async function verPDF(tipo, id) {
   let url;
 
@@ -28,9 +23,7 @@ async function verPDF(tipo, id) {
   }
 
   const response = await fetch(url, {
-    headers: {
-      ...getAuthHeaders(),
-    },
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -52,9 +45,7 @@ async function verHistoriaPDF(historiaId) {
   const url = `${BASE_URL}/pdf/historia/${historiaId}`;
 
   const response = await fetch(url, {
-    headers: {
-      ...getAuthHeaders(),
-    },
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -71,9 +62,9 @@ async function verHistoriaPDF(historiaId) {
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...getAuthHeaders(),
       ...options.headers,
     },
   });
@@ -107,9 +98,7 @@ async function verCotizacionPDF(cotizacionId) {
   const url = `${BASE_URL}/cotizaciones/${cotizacionId}/pdf`;
 
   const response = await fetch(url, {
-    headers: {
-      ...getAuthHeaders(),
-    },
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -127,9 +116,7 @@ async function verRecomendacionesPDF() {
   const url = `${BASE_URL}/pdf/recomendaciones`;
 
   const response = await fetch(url, {
-    headers: {
-      ...getAuthHeaders(),
-    },
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -155,6 +142,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  getMe: () => request('/auth/me'),
   getUsuarios: () => request('/usuarios'),
 
   // Pacientes
@@ -259,9 +248,7 @@ export const api = {
   descargarRipsFile: async (id, formato = 'json') => {
     const url = `${BASE_URL}/rips/${id}/descargar?formato=${encodeURIComponent(formato)}`;
     const response = await fetch(url, {
-      headers: {
-        ...getAuthHeaders(),
-      },
+      credentials: 'include',
     });
 
     if (!response.ok) {

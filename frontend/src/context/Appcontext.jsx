@@ -110,10 +110,8 @@ function normalizeCotizacion(cotizacion = {}) {
 }
 
 export function AppProvider({ children }) {
-  const [token, setToken]             = useState(() => {
-    const t = localStorage.getItem('token');
-    return t && !tokenExpirado(t) ? t : null;
-  });
+  const [usuario, setUsuario] = useState(null);
+  const [loadingUsuario, setLoadingUsuario] = useState(true);
   const [sesionExpirada, setSesionExpirada] = useState(false);
   const [darkMode, setDarkMode]       = useState(() => localStorage.getItem('theme') === 'dark');
   const [pacientes, setPacientes]     = useState([]);
@@ -130,16 +128,19 @@ export function AppProvider({ children }) {
     setUnauthorizedHandler(() => cerrarSesion({ expirada: true }));
   }, []);
 
-  // Timer ligero (cada 60s) para verificar expiración proactiva del token
+  // Cargar sesión del usuario desde la cookie HttpOnly al montar
   useEffect(() => {
-    if (!token) return;
-    const interval = setInterval(() => {
-      if (tokenExpirado(token)) {
-        cerrarSesion({ expirada: true });
-      }
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [token]);
+    api.getMe()
+      .then((res) => {
+        setUsuario(res.usuario);
+      })
+      .catch(() => {
+        setUsuario(null);
+      })
+      .finally(() => {
+        setLoadingUsuario(false);
+      });
+  }, []);
 
   // Sync dark class on document element
   useEffect(() => {
@@ -155,16 +156,15 @@ export function AppProvider({ children }) {
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  function guardarToken(nuevoToken) {
-    localStorage.setItem('token', nuevoToken);
-    setToken(nuevoToken);
+  function iniciarSesion(nuevoUsuario) {
+    setUsuario(nuevoUsuario);
     setSesionExpirada(false);
   }
 
   function cerrarSesion(options = {}) {
     const isExpirada = typeof options === 'object' && options?.expirada === true;
-    localStorage.removeItem('token');
-    setToken(null);
+    api.logout().catch(() => {});
+    setUsuario(null);
     setPacientes([]);
     setHistorias([]);
     setConfiguracion(null);
@@ -181,7 +181,7 @@ export function AppProvider({ children }) {
 
   // ── Carga inicial de pacientes ────────────────────────────────────────────
   useEffect(() => {
-    if (!token) { setLoadingPacientes(false); return; }
+    if (!usuario) { setLoadingPacientes(false); return; }
     setLoadingPacientes(true);
     setError(null);
     api.getPacientes()
@@ -195,33 +195,33 @@ export function AppProvider({ children }) {
         }
       })
       .finally(() => setLoadingPacientes(false));
-  }, [token]);
+  }, [usuario]);
 
   // ── Carga inicial de configuración ────────────────────────────────────────
   useEffect(() => {
-    if (!token) return;
+    if (!usuario) return;
     api.getConfiguracion()
       .then(setConfiguracion)
       .catch(() => {}); // Si no existe aún, simplemente queda null
-  }, [token]);
+  }, [usuario]);
 
   // ── Carga inicial de usuarios del consultorio ──────────────────────────────
   useEffect(() => {
-    if (!token) return;
+    if (!usuario) return;
     api.getUsuarios()
       .then((data) => setUsuariosConsultorio(Array.isArray(data) ? data : []))
       .catch(() => setUsuariosConsultorio([]));
-  }, [token]);
+  }, [usuario]);
 
   // ── Carga inicial del catálogo de procedimientos CUPS ─────────────────────
   useEffect(() => {
-    if (!token) return;
+    if (!usuario) return;
     setLoadingProcedimientos(true);
     api.getProcedimientos()
       .then(setProcedimientosCatalog)
       .catch(() => {})
       .finally(() => setLoadingProcedimientos(false));
-  }, [token]);
+  }, [usuario]);
 
   // ── Pacientes ─────────────────────────────────────────────────────────────
   async function recargarPacientes() {
@@ -413,7 +413,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       // Auth & Theme
-      token, guardarToken, cerrarSesion, sesionExpirada, limpiarSesionExpirada,
+      usuario, iniciarSesion, token: usuario, guardarToken: iniciarSesion, cerrarSesion, sesionExpirada, limpiarSesionExpirada,
       darkMode, toggleDarkMode,
       // Pacientes
       pacientes, setPacientes,
@@ -440,7 +440,11 @@ export function AppProvider({ children }) {
       loading: loadingPacientes, // deprecated: alias para no romper consumidores existentes
       error,
     }}>
-      {children}
+      {loadingUsuario ? (
+        <div className="min-h-screen flex items-center justify-center bg-teal-bg">
+          <div className="text-primary font-medium font-sans">Cargando sesión...</div>
+        </div>
+      ) : children}
     </AppContext.Provider>
   );
 }
