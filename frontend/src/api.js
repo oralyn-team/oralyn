@@ -245,6 +245,7 @@ export const api = {
   getRips: (params) => request(`/rips${buildQuery(params)}`),
   getRip: (id) => request(`/rips/${id}`),
   generarRips: (data) => request('/rips/generar', { method: 'POST', body: JSON.stringify(data) }),
+  eliminarRips: (id) => request(`/rips/${id}`, { method: 'DELETE' }),
   descargarRipsFile: async (id, formato = 'json') => {
     const url = `${BASE_URL}/rips/${id}/descargar?formato=${encodeURIComponent(formato)}`;
     const response = await fetch(url, {
