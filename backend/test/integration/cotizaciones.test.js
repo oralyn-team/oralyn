@@ -315,3 +315,46 @@ test('cotizaciones permite agregar nuevos pagos con id temporal en PUT', async (
   assert.equal(actualizada.body.saldo, 180000)
 })
 
+test('cotizaciones en PUT procesa adecuadamente mezcla de pagos existentes (id numerico) y nuevos (id string)', async (t) => {
+  const prisma = createCotizacionesPrismaMock()
+  const harness = await startAppWithPrisma(prisma)
+  t.after(() => harness.close())
+
+  // 1. Crear cotización con 1 pago inicial (monto: 80000)
+  const creada = await harness.request('/api/cotizaciones', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payloadBase())
+  })
+  const id = creada.body.id
+  const pagoExistenteId = creada.body.pagos[0].id
+
+  // 2. Modificar la cotización enviando el pago existente (id numérico) MÁS uno nuevo con ID string
+  const actualizada = await harness.request(`/api/cotizaciones/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payloadBase({
+      pagos: [
+        {
+          id: pagoExistenteId,
+          monto: 80000,
+          metodo_pago: 'efectivo',
+          referencia: 'REC-1'
+        },
+        {
+          id: 'pago_99999_xyz',
+          monto: 50000,
+          metodo_pago: 'nequi',
+          referencia: 'REC-2'
+        }
+      ]
+    }))
+  })
+
+  assert.equal(actualizada.response.status, 200)
+  assert.equal(actualizada.body.pagos.length, 2)
+  assert.equal(actualizada.body.total_pagado, 130000)
+  assert.equal(actualizada.body.saldo, 100000)
+})
+
+
