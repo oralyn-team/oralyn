@@ -10,15 +10,23 @@ function toDateInput(value) {
 }
 
 function normalizeProcedimiento(proc = {}, index = 0) {
+  const cantidad = Math.max(Number(proc.cantidad) || 1, 1);
+  const rawValor = proc.valorUnitario ?? proc.valor_unitario ?? proc.precio ?? proc.valorBase;
+  let valorUnitario = (rawValor !== undefined && rawValor !== null && rawValor !== '') ? String(rawValor) : '';
+
+  if ((!valorUnitario || Number(valorUnitario) <= 0) && proc.subtotal && Number(proc.subtotal) > 0) {
+    valorUnitario = String(Number((Number(proc.subtotal) / cantidad).toFixed(2)));
+  }
+
   return {
     id: proc.id ?? proc.procedimiento_id ?? `proc_${index}`,
     aplicaEn: proc.aplicaEn ?? proc.aplica_en ?? 'general',
     dientes: Array.isArray(proc.dientes) ? proc.dientes : [],
     cuadrante: proc.cuadrante ?? '',
-    procedimiento: proc.procedimiento ?? proc.nombre ?? '',
+    procedimiento: proc.procedimiento ?? proc.nombre ?? proc.nombre_visible ?? proc.procedimiento_nombre ?? '',
     descripcion: proc.descripcion ?? '',
-    cantidad: proc.cantidad ?? 1,
-    valorUnitario: proc.valorUnitario ?? proc.valor_unitario ?? '',
+    cantidad,
+    valorUnitario,
     descuento: proc.descuento ?? 0,
     estado: proc.estado ?? 'pendiente',
     observaciones: proc.observaciones ?? '',
