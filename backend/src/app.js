@@ -30,6 +30,7 @@ const ripsRoutes = require('./routes/rips')
 const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
+app.set('trust proxy', 1)
 
 app.use(cookieParser())
 
@@ -40,9 +41,18 @@ const allowedOrigins = [
   'https://oralyn.vercel.app',
   'https://oralyn-eta.vercel.app'
 ]
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL)
+}
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin)) {
+      return callback(null, true)
+    }
+    callback(new Error('Bloqueado por CORS: Origen no permitido'))
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
