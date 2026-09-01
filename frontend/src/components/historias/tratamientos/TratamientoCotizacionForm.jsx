@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useApp } from '../../../context/Appcontext';
 import {
   X, Save, Plus, FileText, Stethoscope,
@@ -126,6 +126,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
   const [saving, setSaving] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const [showFacturaModal, setShowFacturaModal] = useState(false);
+  const bodyRef = useRef(null);
 
   useEffect(() => {
     if (!esEdicion && !form.doctor && configuracion?.nombre_profesional) {
@@ -222,7 +223,16 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
       Object.keys(e).length   > 0 ||
       Object.keys(pe).length  > 0 ||
       Object.keys(pae).length > 0;
-    if (hayErrores) return;
+    if (hayErrores) {
+      setErrs((prev) => ({
+        ...e,
+        _global: 'No se pudo guardar: Hay campos requeridos incompletos o con error en procedimientos, información del tratamiento o pagos.'
+      }));
+      if (bodyRef.current) {
+        bodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
 
     setSaving(true);
     try {
@@ -313,7 +323,15 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
         <div className="flex flex-1 overflow-hidden min-h-0">
 
           {/* ─ LEFT: contenido principal ─────────────────────────────── */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 min-w-0">
+          <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-5 min-w-0">
+
+            {/* Banner global de errores */}
+            {errs._global && (
+              <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-[12.5px] font-medium rounded-xl flex items-center gap-2.5 shadow-sm animate-fade-in">
+                <AlertCircle size={17} className="text-red-500 flex-shrink-0" />
+                <span>{errs._global}</span>
+              </div>
+            )}
 
             {/* ── 1. Información general ──────────────────────────────── */}
             <SectionTitle icon={FileText} title="Información general" />

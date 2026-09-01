@@ -45,8 +45,11 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copiar archivos de dependencias y el esquema de Prisma
+# (prisma/ debe copiarse ANTES de npm install porque el script "postinstall"
+# del package.json ejecuta "prisma generate" automáticamente)
 COPY package*.json ./
+COPY prisma ./prisma
 
 # Indicar a Puppeteer que descargue Chromium durante la instalación
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false

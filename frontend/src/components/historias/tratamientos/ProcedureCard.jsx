@@ -190,6 +190,11 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
   const hasError = Object.keys(error).length > 0;
   const aplicResumen = resumirAplicacion(proc);
 
+  // Auto-expandir la tarjeta si contiene errores
+  useEffect(() => {
+    if (hasError) setExpanded(true);
+  }, [hasError]);
+
   // Helpers de cambio
   const set = (field, value) => onChange(proc.id, field, value);
 
@@ -243,6 +248,12 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
             {proc.estado && (
               <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${ESTADOS_PROC[proc.estado]?.cls} flex-shrink-0`}>
                 {ESTADOS_PROC[proc.estado]?.label}
+              </span>
+            )}
+            {/* Error badge */}
+            {hasError && (
+              <span className="text-[10px] font-semibold text-red-600 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                <AlertCircle size={10} /> Corregir datos
               </span>
             )}
           </div>
