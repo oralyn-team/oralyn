@@ -156,8 +156,18 @@ export function AppProvider({ children }) {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   function guardarToken(nuevoToken) {
-    localStorage.setItem('token', nuevoToken);
-    setToken(nuevoToken);
+    if (nuevoToken) {
+      localStorage.setItem('token', nuevoToken);
+      setToken(nuevoToken);
+    }
+  }
+
+  function iniciarSesion(nuevoUsuario, nuevoToken) {
+    if (nuevoToken) {
+      localStorage.setItem('token', nuevoToken);
+      setToken(nuevoToken);
+    }
+    if (nuevoUsuario) setUsuario(nuevoUsuario);
     setSesionExpirada(false);
   }
 
@@ -413,7 +423,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       // Auth & Theme
-      token, guardarToken, cerrarSesion, sesionExpirada, limpiarSesionExpirada,
+      token, guardarToken, iniciarSesion, cerrarSesion, sesionExpirada, limpiarSesionExpirada,
       darkMode, toggleDarkMode,
       // Pacientes
       pacientes, setPacientes,
