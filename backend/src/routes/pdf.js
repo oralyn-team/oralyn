@@ -26,7 +26,7 @@ router.get('/paciente/:id', async (req, res) => {
     res.send(pdf)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Error generando PDF', detalle: error.message, tipo: error.name })
+    res.status(500).json({ error: 'Error generando PDF' })
   }
 })
 
@@ -49,7 +49,7 @@ router.get('/historia/:id', async (req, res) => {
     res.send(pdf)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Error generando PDF', detalle: error.message, tipo: error.name })
+    res.status(500).json({ error: 'Error generando PDF' })
   }
 })
 
@@ -70,7 +70,7 @@ router.get('/cotizacion/:id', async (req, res) => {
     res.send(pdf)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Error generando PDF', detalle: error.message, tipo: error.name })
+    res.status(500).json({ error: 'Error generando PDF' })
   }
 })
 
@@ -89,7 +89,7 @@ router.get('/certificado/:id', async (req, res) => {
     res.send(pdf)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Error generando PDF', detalle: error.message, tipo: error.name })
+    res.status(500).json({ error: 'Error generando PDF' })
   }
 })
 
@@ -100,7 +100,7 @@ router.get('/recomendaciones', async (req, res) => {
     res.send(pdf)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Error generando PDF', detalle: error.message, tipo: error.name })
+    res.status(500).json({ error: 'Error generando PDF' })
   }
 })
 
@@ -120,7 +120,7 @@ router.get('/consentimiento/:id', async (req, res) => {
     res.send(pdf)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Error generando PDF', detalle: error.message, tipo: error.name })
+    res.status(500).json({ error: 'Error generando PDF' })
   }
 })
 
