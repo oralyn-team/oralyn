@@ -156,8 +156,17 @@ export function AppProvider({ children }) {
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  function iniciarSesion(nuevoUsuario) {
-    setUsuario(nuevoUsuario);
+  function guardarToken(nuevoToken) {
+    if (nuevoToken) {
+      localStorage.setItem('token', nuevoToken);
+    }
+  }
+
+  function iniciarSesion(nuevoUsuario, nuevoToken) {
+    if (nuevoToken) {
+      localStorage.setItem('token', nuevoToken);
+    }
+    if (nuevoUsuario) setUsuario(nuevoUsuario);
     setSesionExpirada(false);
   }
 
@@ -413,7 +422,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       // Auth & Theme
-      usuario, iniciarSesion, token: usuario, guardarToken: iniciarSesion, cerrarSesion, sesionExpirada, limpiarSesionExpirada,
+      usuario, iniciarSesion, token: usuario, guardarToken, cerrarSesion, sesionExpirada, limpiarSesionExpirada,
       darkMode, toggleDarkMode,
       // Pacientes
       pacientes, setPacientes,

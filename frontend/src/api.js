@@ -1,12 +1,18 @@
 const BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+  (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/+$/, '')
 
 let onUnauthorized = null
 export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn
 }
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 async function verPDF(tipo, id) {
+  const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   let url;
 
   switch (tipo) {
@@ -19,44 +25,72 @@ async function verPDF(tipo, id) {
       break;
 
     default:
+      if (win) win.close();
       throw new Error(`Tipo de PDF no soportado: ${tipo}`);
   }
 
-  const response = await fetch(url, {
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      onUnauthorized?.();
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        onUnauthorized?.();
+      }
+      const error = await response.text();
+      console.error(error);
+      if (win) win.close();
+      throw new Error('Error al obtener el PDF');
     }
-    const error = await response.text();
-    console.error(error);
-    throw new Error('Error al obtener el PDF');
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    if (win) {
+      win.location.href = objectUrl;
+    } else {
+      window.open(objectUrl, '_blank');
+    }
+  } catch (err) {
+    if (win) win.close();
+    throw err;
   }
-
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-
-  window.open(objectUrl, '_blank');
 }
 
 async function verHistoriaPDF(historiaId) {
+  const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   const url = `${BASE_URL}/pdf/historia/${historiaId}`;
 
-  const response = await fetch(url, {
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      onUnauthorized?.();
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        onUnauthorized?.();
+      }
+      if (win) win.close();
+      throw new Error('Error al obtener el PDF');
     }
-    throw new Error('Error al obtener el PDF');
-  }
 
-  const blob = await response.blob();
-  window.open(URL.createObjectURL(blob), '_blank');
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    if (win) {
+      win.location.href = objectUrl;
+    } else {
+      window.open(objectUrl, '_blank');
+    }
+  } catch (err) {
+    if (win) win.close();
+    throw err;
+  }
 }
 
 async function request(path, options = {}) {
@@ -65,6 +99,7 @@ async function request(path, options = {}) {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options.headers,
     },
   });
@@ -95,39 +130,69 @@ function buildQuery(params = {}) {
 }
 
 async function verCotizacionPDF(cotizacionId) {
+  const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   const url = `${BASE_URL}/cotizaciones/${cotizacionId}/pdf`;
 
-  const response = await fetch(url, {
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      onUnauthorized?.();
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        onUnauthorized?.();
+      }
+      if (win) win.close();
+      throw new Error('Error al obtener el PDF');
     }
-    throw new Error('Error al obtener el PDF');
-  }
 
-  const blob = await response.blob();
-  window.open(URL.createObjectURL(blob), '_blank');
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    if (win) {
+      win.location.href = objectUrl;
+    } else {
+      window.open(objectUrl, '_blank');
+    }
+  } catch (err) {
+    if (win) win.close();
+    throw err;
+  }
 }
 
 async function verRecomendacionesPDF() {
+  const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   const url = `${BASE_URL}/pdf/recomendaciones`;
 
-  const response = await fetch(url, {
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      onUnauthorized?.();
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        onUnauthorized?.();
+      }
+      if (win) win.close();
+      throw new Error('Error al obtener el PDF');
     }
-    throw new Error('Error al obtener el PDF');
-  }
 
-  const blob = await response.blob();
-  window.open(URL.createObjectURL(blob), '_blank');
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    if (win) {
+      win.location.href = objectUrl;
+    } else {
+      window.open(objectUrl, '_blank');
+    }
+  } catch (err) {
+    if (win) win.close();
+    throw err;
+  }
 }
 
 export const api = {
@@ -249,6 +314,9 @@ export const api = {
     const url = `${BASE_URL}/rips/${id}/descargar?formato=${encodeURIComponent(formato)}`;
     const response = await fetch(url, {
       credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+      },
     });
 
     if (!response.ok) {
