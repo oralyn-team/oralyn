@@ -156,8 +156,19 @@ export function AppProvider({ children }) {
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  function iniciarSesion(nuevoUsuario) {
-    setUsuario(nuevoUsuario);
+  function guardarToken(nuevoToken) {
+    if (nuevoToken) {
+      localStorage.setItem('token', nuevoToken);
+      setToken(nuevoToken);
+    }
+  }
+
+  function iniciarSesion(nuevoUsuario, nuevoToken) {
+    if (nuevoToken) {
+      localStorage.setItem('token', nuevoToken);
+      setToken(nuevoToken);
+    }
+    if (nuevoUsuario) setUsuario(nuevoUsuario);
     setSesionExpirada(false);
   }
 
