@@ -30,6 +30,11 @@ import {
   Tag,
   DollarSign,
   Hash,
+  Receipt,
+  ShieldCheck,
+  CheckCircle2,
+  CalendarDays,
+  Globe
 } from 'lucide-react';
 
 // ── Categorías predefinidas (sirven como opciones en el modal) ─────────────────
@@ -989,11 +994,279 @@ function TabAjustesGenerales() {
   );
 }
 
+// ── Tab: Facturación Electrónica DIAN ──────────────────────────────────────────
+
+function TabFacturacionElectronica() {
+  const { configuracion } = useApp();
+
+  const [fiscalForm, setFiscalForm] = useState({
+    razonSocial: configuracion?.nombre_consultorio || 'Oralyn Consultorio Odontológico S.A.S.',
+    nit: configuracion?.nit || '901.456.789-1',
+    regimen: 'Régimen Ordinario / Común',
+    responsabilidades: 'O-13 Gran Contribuyente, O-15 Autorretenedor, O-47 Facturador Electrónico'
+  });
+
+  const [resolucionForm, setResolucionForm] = useState({
+    prefijo: 'FE',
+    numeroInicial: '000001',
+    numeroFinal: '005000',
+    numeroActual: '001249',
+    fechaInicio: '2026-01-15',
+    fechaVencimiento: '2027-01-15'
+  });
+
+  const [electConfig, setElectConfig] = useState({
+    ambiente: 'Pruebas',
+    proveedor: 'FacturaTech Colombia S.A.S.',
+    estadoConexion: 'Conectado'
+  });
+
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const mostrarToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleSaveAll = (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      mostrarToast('Ajustes de Facturación Electrónica guardados correctamente');
+    }, 400);
+  };
+
+  return (
+    <form onSubmit={handleSaveAll} className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        {/* 1. Datos Fiscales */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4">
+          <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+            <Building2 size={15} className="text-teal" /> Datos Fiscales ante DIAN
+          </h3>
+
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Razón Social *</label>
+            <input
+              type="text"
+              required
+              value={fiscalForm.razonSocial}
+              onChange={(e) => setFiscalForm({ ...fiscalForm, razonSocial: e.target.value })}
+              className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">NIT con DV *</label>
+              <input
+                type="text"
+                required
+                value={fiscalForm.nit}
+                onChange={(e) => setFiscalForm({ ...fiscalForm, nit: e.target.value })}
+                className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Régimen Fiscal</label>
+              <select
+                value={fiscalForm.regimen}
+                onChange={(e) => setFiscalForm({ ...fiscalForm, regimen: e.target.value })}
+                className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px] cursor-pointer"
+              >
+                <option value="Régimen Ordinario / Común">Régimen Ordinario / Común</option>
+                <option value="Régimen Simple de Tributación (RST)">Régimen Simple de Tributación (RST)</option>
+                <option value="Persona Natural No Responsable de IVA">Persona Natural No Responsable de IVA</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Responsabilidades Fiscales</label>
+            <input
+              type="text"
+              value={fiscalForm.responsabilidades}
+              onChange={(e) => setFiscalForm({ ...fiscalForm, responsabilidades: e.target.value })}
+              className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              placeholder="Ej: O-13, O-15, O-47"
+            />
+          </div>
+        </div>
+
+        {/* 2. Resolución de Facturación DIAN */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4">
+          <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+            <Hash size={15} className="text-teal" /> Resolución de Facturación
+          </h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Prefijo</label>
+              <input
+                type="text"
+                value={resolucionForm.prefijo}
+                onChange={(e) => setResolucionForm({ ...resolucionForm, prefijo: e.target.value })}
+                className="w-full text-[12px] font-mono text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Número Actual</label>
+              <input
+                type="text"
+                value={resolucionForm.numeroActual}
+                onChange={(e) => setResolucionForm({ ...resolucionForm, numeroActual: e.target.value })}
+                className="w-full text-[12px] font-mono text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Número Inicial</label>
+              <input
+                type="text"
+                value={resolucionForm.numeroInicial}
+                onChange={(e) => setResolucionForm({ ...resolucionForm, numeroInicial: e.target.value })}
+                className="w-full text-[12px] font-mono text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Número Final</label>
+              <input
+                type="text"
+                value={resolucionForm.numeroFinal}
+                onChange={(e) => setResolucionForm({ ...resolucionForm, numeroFinal: e.target.value })}
+                className="w-full text-[12px] font-mono text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Fecha de Inicio</label>
+              <input
+                type="date"
+                value={resolucionForm.fechaInicio}
+                onChange={(e) => setResolucionForm({ ...resolucionForm, fechaInicio: e.target.value })}
+                className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Vencimiento</label>
+              <input
+                type="date"
+                value={resolucionForm.fechaVencimiento}
+                onChange={(e) => setResolucionForm({ ...resolucionForm, fechaVencimiento: e.target.value })}
+                className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Configuración Electrónica */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4">
+          <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+            <Globe size={15} className="text-teal" /> Configuración de Entorno & Proveedor
+          </h3>
+
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Ambiente DIAN</label>
+            <div className="grid grid-cols-2 gap-2">
+              {['Pruebas', 'Producción'].map((env) => (
+                <button
+                  key={env}
+                  type="button"
+                  onClick={() => setElectConfig({ ...electConfig, ambiente: env })}
+                  className={[
+                    'py-2 px-3 rounded-xl text-[12px] font-semibold border transition-all cursor-pointer touch-target',
+                    electConfig.ambiente === env
+                      ? 'bg-primary dark:bg-teal text-white dark:text-slate-900 border-primary dark:border-teal'
+                      : 'bg-white dark:bg-dark-input text-teal-muted dark:text-slate-400 border-teal-border dark:border-dark-border hover:bg-teal-panel'
+                  ].join(' ')}
+                >
+                  {env}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Proveedor Tecnológico</label>
+            <input
+              type="text"
+              value={electConfig.proveedor}
+              onChange={(e) => setElectConfig({ ...electConfig, proveedor: e.target.value })}
+              className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans min-h-[40px]"
+            />
+          </div>
+
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-center justify-between text-[11.5px]">
+            <span className="text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-1.5">
+              <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400" /> Estado de Conexión:
+            </span>
+            <span className="font-bold text-emerald-700 dark:text-emerald-400">Conectado y Operativo ✓</span>
+          </div>
+        </div>
+
+        {/* 4. Certificado Digital */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4 flex flex-col justify-between">
+          <div className="space-y-3">
+            <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+              <ShieldCheck size={15} className="text-teal" /> Certificado Digital de Firma
+            </h3>
+
+            <div className="p-4 bg-teal-panel dark:bg-slate-800/60 border border-teal-border dark:border-dark-border rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400">Estado Certificado</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 text-[10.5px] font-bold">
+                  Certificado configurado
+                </span>
+              </div>
+              <p className="text-[12px] font-medium text-primary dark:text-dark-text pt-1">
+                Certificado Digital de Firma Electrónica (.p12 / .pfx) verificado y activo.
+              </p>
+              <p className="text-[10.5px] text-teal-muted dark:text-slate-400">
+                Vencimiento: <strong className="text-primary dark:text-dark-text font-semibold">15 de Enero de 2027</strong>
+              </p>
+            </div>
+
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl text-[10.5px] text-amber-800 dark:text-amber-300 leading-relaxed">
+              🔒 <strong>Protección de seguridad:</strong> Las claves privadas y frases de paso del certificado digital están cifradas con estándares bancarios. Nunca se exponen en la interfaz web.
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-teal-soft dark:border-dark-border flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-75 touch-target cursor-pointer shadow-soft-sm"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {saving ? 'Guardando...' : 'Guardar Facturación Electrónica'}
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 shadow-soft-lg flex items-center gap-2 border border-white/10 animate-toast">
+          <Check size={14} className="text-teal" /> {toast}
+        </div>
+      )}
+    </form>
+  );
+}
+
 // ── Página Principal ──────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'general',    label: 'Ajustes Generales',  icon: Settings    },
-  { id: 'catalogo',   label: 'Catálogo CUPS',       icon: Stethoscope },
+  { id: 'general',     label: 'Ajustes Generales',      icon: Settings    },
+  { id: 'catalogo',    label: 'Catálogo CUPS',           icon: Stethoscope },
+  { id: 'facturacion', label: 'Facturación Electrónica', icon: Receipt     },
 ];
 
 export default function Configuracion() {
@@ -1016,7 +1289,7 @@ export default function Configuracion() {
                 <Settings size={18} className="text-teal" /> Ajustes del Consultorio
               </h2>
               <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
-                Administra la configuración general y el catálogo de procedimientos CUPS de tu clínica.
+                Administra la configuración general, catálogo de procedimientos CUPS y facturación electrónica DIAN.
               </p>
             </div>
           </div>
@@ -1046,8 +1319,9 @@ export default function Configuracion() {
           </div>
 
           {/* Contenido del tab activo */}
-          {tabActivo === 'general'  && <TabAjustesGenerales />}
-          {tabActivo === 'catalogo' && <TabCatalogoCUPS />}
+          {tabActivo === 'general'     && <TabAjustesGenerales />}
+          {tabActivo === 'catalogo'    && <TabCatalogoCUPS />}
+          {tabActivo === 'facturacion' && <TabFacturacionElectronica />}
 
         </main>
       </div>

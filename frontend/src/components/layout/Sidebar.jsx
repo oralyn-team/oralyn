@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays,
-  Stethoscope, ClipboardList, Settings, LogOut, FileBarChart,
+  Stethoscope, ClipboardList, Settings, LogOut, FileBarChart, Receipt,
   Sun, Moon, X
 } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { icon: Stethoscope,     label: 'Consentimientos',  path: '/consentimientos' },
   { icon: ClipboardList,   label: 'Historias',        path: '/historias'       },
   { icon: FileBarChart,    label: 'RIPS',             path: '/rips'            },
+  { icon: Receipt,         label: 'Facturación',      path: '/facturacion'     },
   { icon: Settings,        label: 'Ajustes',          path: '/configuracion'   },
 ];
 

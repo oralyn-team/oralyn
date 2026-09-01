@@ -2,8 +2,9 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useApp } from '../../../context/Appcontext';
 import {
   X, Save, Plus, FileText, Stethoscope,
-  Activity, CreditCard, Download, ChevronDown, AlertCircle,
+  Activity, CreditCard, Download, ChevronDown, AlertCircle, Receipt,
 } from 'lucide-react';
+import GenerarFacturaModal from '../../facturacion/GenerarFacturaModal';
 
 import { TIPOS_TRATAMIENTO, PRIORIDADES, ESTADOS_TRATAMIENTO } from './constants';
 import {
@@ -124,6 +125,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
   const [paErrs, setPaErrs] = useState({});
   const [saving, setSaving] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
+  const [showFacturaModal, setShowFacturaModal] = useState(false);
   const bodyRef = useRef(null);
 
   useEffect(() => {
@@ -511,13 +513,36 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
 
           <div className="flex items-center gap-2">
             {esEdicion && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowFacturaModal(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors shadow-2xs"
+                >
+                  <Receipt size={12} />
+                  Generar factura electrónica
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDescargarPDF}
+                  disabled={descargandoPDF || saving}
+                  className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-medium text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-info transition-colors disabled:opacity-50"
+                >
+                  <Download size={12} />
+                  {descargandoPDF ? 'Generando...' : 'Descargar PDF'}
+                </button>
+              </>
+            )}
+
+            {!esEdicion && (
               <button
-                onClick={handleDescargarPDF}
-                disabled={descargandoPDF || saving}
-                className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-medium text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-info transition-colors disabled:opacity-50"
+                type="button"
+                onClick={() => setShowFacturaModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors shadow-2xs"
               >
-                <Download size={12} />
-                {descargandoPDF ? 'Generando...' : 'Descargar PDF'}
+                <Receipt size={12} />
+                Generar factura electrónica
               </button>
             )}
 
@@ -549,6 +574,31 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
           </div>
         </div>
       </div>
+
+      {/* Modal Factura Electrónica */}
+      {showFacturaModal && (
+        <GenerarFacturaModal
+          data={{
+            patient: {
+              nombre: form.pacienteNombre || 'Laura Martínez',
+              tipoDocumento: 'CC',
+              documento: form.pacienteDocumento || '1018432910'
+            },
+            procedimientos: procs,
+            totales: {
+              subtotal: totales.subtotal || totales.total,
+              descuento: totales.descuento || 0,
+              impuesto: totales.impuesto || 0,
+              total: totales.total
+            },
+            metodoPago: pagos[0]?.metodo || 'Transferencia'
+          }}
+          onClose={() => setShowFacturaModal(false)}
+          onFacturaCreada={() => {
+            setShowFacturaModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
