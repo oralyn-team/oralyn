@@ -83,6 +83,12 @@ async function generarPDF({ template, data, consultorio_id }) {
 
   if (process.env.PUPPETEER_EXECUTABLE_PATH) {
     launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
+  } else if (fs.existsSync('/usr/bin/google-chrome-stable')) {
+    launchOptions.executablePath = '/usr/bin/google-chrome-stable'
+  } else if (fs.existsSync('/usr/bin/chromium-browser')) {
+    launchOptions.executablePath = '/usr/bin/chromium-browser'
+  } else if (fs.existsSync('/usr/bin/chromium')) {
+    launchOptions.executablePath = '/usr/bin/chromium'
   }
 
   let browser = null
