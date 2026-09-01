@@ -294,4 +294,34 @@ router.post('/generar', async (req, res) => {
   }
 })
 
+// DELETE /api/rips/:id — Eliminar una generación RIPS
+router.delete('/:id', async (req, res) => {
+  const id = parseInt(req.params.id)
+  const consultorioId = req.usuario.consultorio_id
+
+  if (!id || isNaN(id)) {
+    return res.status(400).json({ error: 'ID de generación no válido' })
+  }
+
+  try {
+    const gen = await prisma.ripsGeneracion.findFirst({
+      where: { id, consultorio_id: consultorioId }
+    })
+
+    if (!gen) {
+      return res.status(404).json({ error: 'Generación RIPS no encontrada' })
+    }
+
+    await prisma.ripsGeneracion.delete({
+      where: { id }
+    })
+
+    res.json({ mensaje: 'Registro de RIPS eliminado correctamente' })
+  } catch (error) {
+    console.error('Error al eliminar RIPS:', error)
+    res.status(500).json({ error: 'Error interno del servidor al eliminar RIPS' })
+  }
+})
+
 module.exports = router
+

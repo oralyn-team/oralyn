@@ -275,7 +275,13 @@ router.put('/:id', async (req, res) => {
 
     const procedimientosData = prepararProcedimientos(procedimientos)
     const total = procedimientosData.reduce((sum, p) => sum + Number(p.subtotal), 0)
-    const pagosData = prepararPagos(pagos.filter((p) => !p.id), paciente_id, req.usuario.consultorio_id)
+    const pagosNuevos = pagos.filter((p) => {
+      if (!p.id) return true
+      if (typeof p.id === 'string' && p.id.startsWith('pago_')) return true
+      const idNum = Number(p.id)
+      return !Number.isInteger(idNum) || idNum <= 0
+    })
+    const pagosData = prepararPagos(pagosNuevos, paciente_id, req.usuario.consultorio_id)
     const pagosExistentes = await prisma.pago.findMany({
       where: { cotizacion_id: id, consultorio_id: req.usuario.consultorio_id },
       select: { monto: true }

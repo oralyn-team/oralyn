@@ -103,6 +103,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     })
 
     res.json({
+      token,
       usuario: {
         id: usuario.id,
         email: usuario.email,

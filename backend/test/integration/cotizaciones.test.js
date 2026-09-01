@@ -277,3 +277,41 @@ test('pagos registra abonos contra una cotización y recalcula el saldo', async 
   assert.equal(cotizacion.total_pagado, 50000)
   assert.equal(cotizacion.saldo, 180000)
 })
+
+test('cotizaciones permite agregar nuevos pagos con id temporal en PUT', async (t) => {
+  const prisma = createCotizacionesPrismaMock()
+  const harness = await startAppWithPrisma(prisma)
+  t.after(() => harness.close())
+
+  // Crear cotización sin pagos iniciales
+  const creada = await harness.request('/api/cotizaciones', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payloadBase({ pagos: [] }))
+  })
+  const id = creada.body.id
+
+  // Modificar cotización agregando un pago con ID temporal en formato string
+  const actualizada = await harness.request(`/api/cotizaciones/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payloadBase({
+      pagos: [
+        {
+          id: 'pago_1724976000000_abcd',
+          monto: 50000,
+          metodo_pago: 'efectivo',
+          referencia: 'ABONO-NEW'
+        }
+      ]
+    }))
+  })
+
+  assert.equal(actualizada.response.status, 200)
+  assert.equal(actualizada.body.pagos.length, 1)
+  assert.equal(actualizada.body.pagos[0].monto, 50000)
+  assert.equal(actualizada.body.pagos[0].referencia, 'ABONO-NEW')
+  assert.equal(actualizada.body.total_pagado, 50000)
+  assert.equal(actualizada.body.saldo, 180000)
+})
+

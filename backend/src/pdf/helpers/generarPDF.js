@@ -44,9 +44,21 @@ async function generarPDF({ template, data, consultorio_id }) {
   const compiledTemplate = handlebars.compile(source)
   const html = compiledTemplate({ ...data, config })
 
-  const browser = await puppeteer.launch({
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  })
+  const launchOptions = {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas'
+    ]
+  }
+
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
+  }
+
+  const browser = await puppeteer.launch(launchOptions)
   const page = await browser.newPage()
   await page.setContent(html, { waitUntil: 'networkidle0' })
   const pdf = await page.pdf({ format: 'A4', printBackground: true })
