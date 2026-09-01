@@ -108,6 +108,14 @@ router.patch('/:id/anular', async (req, res) => {
   }
 
   try {
+    const existe = await prisma.consentimiento.findUnique({
+      where: { id }
+    })
+    if (!existe) return res.status(404).json({ error: 'Consentimiento no encontrado' })
+    if (existe.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+
     const consentimiento = await prisma.consentimiento.update({
       where: { id },
       data: {
@@ -119,9 +127,6 @@ router.patch('/:id/anular', async (req, res) => {
 
     res.json(consentimiento)
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Consentimiento no encontrado' })
-    }
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
@@ -135,6 +140,10 @@ router.delete('/:id', async (req, res) => {
 
     if (!consentimiento) {
       return res.status(404).json({ error: 'Consentimiento no encontrado' })
+    }
+
+    if (consentimiento.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
     }
 
     await prisma.consentimiento.delete({ where: { id } })

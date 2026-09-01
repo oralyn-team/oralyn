@@ -50,7 +50,10 @@ router.post('/:pacienteId', async (req, res) => {
     odontograma,
   } = req.body
 
-  if (!motivo_consulta || !diagnostico) {
+  const trimmedMotivo = motivo_consulta ? String(motivo_consulta).trim() : ''
+  const trimmedDx = diagnostico ? String(diagnostico).trim() : ''
+
+  if (!trimmedMotivo || !trimmedDx) {
     return res.status(400).json({ error: 'Motivo de consulta y diagnóstico son obligatorios' })
   }
 
@@ -229,6 +232,20 @@ router.put('/:id', async (req, res) => {
   const { antecedentes, examen, ...datos } = req.body
 
   try {
+    // Protección: Verificar existencia y consultorio del paciente
+    const historiaExistente = await prisma.historiaClinica.findUnique({
+      where: { id },
+      include: { paciente: { select: { consultorio_id: true } } }
+    })
+
+    if (!historiaExistente) {
+      return res.status(404).json({ error: 'Historia clínica no encontrada' })
+    }
+
+    if (historiaExistente.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+
     const historia = await prisma.$transaction(async (tx) => {
       const h = await tx.historiaClinica.update({
         where: { id },
@@ -331,8 +348,15 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
   }
 
   try {
-    const historia = await prisma.historiaClinica.findUnique({ where: { id: historiaId } })
+    // Protección: Incluir paciente para validar el aislamiento multi-tenant
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id: historiaId },
+      include: { paciente: { select: { consultorio_id: true } } }
+    })
     if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
+    if (historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
 
     const evolucion = await prisma.hojaEvolucion.create({
       data: {
@@ -479,6 +503,19 @@ router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
   }
 
   try {
+    // Protección: Validar consultorio del paciente a través de la relación historia.paciente
+    const existeEvolucion = await prisma.hojaEvolucion.findUnique({
+      where: { id: evolucionId },
+      include: { historia: { include: { paciente: true } } }
+    })
+    if (!existeEvolucion) return res.status(404).json({ error: 'Evolución no encontrada' })
+    if (existeEvolucion.historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+    if (existeEvolucion.historia_id !== historiaId) {
+      return res.status(400).json({ error: 'La evolución no pertenece a esta historia' })
+    }
+
     const evolucion = await prisma.hojaEvolucion.update({
       where: { id: evolucionId },
       data: {
@@ -520,10 +557,18 @@ router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
   }
 
   try {
-    const evolucion = await prisma.hojaEvolucion.findUnique({ where: { id: evolucionId } })
+    // Protección: Incluir la historia y el paciente para verificar pertenencia de consultorio
+    const evolucion = await prisma.hojaEvolucion.findUnique({
+      where: { id: evolucionId },
+      include: { historia: { include: { paciente: true } } }
+    })
 
     if (!evolucion) {
       return res.status(404).json({ error: 'Evolución no encontrada' })
+    }
+
+    if (evolucion.historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
     }
 
     if (evolucion.historia_id !== historiaId) {
@@ -547,6 +592,16 @@ router.get('/:historiaId/adjuntos', async (req, res) => {
   }
 
   try {
+    // Protección: Validar que la historia clínica exista y sea del consultorio correcto
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id: historiaId },
+      include: { paciente: true }
+    })
+    if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
+    if (historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+
     const adjuntos = await prisma.hcAdjunto.findMany({
       where:   { historia_id: historiaId },
       orderBy: { creado_en: 'desc' }
@@ -572,8 +627,15 @@ router.post('/:historiaId/adjuntos', async (req, res) => {
   }
 
   try {
-    const historia = await prisma.historiaClinica.findUnique({ where: { id: historiaId } })
+    // Protección: Incluir paciente para validar consultorio
+    const historia = await prisma.historiaClinica.findUnique({
+      where: { id: historiaId },
+      include: { paciente: true }
+    })
     if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
+    if (historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
 
     const adjunto = await prisma.hcAdjunto.create({
       data: {
@@ -604,10 +666,18 @@ router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
   }
 
   try {
-    const adjunto = await prisma.hcAdjunto.findUnique({ where: { id: adjuntoId } })
+    // Protección: Validar a través de historia -> paciente -> consultorio_id
+    const adjunto = await prisma.hcAdjunto.findUnique({
+      where: { id: adjuntoId },
+      include: { historia: { include: { paciente: true } } }
+    })
 
     if (!adjunto) {
       return res.status(404).json({ error: 'Adjunto no encontrado' })
+    }
+
+    if (adjunto.historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
     }
 
     if (adjunto.historia_id !== historiaId) {

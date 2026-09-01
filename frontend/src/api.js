@@ -6,11 +6,6 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn
 }
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 async function verPDF(tipo, id) {
   const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   let url;
@@ -29,12 +24,9 @@ async function verPDF(tipo, id) {
       throw new Error(`Tipo de PDF no soportado: ${tipo}`);
   }
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    });
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -63,12 +55,9 @@ async function verHistoriaPDF(historiaId) {
   const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   const url = `${BASE_URL}/pdf/historia/${historiaId}`;
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    });
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -94,9 +83,9 @@ async function verHistoriaPDF(historiaId) {
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...getAuthHeaders(),
       ...options.headers,
     },
   });
@@ -130,12 +119,9 @@ async function verCotizacionPDF(cotizacionId) {
   const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   const url = `${BASE_URL}/cotizaciones/${cotizacionId}/pdf`;
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    });
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -162,12 +148,9 @@ async function verRecomendacionesPDF() {
   const win = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   const url = `${BASE_URL}/pdf/recomendaciones`;
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        ...getAuthHeaders(),
-      },
-    });
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -202,6 +185,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  getMe: () => request('/auth/me'),
   getUsuarios: () => request('/usuarios'),
 
   // Pacientes
@@ -307,9 +292,7 @@ export const api = {
   descargarRipsFile: async (id, formato = 'json') => {
     const url = `${BASE_URL}/rips/${id}/descargar?formato=${encodeURIComponent(formato)}`;
     const response = await fetch(url, {
-      headers: {
-        ...getAuthHeaders(),
-      },
+      credentials: 'include',
     });
 
     if (!response.ok) {

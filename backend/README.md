@@ -28,7 +28,7 @@ Stack: Node.js · Express · Prisma · PostgreSQL (Supabase)
 3. Crea el archivo `.env` en la raíz de `backend/` con estas variables:
 
 DATABASE_URL="postgresql://..."
-JWT_SECRET="DannaKelly04oralyn"
+JWT_SECRET="genera-un-valor-largo-y-aleatorio-y-no-lo-subas-al-repo"
 NODE_ENV="development"
 PORT=3000
 

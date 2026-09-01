@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const jwt = require('jsonwebtoken')
 
 const { startAppWithPrisma } = require('../helpers/appHarness')
-const { createCotizacionesPrismaMock } = require('../helpers/mockPrisma')
+const { createCotizacionesPrismaMock, createUnifiedPrismaMock } = require('../helpers/mockPrisma')
 
 process.env.JWT_SECRET = 'integration-test-secret'
 process.env.ADMIN_SECRET = 'admin-test-secret'
@@ -89,6 +89,21 @@ test('cotizaciones crea tratamientos calculando subtotales, total, pago y saldo'
   assert.equal(prisma.__db.cotizaciones.length, 1)
 })
 
+function createCotizacionesIsolationPrismaMock() {
+  return createUnifiedPrismaMock({
+    paciente: [
+      { id: 1, consultorio_id: 10, nombres: 'Ana', primer_apellido: 'Paz', segundo_apellido: null, tipo_documento: 'CC', numero_documento: '123', telefono: '3001234567' },
+      { id: 2, consultorio_id: 99, nombres: 'Luis', primer_apellido: 'Roa', segundo_apellido: null, tipo_documento: 'CC', numero_documento: '999', telefono: null }
+    ],
+    cotizacion: [
+      { id: 200, consultorio_id: 99, paciente_id: 2, total: 1000, total_pagado: 100, saldo: 900, estado: 'aprobado' }
+    ],
+    pago: [
+      { id: 400, consultorio_id: 99, paciente_id: 2, cotizacion_id: 200, monto: 100 }
+    ]
+  })
+}
+
 test('cotizaciones no permite crear tratamiento para paciente de otro consultorio', async (t) => {
   const harness = await startAppWithPrisma(createCotizacionesPrismaMock())
   t.after(() => harness.close())
@@ -101,6 +116,83 @@ test('cotizaciones no permite crear tratamiento para paciente de otro consultori
 
   assert.equal(response.status, 404)
   assert.equal(body.error, 'Paciente no encontrado')
+})
+
+test('Aislamiento: GET /api/cotizaciones/:id — no permite consultar cotización de otro consultorio', async (t) => {
+  const harness = await startAppWithPrisma(createCotizacionesIsolationPrismaMock())
+  t.after(() => harness.close())
+
+  const { response } = await harness.request('/api/cotizaciones/200', {
+    headers: authHeaders(10)
+  })
+
+  assert.equal(response.status, 404)
+})
+
+test('Aislamiento: PUT /api/cotizaciones/:id — no permite modificar cotización de otro consultorio', async (t) => {
+  const harness = await startAppWithPrisma(createCotizacionesIsolationPrismaMock())
+  t.after(() => harness.close())
+
+  const { response } = await harness.request('/api/cotizaciones/200', {
+    method: 'PUT',
+    headers: authHeaders(10),
+    body: JSON.stringify(payloadBase({ paciente_id: 1 }))
+  })
+
+  assert.equal(response.status, 404)
+})
+
+test('Aislamiento: PATCH /api/cotizaciones/:id/estado — no permite cambiar estado de cotización de otro consultorio', async (t) => {
+  const harness = await startAppWithPrisma(createCotizacionesIsolationPrismaMock())
+  t.after(() => harness.close())
+
+  const { response } = await harness.request('/api/cotizaciones/200/estado', {
+    method: 'PATCH',
+    headers: authHeaders(10),
+    body: JSON.stringify({ estado: 'en_proceso' })
+  })
+
+  assert.equal(response.status, 404)
+})
+
+test('Aislamiento: DELETE /api/cotizaciones/:id — no permite eliminar cotización de otro consultorio', async (t) => {
+  const harness = await startAppWithPrisma(createCotizacionesIsolationPrismaMock())
+  t.after(() => harness.close())
+
+  const { response } = await harness.request('/api/cotizaciones/200', {
+    method: 'DELETE',
+    headers: authHeaders(10)
+  })
+
+  assert.equal(response.status, 404)
+})
+
+test('Aislamiento: POST /api/pagos — no permite registrar pagos para paciente de otro consultorio', async (t) => {
+  const harness = await startAppWithPrisma(createCotizacionesIsolationPrismaMock())
+  t.after(() => harness.close())
+
+  const { response } = await harness.request('/api/pagos', {
+    method: 'POST',
+    headers: authHeaders(10),
+    body: JSON.stringify({
+      paciente_id: 2,
+      monto: 50,
+      metodo_pago: 'efectivo'
+    })
+  })
+
+  assert.equal(response.status, 404)
+})
+
+test('Aislamiento: GET /api/pagos/paciente/:pacienteId — no permite listar pagos de paciente de otro consultorio', async (t) => {
+  const harness = await startAppWithPrisma(createCotizacionesIsolationPrismaMock())
+  t.after(() => harness.close())
+
+  const { response } = await harness.request('/api/pagos/paciente/2', {
+    headers: authHeaders(10)
+  })
+
+  assert.equal(response.status, 404)
 })
 
 test('cotizaciones permite leer, editar y eliminar por las rutas usadas por el frontend', async (t) => {

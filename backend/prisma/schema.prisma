@@ -103,6 +103,21 @@ model CatalogoOficialCups {
   @@map("catalogo_oficial_cups")
 }
 
+// ─── CATÁLOGO OFICIAL CIE-10 ────────────────────────────────
+
+model CatalogoOficialCie10 {
+  id             Int      @id @default(autoincrement())
+  codigo_cie10   String   @unique
+  nombre_oficial String
+  categoria      String
+  descripcion    String?
+  activo         Boolean  @default(true)
+  creado_en      DateTime @default(now())
+  actualizado_en DateTime @default(now()) @updatedAt
+
+  @@map("catalogo_oficial_cie10")
+}
+
 // ─── PROCEDIMIENTOS DEL CONSULTORIO ─────────────────────────
 
 model ProcedimientoConsultorio {
@@ -154,6 +169,7 @@ model Usuario {
   nombre         String
   registro       String?
   creado_en      DateTime      @default(now())
+  token_version  Int           @default(0)
 }
 
 // ─── PACIENTES ──────────────────────────────────────────────
@@ -434,6 +450,7 @@ model ProcedimientoCotizacion {
   estado                       EstadoProcedimiento       @default(pendiente)
   observaciones                String?
   orden                        Int                       @default(0)
+  citas                        Cita[]
 
   @@index([cotizacion_id])
 }
@@ -472,6 +489,8 @@ model Cita {
   procedimiento                String
   procedimiento_consultorio_id Int?
   procedimiento_consultorio    ProcedimientoConsultorio? @relation(fields: [procedimiento_consultorio_id], references: [id])
+  procedimiento_cotizacion_id  Int?
+  procedimiento_cotizacion     ProcedimientoCotizacion?  @relation(fields: [procedimiento_cotizacion_id], references: [id], onDelete: SetNull)
   codigo_cups                  String?
   codigo_cie10                 String?
   valor_cobrado                Decimal?                  @db.Decimal(10, 2)
@@ -483,6 +502,7 @@ model Cita {
 
   @@index([consultorio_id])
   @@index([paciente_id])
+  @@index([procedimiento_cotizacion_id])
 }
 
 model Consentimiento {
@@ -538,4 +558,15 @@ model RecomendacionPostQx {
   fecha       DateTime
   creado_en   DateTime         @default(now())
 }
+
+model Administrador {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password_hash String
+  nombre        String
+  activo        Boolean   @default(true)
+  creado_en     DateTime  @default(now())
+  ultimo_login  DateTime?
+}
+
 

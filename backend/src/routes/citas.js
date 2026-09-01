@@ -12,6 +12,8 @@ router.post('/', async (req, res) => {
     fecha_hora,
     doctor,
     procedimiento,
+    procedimiento_consultorio_id,
+    procedimiento_cotizacion_id,
     codigo_cups,
     codigo_cie10,
     valor_cobrado,
@@ -23,11 +25,61 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Paciente, fecha y procedimiento son obligatorios' })
   }
 
+  if (valor_cobrado !== undefined && valor_cobrado !== null && valor_cobrado !== '') {
+    const val = Number(valor_cobrado)
+    if (isNaN(val) || val < 0) {
+      return res.status(400).json({ error: 'El valor cobrado debe ser un número mayor o igual a 0' })
+    }
+  }
+
   try {
     const paciente = await prisma.paciente.findFirst({
       where: { id: paciente_id, consultorio_id: req.usuario.consultorio_id }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
+
+    let procConsultorio = null
+    let codigoCupsDerivado = codigo_cups ?? null
+    if (procedimiento_consultorio_id !== undefined && procedimiento_consultorio_id !== null && procedimiento_consultorio_id !== '') {
+      const procId = parseInt(procedimiento_consultorio_id)
+      if (isNaN(procId)) {
+        return res.status(400).json({ error: 'procedimiento_consultorio_id debe ser un número válido' })
+      }
+      procConsultorio = await prisma.procedimientoConsultorio.findFirst({
+        where: { id: procId, consultorio_id: req.usuario.consultorio_id },
+        include: { catalogo_oficial: true }
+      })
+      if (!procConsultorio) {
+        return res.status(400).json({ error: 'El procedimiento seleccionado no existe o pertenece a otro consultorio' })
+      }
+      if (!codigoCupsDerivado && procConsultorio.catalogo_oficial?.codigo_cups) {
+        codigoCupsDerivado = procConsultorio.catalogo_oficial.codigo_cups
+      }
+    }
+
+    let procCot = null
+    if (procedimiento_cotizacion_id !== undefined && procedimiento_cotizacion_id !== null && procedimiento_cotizacion_id !== '') {
+      const procCotId = parseInt(procedimiento_cotizacion_id)
+      if (isNaN(procCotId)) {
+        return res.status(400).json({ error: 'procedimiento_cotizacion_id debe ser un número válido' })
+      }
+      procCot = await prisma.procedimientoCotizacion.findFirst({
+        where: {
+          id: procCotId,
+          cotizacion: { consultorio_id: req.usuario.consultorio_id, paciente_id }
+        }
+      })
+      if (!procCot) {
+        return res.status(400).json({ error: 'El procedimiento cotizado no existe o pertenece a otro paciente/consultorio' })
+      }
+    }
+
+    let valorCobradoFinal = null
+    if (valor_cobrado !== undefined && valor_cobrado !== null && valor_cobrado !== '') {
+      valorCobradoFinal = Number(valor_cobrado)
+    } else if (procCot) {
+      valorCobradoFinal = Number(procCot.subtotal)
+    }
 
     const cita = await prisma.cita.create({
       data: {
@@ -36,9 +88,11 @@ router.post('/', async (req, res) => {
         fecha_hora: new Date(fecha_hora),
         doctor:              doctor              ?? null,
         procedimiento,
-        codigo_cups:         codigo_cups         ?? null,
-        codigo_cie10:        codigo_cie10        ?? null,
-        valor_cobrado:       valor_cobrado       ?? null,
+        procedimiento_consultorio_id: procConsultorio ? procConsultorio.id : null,
+        procedimiento_cotizacion_id:  procCot ? procCot.id : null,
+        codigo_cups:         codigoCupsDerivado,
+        codigo_cie10:        (codigo_cie10 && typeof codigo_cie10 === 'string' && codigo_cie10.trim()) || 'Z012',
+        valor_cobrado:       valorCobradoFinal,
         observaciones:       observaciones       ?? null,
         causas_no_atencion:  causas_no_atencion  ?? null,
       }
@@ -62,10 +116,16 @@ router.get('/', async (req, res) => {
     }
 
     if (fecha) {
-      const inicio = new Date(fecha)
-      inicio.setHours(0, 0, 0, 0)
-      const fin = new Date(fecha)
-      fin.setHours(23, 59, 59, 999)
+      const baseDate = new Date(fecha)
+      if (isNaN(baseDate.getTime())) {
+        return res.status(400).json({ error: 'Fecha no válida' })
+      }
+      const y = baseDate.getUTCFullYear()
+      const m = baseDate.getUTCMonth()
+      const d = baseDate.getUTCDate()
+
+      const inicio = new Date(Date.UTC(y, m, d, 0, 0, 0, 0))
+      const fin = new Date(Date.UTC(y, m, d, 23, 59, 59, 999))
       where.fecha_hora = { gte: inicio, lte: fin }
     }
 
@@ -147,6 +207,14 @@ router.patch('/:id/estado', async (req, res) => {
     if (!existe) return res.status(404).json({ error: 'Cita no encontrada' })
 
     const cita = await prisma.cita.update({ where: { id }, data: { estado } })
+
+    if (estado === 'asistio' && existe.procedimiento_cotizacion_id) {
+      await prisma.procedimientoCotizacion.update({
+        where: { id: existe.procedimiento_cotizacion_id },
+        data: { estado: 'realizado' }
+      })
+    }
+
     res.json(cita)
   } catch (error) {
     console.error(error)
@@ -157,10 +225,18 @@ router.patch('/:id/estado', async (req, res) => {
 // PUT /api/citas/:id — actualizar cita
 router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id)
-  const datos = req.body
+  const datos = { ...req.body }
 
   if (datos.fecha_hora) datos.fecha_hora = new Date(datos.fecha_hora)
   delete datos.consultorio_id
+
+  if (datos.valor_cobrado !== undefined && datos.valor_cobrado !== null && datos.valor_cobrado !== '') {
+    const val = Number(datos.valor_cobrado)
+    if (isNaN(val) || val < 0) {
+      return res.status(400).json({ error: 'El valor cobrado debe ser un número mayor o igual a 0' })
+    }
+    datos.valor_cobrado = val
+  }
 
   try {
     const existe = await prisma.cita.findFirst({
@@ -168,7 +244,58 @@ router.put('/:id', async (req, res) => {
     })
     if (!existe) return res.status(404).json({ error: 'Cita no encontrada' })
 
+    if (datos.procedimiento_consultorio_id !== undefined && datos.procedimiento_consultorio_id !== null && datos.procedimiento_consultorio_id !== '') {
+      const procId = parseInt(datos.procedimiento_consultorio_id)
+      if (isNaN(procId)) {
+        return res.status(400).json({ error: 'procedimiento_consultorio_id debe ser un número válido' })
+      }
+      const procConsultorio = await prisma.procedimientoConsultorio.findFirst({
+        where: { id: procId, consultorio_id: req.usuario.consultorio_id },
+        include: { catalogo_oficial: true }
+      })
+      if (!procConsultorio) {
+        return res.status(400).json({ error: 'El procedimiento seleccionado no existe o pertenece a otro consultorio' })
+      }
+      datos.procedimiento_consultorio_id = procConsultorio.id
+      if (!datos.codigo_cups && procConsultorio.catalogo_oficial?.codigo_cups) {
+        datos.codigo_cups = procConsultorio.catalogo_oficial.codigo_cups
+      }
+    }
+
+    let procCot = null
+    if (datos.procedimiento_cotizacion_id !== undefined && datos.procedimiento_cotizacion_id !== null && datos.procedimiento_cotizacion_id !== '') {
+      const procCotId = parseInt(datos.procedimiento_cotizacion_id)
+      if (isNaN(procCotId)) {
+        return res.status(400).json({ error: 'procedimiento_cotizacion_id debe ser un número válido' })
+      }
+      const pacId = datos.paciente_id || existe.paciente_id
+      procCot = await prisma.procedimientoCotizacion.findFirst({
+        where: {
+          id: procCotId,
+          cotizacion: { consultorio_id: req.usuario.consultorio_id, paciente_id: pacId }
+        }
+      })
+      if (!procCot) {
+        return res.status(400).json({ error: 'El procedimiento cotizado no existe o pertenece a otro paciente/consultorio' })
+      }
+      datos.procedimiento_cotizacion_id = procCot.id
+      if (datos.valor_cobrado === undefined || datos.valor_cobrado === null || datos.valor_cobrado === '') {
+        datos.valor_cobrado = Number(procCot.subtotal)
+      }
+    } else if (datos.procedimiento_cotizacion_id === null || datos.procedimiento_cotizacion_id === '') {
+      datos.procedimiento_cotizacion_id = null
+    }
+
     const cita = await prisma.cita.update({ where: { id }, data: datos })
+
+    const finalProcCotId = cita.procedimiento_cotizacion_id || existe.procedimiento_cotizacion_id
+    if (cita.estado === 'asistio' && finalProcCotId) {
+      await prisma.procedimientoCotizacion.update({
+        where: { id: finalProcCotId },
+        data: { estado: 'realizado' }
+      })
+    }
+
     res.json(cita)
   } catch (error) {
     console.error(error)

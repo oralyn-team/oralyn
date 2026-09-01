@@ -15,6 +15,14 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    const paciente = await prisma.paciente.findUnique({
+      where: { id: paciente_id }
+    })
+    if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
+    if (paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+
     const certificado = await prisma.certificadoDental.create({
       data: {
         consultorio_id: req.usuario.consultorio_id,
@@ -35,6 +43,13 @@ router.post('/', async (req, res) => {
 router.get('/paciente/:pacienteId', async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   try {
+    const paciente = await prisma.paciente.findUnique({
+      where: { id: pacienteId }
+    })
+    if (!paciente || paciente.consultorio_id !== req.usuario.consultorio_id) {
+      return res.json([])
+    }
+
     const certificados = await prisma.certificadoDental.findMany({
       where: { paciente_id: pacienteId },
       orderBy: { fecha_expedicion: 'desc' }
@@ -55,6 +70,14 @@ router.patch('/:id/anular', async (req, res) => {
   }
 
   try {
+    const existe = await prisma.certificadoDental.findUnique({
+      where: { id }
+    })
+    if (!existe) return res.status(404).json({ error: 'Certificado no encontrado' })
+    if (existe.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
+    }
+
     const certificado = await prisma.certificadoDental.update({
       where: { id },
       data: {
@@ -66,9 +89,6 @@ router.patch('/:id/anular', async (req, res) => {
 
     res.json(certificado)
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Certificado no encontrado' })
-    }
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
@@ -82,6 +102,10 @@ router.delete('/:id', async (req, res) => {
 
     if (!certificado) {
       return res.status(404).json({ error: 'Certificado no encontrado' })
+    }
+
+    if (certificado.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({ error: 'No autorizado' })
     }
 
     await prisma.certificadoDental.delete({ where: { id } })
@@ -110,6 +134,12 @@ router.get("/:id/pdf", async (req, res) => {
     if (!certificado) {
       return res.status(404).json({
         error: "Certificado no encontrado",
+      });
+    }
+
+    if (certificado.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(403).json({
+        error: "No autorizado",
       });
     }
 
