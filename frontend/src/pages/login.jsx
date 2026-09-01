@@ -23,8 +23,8 @@ export default function Login() {
     setLoading(true)
     setErrorMsg(null)
     try {
-      const { usuario } = await api.login(form.email, form.password)
-      iniciarSesion(usuario)      
+      const res = await api.login(form.email, form.password)
+      iniciarSesion(res?.usuario, res?.token)
       navigate('/dashboard')
     } catch (err) {
       if (err?.status === 429) {
