@@ -1,0 +1,250 @@
+// src/components/facturacion/GenerarFacturaModal.jsx
+import React, { useState } from 'react';
+import {
+  Receipt,
+  User,
+  FileText,
+  DollarSign,
+  CreditCard,
+  CheckCircle,
+  X,
+  Loader2,
+  AlertCircle,
+  ShieldCheck
+} from 'lucide-react';
+import { invoiceService } from '../../services/invoiceService';
+
+function fmtCOP(val) {
+  const num = Number(val) || 0;
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
+}
+
+export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) {
+  const [generando, setGenerando] = useState(false);
+  const [error, setError] = useState(null);
+  const [facturaCreada, setFacturaCreada] = useState(null);
+
+  // Extraer información del objeto prop data (cotización / pago / paciente)
+  const paciente = data?.patient || data?.paciente || {
+    nombre: data?.info?.pacienteNombre || 'Laura Martínez',
+    tipoDocumento: 'CC',
+    documento: data?.info?.pacienteDocumento || '1018432910',
+    email: data?.info?.pacienteEmail || 'paciente@ejemplo.com',
+    telefono: data?.info?.pacienteTelefono || '310 987 6543'
+  };
+
+  const items = (data?.procedimientos || data?.items || [
+    { cupsCode: '890201', description: 'Consulta odontológica de tratamiento', quantity: 1, unitPrice: data?.totales?.subtotal || data?.monto || 150000 }
+  ]).map(p => ({
+    cupsCode: p.cupsCode || p.codigo || '890201',
+    description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
+    quantity: Number(p.quantity || p.cantidad) || 1,
+    unitPrice: Number(p.unitPrice || p.valorUnitario) || 0,
+    total: Number(p.total) || (Number(p.quantity || p.cantidad || 1) * Number(p.unitPrice || p.valorUnitario || 0))
+  }));
+
+  const subtotal = data?.totales?.subtotal ?? items.reduce((acc, curr) => acc + curr.total, 0);
+  const descuento = data?.totales?.descuento ?? 0;
+  const impuesto = data?.totales?.impuesto ?? 0;
+  const total = data?.totales?.total ?? (subtotal - descuento + impuesto);
+  const metodoPago = data?.metodoPago || data?.pagoMetodo || 'Transferencia';
+
+  const handleConfirmarGeneracion = async () => {
+    setGenerando(true);
+    setError(null);
+
+    try {
+      const inv = await invoiceService.createInvoice({
+        patient: paciente,
+        items,
+        subtotal,
+        discount: descuento,
+        tax: impuesto,
+        total,
+        paymentMethod: metodoPago
+      });
+
+      setFacturaCreada(inv);
+      if (onFacturaCreada) onFacturaCreada(inv);
+    } catch (err) {
+      console.error('Error generando factura:', err);
+      setError(err.message || 'No fue posible generar la factura electrónica.');
+    } finally {
+      setGenerando(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-primary/45 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-fade-in"
+      onClick={(e) => e.target === e.currentTarget && !generando && onClose()}
+    >
+      <div className="bg-white dark:bg-dark-card rounded-2xl w-full max-w-lg shadow-soft-lg border border-teal-border dark:border-dark-border flex flex-col max-h-[90vh] overflow-hidden">
+        
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-teal-soft dark:border-dark-border bg-primary dark:bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+              <Receipt size={18} className="text-teal-light" />
+            </div>
+            <div>
+              <h3 className="text-[14px] font-semibold text-white">Generar Factura Electrónica</h3>
+              <p className="text-[11px] text-teal-light dark:text-slate-400 mt-0.5">Emisión oficial DIAN</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={generando}
+            className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer touch-target flex items-center justify-center disabled:opacity-50"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar flex-1 text-primary dark:text-dark-text">
+          {facturaCreada ? (
+            /* Estado Exitoso de Creación */
+            <div className="py-6 text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-200 dark:border-emerald-900/50 shadow-soft-sm">
+                <CheckCircle size={32} />
+              </div>
+              <h4 className="text-[16px] font-bold text-primary dark:text-dark-text">Factura creada correctamente</h4>
+              <p className="text-[12px] text-teal-muted dark:text-slate-400">
+                Se ha generado el documento electrónico número <strong className="text-primary dark:text-teal font-semibold font-mono text-[13px]">{facturaCreada.number}</strong>.
+              </p>
+              
+              <div className="p-3.5 bg-teal-panel dark:bg-slate-800/60 border border-teal-border dark:border-dark-border rounded-xl text-left text-[11.5px] space-y-1.5 mt-4">
+                <div className="flex justify-between">
+                  <span className="text-teal-muted dark:text-slate-400">CUFE:</span>
+                  <span className="font-mono text-[10px] text-primary dark:text-dark-text font-medium truncate max-w-[240px]" title={facturaCreada.cufe}>
+                    {facturaCreada.cufe}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-teal-muted dark:text-slate-400">Estado DIAN:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <ShieldCheck size={12} /> {facturaCreada.dianStatus}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-teal-muted dark:text-slate-400">Total facturado:</span>
+                  <span className="font-bold text-primary dark:text-dark-text">{fmtCOP(facturaCreada.total)}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Vista de Pre-visualización y Confirmación */
+            <>
+              {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-status-red dark:text-red-400 text-[11.5px] flex items-center gap-2">
+                  <AlertCircle size={15} className="flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Paciente info */}
+              <div className="bg-teal-panel dark:bg-slate-800/50 border border-teal-border dark:border-dark-border rounded-xl p-3.5 space-y-1">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 flex items-center gap-1.5">
+                  <User size={13} /> Adquiriente / Paciente
+                </p>
+                <div className="flex justify-between items-center text-[12px] pt-1">
+                  <span className="font-semibold text-primary dark:text-dark-text">{paciente.nombre}</span>
+                  <span className="text-teal-muted dark:text-slate-400 font-mono text-[11px]">
+                    {paciente.tipoDocumento || 'CC'}: {paciente.documento}
+                  </span>
+                </div>
+              </div>
+
+              {/* Servicios */}
+              <div>
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                  <FileText size={13} /> Servicios a facturar ({items.length})
+                </p>
+                <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden divide-y divide-teal-soft dark:divide-dark-border text-[11.5px]">
+                  {items.map((it, idx) => (
+                    <div key={idx} className="p-2.5 flex items-center justify-between bg-white dark:bg-dark-input">
+                      <div>
+                        <p className="font-medium text-primary dark:text-dark-text leading-snug">{it.description}</p>
+                        <span className="text-[10px] font-mono text-teal-muted dark:text-teal">CUPS: {it.cupsCode} x{it.quantity}</span>
+                      </div>
+                      <span className="font-semibold text-primary dark:text-dark-text tabular-nums">{fmtCOP(it.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Resumen financiero y método de pago */}
+              <div className="bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl p-3.5 space-y-2 text-[12px]">
+                <div className="flex justify-between text-teal-muted dark:text-slate-400">
+                  <span>Subtotal:</span>
+                  <span className="font-medium text-primary dark:text-dark-text tabular-nums">{fmtCOP(subtotal)}</span>
+                </div>
+                {descuento > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                    <span>Descuentos:</span>
+                    <span className="font-medium tabular-nums">-{fmtCOP(descuento)}</span>
+                  </div>
+                )}
+                {impuesto > 0 && (
+                  <div className="flex justify-between text-teal-muted dark:text-slate-400">
+                    <span>Impuestos (IVA/INC):</span>
+                    <span className="font-medium text-primary dark:text-dark-text tabular-nums">+{fmtCOP(impuesto)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-teal-soft dark:border-dark-border font-bold text-[14px]">
+                  <span className="text-primary dark:text-dark-text">Total a facturar:</span>
+                  <span className="text-primary dark:text-teal tabular-nums">{fmtCOP(total)}</span>
+                </div>
+                <div className="flex items-center gap-2 pt-2 text-[11px] text-teal-muted dark:text-slate-400">
+                  <CreditCard size={13} className="text-teal" />
+                  <span>Método de pago: <strong className="text-primary dark:text-dark-text font-semibold">{metoDopago || 'Transferencia'}</strong></span>
+                </div>
+              </div>
+
+              {/* Pregunta de confirmación */}
+              <div className="p-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/50 rounded-xl text-[11.5px] text-teal-800 dark:text-teal-300 text-center font-medium">
+                ¿Deseas generar la factura electrónica con esta información?
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-3.5 border-t border-teal-soft dark:border-dark-border bg-teal-panel/40 dark:bg-slate-800/40 flex justify-end items-center gap-2 flex-shrink-0">
+          {facturaCreada ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity cursor-pointer shadow-soft-sm touch-target"
+            >
+              Aceptar y Cerrar
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={generando}
+                className="px-4 py-2 text-[12px] text-primary dark:text-slate-300 font-medium rounded-xl border border-teal-border dark:border-dark-border bg-white dark:bg-dark-input hover:bg-teal-soft dark:hover:bg-slate-700 cursor-pointer touch-target disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarGeneracion}
+                disabled={generando}
+                className="flex items-center gap-1.5 px-4 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer shadow-soft-sm touch-target"
+              >
+                {generando ? <Loader2 size={14} className="animate-spin" /> : <Receipt size={14} />}
+                {generando ? 'Generando...' : 'Generar factura'}
+              </button>
+            </>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
