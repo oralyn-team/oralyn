@@ -59,7 +59,7 @@ export const invoiceService = {
       pagos: (invoiceData.paymentMethod || invoiceData.pagos) ? [
         {
           monto: Number(invoiceData.total) || 0,
-          metodoPago: invoiceData.paymentMethod || 'Efectivo',
+          metodoPago: invoiceData.paymentMethod || 'efectivo',
         }
       ] : []
     };
