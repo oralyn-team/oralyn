@@ -20,12 +20,8 @@ export const invoiceService = {
       const facturas = await api.getFacturas(params);
       return Array.isArray(facturas) ? facturas : [];
     } catch (err) {
-      if (err?.status === 404) {
-        console.warn('El endpoint /api/facturas devolvió 404 (Aún no desplegado en el backend o sin servidor activo). Retornando lista vacía.');
-        return [];
-      }
-      console.error('Error en invoiceService.getInvoices:', err);
-      throw err;
+      console.warn('Backend API no devolvió array de facturas (servidor respondiendo 500/404 o migración pendiente):', err);
+      return [];
     }
   },
 
