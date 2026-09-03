@@ -1,12 +1,16 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
 
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe a SUPERADMIN de ver/modificar citas
 
 // POST /api/citas — crear cita
-router.post('/', async (req, res) => {
+router.post('/', requirePermission(PERMISSIONS.APPOINTMENTS_CREATE), async (req, res) => {
   const {
     paciente_id,
     fecha_hora,
@@ -34,7 +38,7 @@ router.post('/', async (req, res) => {
 
   try {
     const paciente = await prisma.paciente.findFirst({
-      where: { id: paciente_id, consultorio_id: req.usuario.consultorio_id }
+      where: { id: paciente_id, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
@@ -97,6 +101,15 @@ router.post('/', async (req, res) => {
         causas_no_atencion:  causas_no_atencion  ?? null,
       }
     })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_CITA',
+      modulo: 'Citas',
+      recurso_id: cita.id,
+      detalles: `Cita programada para el paciente #${paciente_id} el ${cita.fecha_hora}`
+    })
+
     res.status(201).json(cita)
   } catch (error) {
     console.error(error)
@@ -105,12 +118,11 @@ router.post('/', async (req, res) => {
 })
 
 // GET /api/citas — listar citas (excluye canceladas por defecto)
-router.get('/', async (req, res) => {
+router.get('/', requirePermission(PERMISSIONS.APPOINTMENTS_READ), async (req, res) => {
   const { fecha, incluir_canceladas } = req.query
   try {
     let where = { consultorio_id: req.usuario.consultorio_id }
 
-    // Solo incluye canceladas si se pide explícitamente
     if (!incluir_canceladas) {
       where.estado = { not: 'cancelada' }
     }
@@ -145,8 +157,8 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /api/citas/paciente/:pacienteId — citas de un paciente (excluye canceladas por defecto)
-router.get('/paciente/:pacienteId', async (req, res) => {
+// GET /api/citas/paciente/:pacienteId — citas de un paciente
+router.get('/paciente/:pacienteId', requirePermission(PERMISSIONS.APPOINTMENTS_READ), async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   const { incluir_canceladas } = req.query
   try {
@@ -171,7 +183,7 @@ router.get('/paciente/:pacienteId', async (req, res) => {
 })
 
 // GET /api/citas/:id — detalle de una cita
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission(PERMISSIONS.APPOINTMENTS_READ), async (req, res) => {
   const id = parseInt(req.params.id)
   try {
     const cita = await prisma.cita.findFirst({
@@ -191,7 +203,7 @@ router.get('/:id', async (req, res) => {
 })
 
 // PATCH /api/citas/:id/estado — cambiar estado
-router.patch('/:id/estado', async (req, res) => {
+router.patch('/:id/estado', requirePermission(PERMISSIONS.APPOINTMENTS_UPDATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const { estado } = req.body
 
@@ -215,6 +227,17 @@ router.patch('/:id/estado', async (req, res) => {
       })
     }
 
+    const diferencias = calcularDiferencias({ estado: existe.estado }, { estado: cita.estado }, ['estado'])
+
+    await registrarAuditoria({
+      req,
+      accion: 'CAMBIAR_ESTADO_CITA',
+      modulo: 'Citas',
+      recurso_id: cita.id,
+      detalles: `Estado de cita #${id} cambiado de ${existe.estado} a ${cita.estado}`,
+      metadata: { cambios: diferencias }
+    })
+
     res.json(cita)
   } catch (error) {
     console.error(error)
@@ -223,7 +246,7 @@ router.patch('/:id/estado', async (req, res) => {
 })
 
 // PUT /api/citas/:id — actualizar cita
-router.put('/:id', async (req, res) => {
+router.put('/:id', requirePermission(PERMISSIONS.APPOINTMENTS_UPDATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const datos = { ...req.body }
 
@@ -296,6 +319,17 @@ router.put('/:id', async (req, res) => {
       })
     }
 
+    const diferencias = calcularDiferencias(existe, cita, ['fecha_hora', 'procedimiento', 'doctor', 'estado', 'valor_cobrado'])
+
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_CITA',
+      modulo: 'Citas',
+      recurso_id: cita.id,
+      detalles: `Cita #${cita.id} actualizada`,
+      metadata: { cambios: diferencias }
+    })
+
     res.json(cita)
   } catch (error) {
     console.error(error)
@@ -304,7 +338,7 @@ router.put('/:id', async (req, res) => {
 })
 
 // DELETE /api/citas/:id — soft delete (marca como cancelada)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requirePermission(PERMISSIONS.APPOINTMENTS_CANCEL), async (req, res) => {
   const id = parseInt(req.params.id)
   try {
     const existe = await prisma.cita.findFirst({
@@ -313,6 +347,15 @@ router.delete('/:id', async (req, res) => {
     if (!existe) return res.status(404).json({ error: 'Cita no encontrada' })
 
     await prisma.cita.update({ where: { id }, data: { estado: 'cancelada' } })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CANCELAR_CITA',
+      modulo: 'Citas',
+      recurso_id: id,
+      detalles: `Cita #${id} cancelada`
+    })
+
     res.status(200).json({ message: 'Cita cancelada correctamente' })
   } catch (error) {
     console.error(error)

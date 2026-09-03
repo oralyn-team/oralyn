@@ -59,6 +59,13 @@ enum TipoItem {
   otro
 }
 
+enum Rol {
+  SUPERADMIN
+  DUENO
+  ASISTENTE_ODONTOLOGO
+  RECEPCIONISTA
+}
+
 // ─── CONFIGURACIÓN DEL CONSULTORIO ──────────────────────────
 
 model Configuracion {
@@ -72,6 +79,7 @@ model Configuracion {
   ciudad               String   @default("Villavicencio")
   email                String?
   logo_url             String?
+  activo               Boolean  @default(true)
   creado_en            DateTime @default(now())
 
   // ── Datos fiscales para facturación electrónica (DIAN / Factus) ──
@@ -98,6 +106,7 @@ model Configuracion {
   procedimientos_consultorio ProcedimientoConsultorio[]
   rips_generaciones          RipsGeneracion[]
   facturas                   Factura[]
+  auditorias                 Auditoria[]
 }
 
 // ─── CATÁLOGO OFICIAL CUPS ──────────────────────────────────
@@ -176,15 +185,46 @@ model RipsGeneracion {
 // ─── USUARIOS ───────────────────────────────────────────────
 
 model Usuario {
-  id             Int           @id @default(autoincrement())
-  consultorio_id Int
-  consultorio    Configuracion @relation(fields: [consultorio_id], references: [id])
-  email          String        @unique
+  id             Int            @id @default(autoincrement())
+  consultorio_id Int?
+  consultorio    Configuracion? @relation(fields: [consultorio_id], references: [id], onDelete: SetNull)
+  email          String         @unique
   password_hash  String
   nombre         String
   registro       String?
-  creado_en      DateTime      @default(now())
-  token_version  Int           @default(0)
+  rol            Rol            @default(DUENO)
+  activo         Boolean        @default(true)
+  creado_en      DateTime       @default(now())
+  token_version  Int            @default(0)
+  auditorias     Auditoria[]
+}
+
+// ─── AUDITORÍA INMUTABLE ────────────────────────────────────
+
+model Auditoria {
+  id             Int            @id @default(autoincrement())
+  usuario_id     Int?
+  usuario        Usuario?       @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  usuario_nombre String?
+  usuario_rol    String?
+  consultorio_id Int?
+  consultorio    Configuracion? @relation(fields: [consultorio_id], references: [id], onDelete: SetNull)
+  accion         String
+  modulo         String
+  recurso_id     String?
+  detalles       String?
+  estado         String         @default("EXITOSO")
+  ip_address     String?
+  user_agent     String?
+  metadata       Json?
+  creado_en      DateTime       @default(now())
+
+  @@index([consultorio_id])
+  @@index([usuario_id])
+  @@index([modulo])
+  @@index([accion])
+  @@index([creado_en])
+  @@map("auditorias")
 }
 
 // ─── PACIENTES ──────────────────────────────────────────────
@@ -219,7 +259,8 @@ model Paciente {
   acudiente_nombre     String?
   acudiente_parentesco String?
   acudiente_telefono   String?
-  creado_en            DateTime @default(now())
+  activo               Boolean       @default(true)
+  creado_en            DateTime      @default(now())
 
   historias       HistoriaClinica[]
   citas           Cita[]

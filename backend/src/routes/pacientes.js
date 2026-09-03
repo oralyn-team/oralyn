@@ -1,12 +1,16 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
 
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de acceder a datos de pacientes
 
 // POST /api/pacientes — crear paciente
-router.post('/', async (req, res) => {
+router.post('/', requirePermission(PERMISSIONS.PATIENTS_CREATE), async (req, res) => {
   const {
     primer_apellido, segundo_apellido, nombres,
     tipo_documento, numero_documento, fecha_nacimiento,
@@ -42,7 +46,7 @@ router.post('/', async (req, res) => {
     const existe = await prisma.paciente.findFirst({
       where: {
         consultorio_id: req.usuario.consultorio_id,
-        numero_documento
+        numero_documento: trimmedDoc
       }
     })
 
@@ -50,16 +54,15 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Ya existe un paciente con ese documento' })
     }
 
-    // ✅ Fix 1: transacción limpia con consultorio_id incluido, sin el create duplicado de abajo
     const paciente = await prisma.$transaction(async (tx) => {
       const nuevoPaciente = await tx.paciente.create({
         data: {
-          consultorio_id: req.usuario.consultorio_id, // ✅ Fix 2: campo agregado
-          primer_apellido,
+          consultorio_id: req.usuario.consultorio_id,
+          primer_apellido: trimmedApellido,
           segundo_apellido,
-          nombres,
-          tipo_documento,
-          numero_documento,
+          nombres: trimmedNombres,
+          tipo_documento: trimmedTipoDoc,
+          numero_documento: trimmedDoc,
           fecha_nacimiento: new Date(fecha_nacimiento),
           sexo,
           estado_civil,
@@ -67,7 +70,7 @@ router.post('/', async (req, res) => {
           telefono,
           correo,
           departamento,
-          municipio_ciudad,
+          municipio_ciudad: trimmedMunicipio,
           ocupacion,
           rh,
           clase_seguro,
@@ -77,7 +80,8 @@ router.post('/', async (req, res) => {
           nombre_empresa,
           acudiente_nombre,
           acudiente_parentesco,
-          acudiente_telefono
+          acudiente_telefono,
+          activo: true
         }
       })
 
@@ -101,6 +105,14 @@ router.post('/', async (req, res) => {
       })
 
       return nuevoPaciente
+    })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_PACIENTE',
+      modulo: 'Pacientes',
+      recurso_id: paciente.id,
+      detalles: `Paciente ${paciente.nombres} ${paciente.primer_apellido} (${paciente.tipo_documento} ${paciente.numero_documento}) creado`
     })
 
     res.status(201).json(paciente)
@@ -158,11 +170,11 @@ function mapPacienteSummary(p, ahora = new Date()) {
 }
 
 // GET /api/pacientes — listar (con paginación opcional)
-router.get('/', async (req, res) => {
+router.get('/', requirePermission(PERMISSIONS.PATIENTS_READ), async (req, res) => {
   try {
     const { page, limit, q } = req.query
     const ahora = new Date()
-    const where = { consultorio_id: req.usuario.consultorio_id }
+    const where = { consultorio_id: req.usuario.consultorio_id, activo: true }
 
     if (q && q.trim()) {
       where.OR = [
@@ -238,7 +250,7 @@ router.get('/', async (req, res) => {
 })
 
 // GET /api/pacientes/buscar?q= — buscar por nombre o documento
-router.get('/buscar', async (req, res) => {
+router.get('/buscar', requirePermission(PERMISSIONS.PATIENTS_READ), async (req, res) => {
   const { q } = req.query
 
   if (!q || q.trim() === '') {
@@ -249,6 +261,7 @@ router.get('/buscar', async (req, res) => {
     const pacientes = await prisma.paciente.findMany({
       where: {
         consultorio_id: req.usuario.consultorio_id,
+        activo: true,
         OR: [
           { nombres: { contains: q, mode: 'insensitive' } },
           { primer_apellido: { contains: q, mode: 'insensitive' } },
@@ -276,12 +289,12 @@ router.get('/buscar', async (req, res) => {
 })
 
 // GET /api/pacientes/:id — ver uno completo
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission(PERMISSIONS.PATIENTS_READ), async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
     const paciente = await prisma.paciente.findFirst({
-      where: { id, consultorio_id: req.usuario.consultorio_id },
+      where: { id, consultorio_id: req.usuario.consultorio_id, activo: true },
       include: {
         historias: { orderBy: { fecha_atencion: 'desc' }, take: 5 },
         citas:     { orderBy: { fecha_hora: 'desc' },     take: 5 }
@@ -300,7 +313,7 @@ router.get('/:id', async (req, res) => {
 })
 
 // PUT /api/pacientes/:id — editar
-router.put('/:id', async (req, res) => {
+router.put('/:id', requirePermission(PERMISSIONS.PATIENTS_UPDATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const { historias, citas, creado_en, id: bodyId, ...datos } = req.body
 
@@ -309,19 +322,32 @@ router.put('/:id', async (req, res) => {
   }
 
   try {
-    const existe = await prisma.paciente.findFirst({
-      where: { id, consultorio_id: req.usuario.consultorio_id }
+    const pacienteExistente = await prisma.paciente.findFirst({
+      where: { id, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
 
-    if (!existe) {
+    if (!pacienteExistente) {
       return res.status(404).json({ error: 'Paciente no encontrado' })
     }
 
-    delete datos.consultorio_id // ✅ evita que el cliente cambie el consultorio
+    delete datos.consultorio_id
 
     const paciente = await prisma.paciente.update({
       where: { id },
       data: datos
+    })
+
+    const diferencias = calcularDiferencias(pacienteExistente, paciente, [
+      'nombres', 'primer_apellido', 'segundo_apellido', 'telefono', 'correo', 'direccion_residencia'
+    ])
+
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_PACIENTE',
+      modulo: 'Pacientes',
+      recurso_id: paciente.id,
+      detalles: `Paciente ${paciente.nombres} ${paciente.primer_apellido} actualizado`,
+      metadata: { cambios: diferencias }
     })
 
     res.json(paciente)
@@ -334,65 +360,31 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-// DELETE /api/pacientes/:id — eliminar paciente
-router.delete('/:id', async (req, res) => {
+// DELETE /api/pacientes/:id — eliminación lógica de paciente
+router.delete('/:id', requirePermission(PERMISSIONS.PATIENTS_DELETE), async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
-    const existe = await prisma.paciente.findFirst({
-      where: { id, consultorio_id: req.usuario.consultorio_id }
+    const paciente = await prisma.paciente.findFirst({
+      where: { id, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
 
-    if (!existe) {
+    if (!paciente) {
       return res.status(404).json({ error: 'Paciente no encontrado' })
     }
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Obtener todas las historias clínicas del paciente
-      const historias = await tx.historiaClinica.findMany({
-        where: { paciente_id: id },
-        select: { id: true }
-      })
-      const historiaIds = historias.map(h => h.id)
+    // Preferir eliminación lógica para no comprometer la trazabilidad histórica de citas/facturas
+    await prisma.paciente.update({
+      where: { id },
+      data: { activo: false }
+    })
 
-      if (historiaIds.length > 0) {
-        // Eliminar registros secundarios de la historia
-        await tx.hcAntecedentes.deleteMany({ where: { historia_id: { in: historiaIds } } })
-        await tx.hcExamenEstomatologico.deleteMany({ where: { historia_id: { in: historiaIds } } })
-        await tx.hcOdontograma.deleteMany({ where: { historia_id: { in: historiaIds } } })
-        await tx.hojaEvolucion.deleteMany({ where: { historia_id: { in: historiaIds } } })
-        await tx.recomendacionPostQx.deleteMany({ where: { historia_id: { in: historiaIds } } })
-        await tx.hcAdjunto.deleteMany({ where: { historia_id: { in: historiaIds } } })
-        
-        // Eliminar Historias Clínicas
-        await tx.historiaClinica.deleteMany({ where: { id: { in: historiaIds } } })
-      }
-
-      // 2. Eliminar Pagos
-      await tx.pago.deleteMany({ where: { paciente_id: id } })
-
-      // 3. Eliminar Cotizaciones y sus Procedimientos
-      const cotizaciones = await tx.cotizacion.findMany({
-        where: { paciente_id: id },
-        select: { id: true }
-      })
-      const cotizacionIds = cotizaciones.map(c => c.id)
-      if (cotizacionIds.length > 0) {
-        await tx.procedimientoCotizacion.deleteMany({ where: { cotizacion_id: { in: cotizacionIds } } })
-        await tx.cotizacion.deleteMany({ where: { id: { in: cotizacionIds } } })
-      }
-
-      // 4. Eliminar Certificados Dentales
-      await tx.certificadoDental.deleteMany({ where: { paciente_id: id } })
-
-      // 5. Eliminar Citas
-      await tx.cita.deleteMany({ where: { paciente_id: id } })
-
-      // 6. Eliminar Consentimientos
-      await tx.consentimiento.deleteMany({ where: { paciente_id: id } })
-
-      // 7. Finalmente, eliminar al Paciente
-      await tx.paciente.delete({ where: { id } })
+    await registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_PACIENTE',
+      modulo: 'Pacientes',
+      recurso_id: paciente.id,
+      detalles: `Desactivación / eliminación lógica del paciente ${paciente.nombres} ${paciente.primer_apellido}`
     })
 
     res.status(200).json({ message: 'Paciente eliminado correctamente' })

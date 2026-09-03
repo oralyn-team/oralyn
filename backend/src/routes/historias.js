@@ -1,6 +1,9 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
 const {
   TIPO_DEFAULT,
   extraerDatosOdontograma,
@@ -13,12 +16,12 @@ const {
 } = require('../services/odontogramas')
 const { normalizarAntecedentes } = require('../services/antecedentes')
 
-
-
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de acceder a historias clínicas
 
-router.post('/:pacienteId', async (req, res) => {
+// POST /api/historias/:pacienteId — Crear nueva historia clínica
+router.post('/:pacienteId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_CREATE), async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   const {
     motivo_consulta,
@@ -59,7 +62,7 @@ router.post('/:pacienteId', async (req, res) => {
 
   try {
     const paciente = await prisma.paciente.findFirst({
-      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
@@ -137,19 +140,29 @@ router.post('/:pacienteId', async (req, res) => {
       return h
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_HISTORIA_CLINICA',
+      modulo: 'Historia Clínica',
+      recurso_id: historia.id,
+      detalles: `Historia clínica creada para el paciente #${pacienteId}`,
+      metadata: { motivo_consulta, diagnostico }
+    })
+
     res.status(201).json(historia)
   } catch (error) {
-  if (error.statusCode) return res.status(error.statusCode).json({ error: error.message })
-  console.error(error)
-  res.status(500).json({ error: 'Error interno del servidor' })
+    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message })
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
-router.get('/:pacienteId', async (req, res) => {
+// GET /api/historias/:pacienteId — listar historias de un paciente
+router.get('/:pacienteId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ), async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   try {
     const paciente = await prisma.paciente.findFirst({
-      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
@@ -194,8 +207,8 @@ router.get('/:pacienteId', async (req, res) => {
   }
 })
 
-// GET /api/historias/detalle/:id — ver historia completa con nested
-router.get('/detalle/:id', async (req, res) => {
+// GET /api/historias/detalle/:id — ver historia completa con relaciones
+router.get('/detalle/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ), async (req, res) => {
   const id = parseInt(req.params.id)
   try {
     const historia = await prisma.historiaClinica.findUnique({
@@ -216,6 +229,14 @@ router.get('/detalle/:id', async (req, res) => {
       return res.status(403).json({ error: 'No autorizado' })
     }
 
+    await registrarAuditoria({
+      req,
+      accion: 'CONSULTAR_HISTORIA_CLINICA',
+      modulo: 'Historia Clínica',
+      recurso_id: historia.id,
+      detalles: `Consulta de detalle de historia clínica #${historia.id} del paciente #${historia.paciente_id}`
+    })
+
     res.json({
       ...historia,
       odontogramas: ordenarOdontogramas(historia.odontogramas),
@@ -227,12 +248,11 @@ router.get('/detalle/:id', async (req, res) => {
 })
 
 // PUT /api/historias/:id — editar historia completa
-router.put('/:id', async (req, res) => {
+router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const { antecedentes, examen, ...datos } = req.body
 
   try {
-    // Protección: Verificar existencia y consultorio del paciente
     const historiaExistente = await prisma.historiaClinica.findUnique({
       where: { id },
       include: { paciente: { select: { consultorio_id: true } } }
@@ -318,16 +338,29 @@ router.put('/:id', async (req, res) => {
       return h
     })
 
+    const diferencias = calcularDiferencias(historiaExistente, historia, [
+      'motivo_consulta', 'diagnostico', 'tratamiento_realizado', 'observaciones', 'recomendaciones'
+    ])
+
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_HISTORIA_CLINICA',
+      modulo: 'Historia Clínica',
+      recurso_id: historia.id,
+      detalles: `Modificación de la historia clínica #${historia.id}`,
+      metadata: { cambios: diferencias }
+    })
+
     res.json(historia) 
   } catch (error) {
     if (error.statusCode) return res.status(error.statusCode).json({ error: error.message })
-      console.error(error)
+    console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
 // POST /api/historias/:historiaId/evoluciones
-router.post('/:historiaId/evoluciones', async (req, res) => {
+router.post('/:historiaId/evoluciones', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
   const {
     fecha,
@@ -348,7 +381,6 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
   }
 
   try {
-    // Protección: Incluir paciente para validar el aislamiento multi-tenant
     const historia = await prisma.historiaClinica.findUnique({
       where: { id: historiaId },
       include: { paciente: { select: { consultorio_id: true } } }
@@ -374,6 +406,15 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
         observaciones:   observaciones   ?? null,
       }
     })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_EVOLUCION',
+      modulo: 'Historia Clínica',
+      recurso_id: evolucion.id,
+      detalles: `Evolución agregada a la historia #${historiaId}: ${procedimiento}`
+    })
+
     res.status(201).json(evolucion)
   } catch (error) {
     console.error(error)
@@ -382,7 +423,7 @@ router.post('/:historiaId/evoluciones', async (req, res) => {
 })
 
 // GET /api/historias/:historiaId/evoluciones
-router.get('/:historiaId/evoluciones', async (req, res) => {
+router.get('/:historiaId/evoluciones', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
   try {
     const historia = await prisma.historiaClinica.findUnique({
@@ -406,7 +447,7 @@ router.get('/:historiaId/evoluciones', async (req, res) => {
 })
 
 // GET /api/historias/:historiaId/odontogramas
-router.get('/:historiaId/odontogramas', async (req, res) => {
+router.get('/:historiaId/odontogramas', requirePermission(PERMISSIONS.ODONTOGRAM_READ), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
 
   if (isNaN(historiaId)) {
@@ -426,7 +467,7 @@ router.get('/:historiaId/odontogramas', async (req, res) => {
 })
 
 // GET /api/historias/:historiaId/odontograma/:tipo
-router.get('/:historiaId/odontograma/:tipo', async (req, res) => {
+router.get('/:historiaId/odontograma/:tipo', requirePermission(PERMISSIONS.ODONTOGRAM_READ), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
 
   if (isNaN(historiaId)) {
@@ -451,7 +492,7 @@ router.get('/:historiaId/odontograma/:tipo', async (req, res) => {
 })
 
 // PUT /api/historias/:historiaId/odontograma/:tipo
-router.put('/:historiaId/odontograma/:tipo', async (req, res) => {
+router.put('/:historiaId/odontograma/:tipo', requirePermission(PERMISSIONS.ODONTOGRAM_UPDATE), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
   const { dientes_json, observaciones } = extraerDatosOdontograma(req.body)
 
@@ -472,6 +513,14 @@ router.put('/:historiaId/odontograma/:tipo', async (req, res) => {
       observaciones,
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_ODONTOGRAMA',
+      modulo: 'Odontograma',
+      recurso_id: odontograma.id,
+      detalles: `Odontograma de tipo ${req.params.tipo} actualizado para la historia #${historiaId}`
+    })
+
     res.json(odontograma)
   } catch (error) {
     if (error.statusCode) {
@@ -482,9 +531,8 @@ router.put('/:historiaId/odontograma/:tipo', async (req, res) => {
   }
 })
 
-
 // PUT /api/historias/:historiaId/evoluciones/:evolucionId
-router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
+router.put('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
   const historiaId  = parseInt(req.params.historiaId)
   const evolucionId = parseInt(req.params.evolucionId)
 
@@ -503,7 +551,6 @@ router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
   }
 
   try {
-    // Protección: Validar consultorio del paciente a través de la relación historia.paciente
     const existeEvolucion = await prisma.hojaEvolucion.findUnique({
       where: { id: evolucionId },
       include: { historia: { include: { paciente: true } } }
@@ -533,9 +580,13 @@ router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
       }
     })
 
-    if (evolucion.historia_id !== historiaId) {
-      return res.status(400).json({ error: 'La evolución no pertenece a esta historia' })
-    }
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_EVOLUCION',
+      modulo: 'Historia Clínica',
+      recurso_id: evolucion.id,
+      detalles: `Evolución #${evolucionId} actualizada`
+    })
 
     res.json(evolucion)
   } catch (error) {
@@ -548,7 +599,7 @@ router.put('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
 })
 
 // DELETE /api/historias/:historiaId/evoluciones/:evolucionId
-router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
+router.delete('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
   const historiaId  = parseInt(req.params.historiaId)
   const evolucionId = parseInt(req.params.evolucionId)
 
@@ -557,7 +608,6 @@ router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
   }
 
   try {
-    // Protección: Incluir la historia y el paciente para verificar pertenencia de consultorio
     const evolucion = await prisma.hojaEvolucion.findUnique({
       where: { id: evolucionId },
       include: { historia: { include: { paciente: true } } }
@@ -576,6 +626,15 @@ router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
     }
 
     await prisma.hojaEvolucion.delete({ where: { id: evolucionId } })
+
+    await registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_EVOLUCION',
+      modulo: 'Historia Clínica',
+      recurso_id: evolucionId,
+      detalles: `Evolución #${evolucionId} eliminada de la historia #${historiaId}`
+    })
+
     res.status(204).send()
   } catch (error) {
     console.error(error)
@@ -584,7 +643,7 @@ router.delete('/:historiaId/evoluciones/:evolucionId', async (req, res) => {
 })
 
 // GET /api/historias/:historiaId/adjuntos
-router.get('/:historiaId/adjuntos', async (req, res) => {
+router.get('/:historiaId/adjuntos', requirePermission(PERMISSIONS.ATTACHMENTS_READ), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
 
   if (isNaN(historiaId)) {
@@ -592,7 +651,6 @@ router.get('/:historiaId/adjuntos', async (req, res) => {
   }
 
   try {
-    // Protección: Validar que la historia clínica exista y sea del consultorio correcto
     const historia = await prisma.historiaClinica.findUnique({
       where: { id: historiaId },
       include: { paciente: true }
@@ -614,7 +672,7 @@ router.get('/:historiaId/adjuntos', async (req, res) => {
 })
 
 // POST /api/historias/:historiaId/adjuntos
-router.post('/:historiaId/adjuntos', async (req, res) => {
+router.post('/:historiaId/adjuntos', requirePermission(PERMISSIONS.ATTACHMENTS_CREATE), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
   const { nombre, nombre_archivo, tipo, mime_type, tamano_bytes, contenido_base64, url } = req.body
 
@@ -627,7 +685,6 @@ router.post('/:historiaId/adjuntos', async (req, res) => {
   }
 
   try {
-    // Protección: Incluir paciente para validar consultorio
     const historia = await prisma.historiaClinica.findUnique({
       where: { id: historiaId },
       include: { paciente: true }
@@ -649,6 +706,14 @@ router.post('/:historiaId/adjuntos', async (req, res) => {
       }
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'AGREGAR_ADJUNTO',
+      modulo: 'Adjuntos',
+      recurso_id: adjunto.id,
+      detalles: `Adjunto ${adjunto.nombre_archivo} agregado a la historia #${historiaId}`
+    })
+
     res.status(201).json(adjunto)
   } catch (error) {
     console.error(error)
@@ -657,7 +722,7 @@ router.post('/:historiaId/adjuntos', async (req, res) => {
 })
 
 // DELETE /api/historias/:historiaId/adjuntos/:adjuntoId
-router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
+router.delete('/:historiaId/adjuntos/:adjuntoId', requirePermission(PERMISSIONS.ATTACHMENTS_CREATE), async (req, res) => {
   const historiaId = parseInt(req.params.historiaId)
   const adjuntoId  = parseInt(req.params.adjuntoId)
 
@@ -666,7 +731,6 @@ router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
   }
 
   try {
-    // Protección: Validar a través de historia -> paciente -> consultorio_id
     const adjunto = await prisma.hcAdjunto.findUnique({
       where: { id: adjuntoId },
       include: { historia: { include: { paciente: true } } }
@@ -685,15 +749,25 @@ router.delete('/:historiaId/adjuntos/:adjuntoId', async (req, res) => {
     }
 
     await prisma.hcAdjunto.delete({ where: { id: adjuntoId } })
+
+    await registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_ADJUNTO',
+      modulo: 'Adjuntos',
+      recurso_id: adjuntoId,
+      detalles: `Adjunto #${adjuntoId} eliminado de la historia #${historiaId}`
+    })
+
     res.status(204).send()
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
+
 const generarHistoriaPDF = require('../pdf/generators/generarHistoriaPDF');
 
-router.get('/:id/pdf', async (req, res) => {
+router.get('/:id/pdf', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ), async (req, res) => {
   const id = parseInt(req.params.id)
   try {
     const historia = await prisma.historiaClinica.findUnique({
@@ -726,4 +800,5 @@ router.get('/:id/pdf', async (req, res) => {
     res.status(500).json({ error: 'Error generando PDF' })
   }
 })
+
 module.exports = router

@@ -26,6 +26,10 @@ const verificarToken = async (req, res, next) => {
       return res.status(401).json({ error: 'Usuario no encontrado' })
     }
 
+    if (usuario.activo === false) {
+      return res.status(403).json({ error: 'Cuenta de usuario desactivada' })
+    }
+
     const payloadTv = payload.tv !== undefined ? payload.tv : 0
     if (payloadTv !== usuario.token_version) {
       return res.status(401).json({ error: 'Sesión inválida, por favor inicia sesión de nuevo' })
@@ -35,7 +39,9 @@ const verificarToken = async (req, res, next) => {
       id: usuario.id,
       consultorio_id: usuario.consultorio_id,
       email: usuario.email,
-      nombre: usuario.nombre
+      nombre: usuario.nombre,
+      rol: usuario.rol || 'DUENO',
+      activo: usuario.activo !== false
     }
 
     next()
