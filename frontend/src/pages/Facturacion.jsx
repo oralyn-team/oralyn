@@ -87,10 +87,11 @@ export default function Facturacion() {
         fechaInicio,
         fechaFin
       });
-      setData(res || []);
+      setData(Array.isArray(res) ? res : []);
     } catch (err) {
       console.error('Error al cargar facturas:', err);
       setError('No fue posible cargar las facturas.');
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -113,7 +114,7 @@ export default function Facturacion() {
     setFechaInicio('');
     setFechaFin('');
     setCurrentPage(1);
-    invoiceService.getInvoices({}).then(setData);
+    invoiceService.getInvoices({}).then(res => setData(Array.isArray(res) ? res : []));
   };
 
   // Reintento de envío
@@ -165,23 +166,25 @@ export default function Facturacion() {
     }
   };
 
+  const safeData = Array.isArray(data) ? data : [];
+
   // Cálculo de Resumen Superior
   const summary = useMemo(() => {
-    const totalEmitidas = data.length;
-    const pendientes = data.filter(i => i.electronicStatus === 'Pendiente' || i.electronicStatus === 'Borrador' || i.electronicStatus === 'Enviada').length;
-    const aceptadas = data.filter(i => i.electronicStatus === 'Aceptada' || i.electronicStatus === 'Validada').length;
-    const rechazadas = data.filter(i => i.electronicStatus === 'Rechazada').length;
-    const totalFacturado = data.filter(i => i.electronicStatus !== 'Anulada').reduce((acc, curr) => acc + (curr.total || 0), 0);
+    const totalEmitidas = safeData.length;
+    const pendientes = safeData.filter(i => i?.electronicStatus === 'Pendiente' || i?.electronicStatus === 'Borrador' || i?.electronicStatus === 'Enviada').length;
+    const aceptadas = safeData.filter(i => i?.electronicStatus === 'Aceptada' || i?.electronicStatus === 'Validada').length;
+    const rechazadas = safeData.filter(i => i?.electronicStatus === 'Rechazada').length;
+    const totalFacturado = safeData.filter(i => i?.electronicStatus !== 'Anulada').reduce((acc, curr) => acc + (curr?.total || 0), 0);
 
     return { totalEmitidas, pendientes, aceptadas, rechazadas, totalFacturado };
-  }, [data]);
+  }, [safeData]);
 
   // Paginación
-  const totalItems = data.length;
+  const totalItems = safeData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const currentData = data.slice(startIndex, endIndex);
+  const currentData = safeData.slice(startIndex, endIndex);
 
   return (
     <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
