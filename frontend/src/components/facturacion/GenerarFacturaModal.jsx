@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   Plus,
   Trash2,
-  FileCheck
+  FileCheck,
+  Settings
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoiceService';
 import { useApp } from '../../context/Appcontext';
@@ -24,11 +25,13 @@ function fmtCOP(val) {
 }
 
 export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) {
-  const { pacientes } = useApp();
+  const { pacientes, configuracion } = useApp();
 
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState(null);
   const [facturaCreada, setFacturaCreada] = useState(null);
+
+  const facturacionHabilitada = Boolean(configuracion?.facturacion_habilitada);
 
   // Lista segura de pacientes
   const safePacientes = Array.isArray(pacientes) ? pacientes : [];
@@ -221,7 +224,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
       if (onFacturaCreada) onFacturaCreada(inv);
     } catch (err) {
       console.error('Error generando factura:', err);
-      setError(err.message || err.detalle || 'No fue posible generar la factura electrónica.');
+      setError(err.error || err.message || err.detalle || 'No fue posible generar la factura electrónica.');
     } finally {
       setGenerando(false);
     }
@@ -290,6 +293,18 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
           ) : (
             /* Vista de Pre-visualización y Confirmación */
             <>
+              {!facturacionHabilitada && (
+                <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-xl text-amber-900 dark:text-amber-300 text-[11.5px] flex items-start gap-2.5">
+                  <Settings size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">La facturación electrónica está desactivada</strong>
+                    <span>
+                      Para emitir facturas oficiales DIAN, activa el interruptor y guarda tus credenciales de Factus en <strong>Ajustes → Facturación electrónica</strong>.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-status-red dark:text-red-400 text-[11.5px] flex items-center gap-2">
                   <AlertCircle size={15} className="flex-shrink-0" />
