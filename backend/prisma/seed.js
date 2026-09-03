@@ -55,6 +55,40 @@ async function main() {
 
   console.log('Superadmin listo:', superadmin.email, superadmin.rol)
 
+  // Crear o actualizar usuario ASISTENTE / ODONTÓLOGO
+  const asistente = await prisma.usuario.upsert({
+    where: { email: 'asistente@oralyn.com' },
+    update: { rol: 'ASISTENTE_ODONTOLOGO' },
+    create: {
+      consultorio_id: config.id,
+      email: 'asistente@oralyn.com',
+      password_hash,
+      nombre: 'Dr. Carlos Mendoza',
+      registro: '7741',
+      rol: 'ASISTENTE_ODONTOLOGO',
+      activo: true
+    }
+  })
+
+  console.log('Asistente listo:', asistente.email, asistente.rol)
+
+  // Crear o actualizar usuario RECEPCIONISTA
+  const recepcionista = await prisma.usuario.upsert({
+    where: { email: 'recepcion@oralyn.com' },
+    update: { rol: 'RECEPCIONISTA' },
+    create: {
+      consultorio_id: config.id,
+      email: 'recepcion@oralyn.com',
+      password_hash,
+      nombre: 'Sofía Benítez',
+      registro: null,
+      rol: 'RECEPCIONISTA',
+      activo: true
+    }
+  })
+
+  console.log('Recepcionista listo:', recepcionista.email, recepcionista.rol)
+
   // Catálogo Oficial CUPS
   const cupsList = [
     // Endodoncia
