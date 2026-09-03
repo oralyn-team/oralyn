@@ -324,8 +324,6 @@ export const api = {
       throw new Error(err.error || 'Error al descargar XML de la factura');
     }
     const blob = await response.blob();
-    const disposition = response.headers.get('Content-Disposition');
-    let filename = `factura_${id}.xml`;
     if (disposition && disposition.includes('filename=')) {
       const match = disposition.match(/filename="?([^";]+)"?/);
       if (match && match[1]) filename = match[1];
@@ -338,7 +336,21 @@ export const api = {
     a.click();
     a.remove();
     URL.revokeObjectURL(objectUrl);
-  }
+  },
+
+  // Auditoría
+  getAuditoria: (params) => request(`/auditoria${buildQuery(params)}`),
+
+  // Superadministración Plataforma
+  getConsultorios: () => request('/admin/consultorios'),
+  crearConsultorio: (data) => request('/admin/consultorio', { method: 'POST', body: JSON.stringify(data) }),
+  toggleConsultorioStatus: (id, activo) => request(`/admin/consultorios/${id}/status`, { method: 'PATCH', body: JSON.stringify({ activo }) }),
+  getAdminStats: () => request('/admin/stats'),
+
+  // Usuarios del consultorio
+  crearUsuarioConsultorio: (data) => request('/usuarios', { method: 'POST', body: JSON.stringify(data) }),
+  cambiarRolUsuario: (id, rol) => request(`/usuarios/${id}/role`, { method: 'PATCH', body: JSON.stringify({ rol }) }),
+  toggleStatusUsuario: (id, activo) => request(`/usuarios/${id}/status`, { method: 'PATCH', body: JSON.stringify({ activo }) })
 }
 
 

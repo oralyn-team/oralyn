@@ -1195,18 +1195,299 @@ function TabFacturacionElectronica() {
   );
 }
 
+// ── Tab: Usuarios y Roles del Consultorio ────────────────────────────────────
+
+function TabUsuarios() {
+  const { usuario: usuarioActual } = useApp();
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalCrearOpen, setModalCrearOpen] = useState(false);
+  const [creando, setCreando] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    nombre: '',
+    registro: '',
+    rol: 'ASISTENTE_ODONTOLOGO'
+  });
+
+  const cargarUsuarios = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getUsuarios();
+      setUsuarios(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, []);
+
+  const mostrarToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleCrearUsuario = async (e) => {
+    e.preventDefault();
+    if (form.rol === 'SUPERADMIN') {
+      alert('No está permitido asignar el rol de Superadministrador');
+      return;
+    }
+    setCreando(true);
+    try {
+      await api.crearUsuarioConsultorio(form);
+      setModalCrearOpen(false);
+      setForm({ email: '', password: '', nombre: '', registro: '', rol: 'ASISTENTE_ODONTOLOGO' });
+      mostrarToast('Usuario del consultorio creado exitosamente');
+      await cargarUsuarios();
+    } catch (err) {
+      alert(err.error || 'Error al crear usuario');
+    } finally {
+      setCreando(false);
+    }
+  };
+
+  const handleCambiarRol = async (id, nuevoRol) => {
+    try {
+      await api.cambiarRolUsuario(id, nuevoRol);
+      mostrarToast('Rol de usuario actualizado');
+      await cargarUsuarios();
+    } catch (err) {
+      alert(err.error || 'Error al cambiar rol');
+    }
+  };
+
+  const handleToggleStatus = async (id, activoActual) => {
+    try {
+      await api.toggleStatusUsuario(id, !activoActual);
+      mostrarToast(`Usuario ${activoActual ? 'desactivado' : 'activado'}`);
+      await cargarUsuarios();
+    } catch (err) {
+      alert(err.error || 'Error al cambiar estado');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header tab */}
+      <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary dark:text-teal flex items-center justify-center flex-shrink-0">
+            <Users size={20} />
+          </div>
+          <div>
+            <h3 className="text-[13.5px] font-bold text-primary dark:text-dark-text">Equipo y Permisos del Consultorio</h3>
+            <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
+              Gestione los miembros de su personal, asigne roles y controle el acceso al sistema.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setModalCrearOpen(true)}
+          className="flex items-center gap-1.5 px-4 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity cursor-pointer shadow-soft-sm"
+        >
+          <Plus size={14} /> Nuevo Usuario
+        </button>
+      </div>
+
+      {/* Tabla usuarios */}
+      <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-teal-bg/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-semibold border-b border-teal-soft dark:border-dark-border uppercase tracking-wider">
+              <tr>
+                <th className="px-5 py-3">Nombre</th>
+                <th className="px-5 py-3">Email</th>
+                <th className="px-5 py-3">Registro</th>
+                <th className="px-5 py-3">Rol</th>
+                <th className="px-5 py-3 text-center">Estado</th>
+                <th className="px-5 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-teal-soft dark:divide-dark-border text-primary dark:text-dark-text">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-teal-muted">Cargando equipo...</td>
+                </tr>
+              ) : usuarios.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-teal-muted">Sin usuarios registrados.</td>
+                </tr>
+              ) : (
+                usuarios.map(u => (
+                  <tr key={u.id} className="hover:bg-teal-info/40 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="px-5 py-3.5 font-bold text-slate-900 dark:text-white">
+                      {u.nombre}
+                    </td>
+                    <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">
+                      {u.email}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-slate-500">
+                      {u.registro || '—'}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <select
+                        value={u.rol}
+                        disabled={u.id === usuarioActual?.id}
+                        onChange={e => handleCambiarRol(u.id, e.target.value)}
+                        className="px-2 py-1 text-xs border border-teal-border dark:border-dark-border rounded-lg bg-white dark:bg-dark-input font-medium focus:outline-none"
+                      >
+                        <option value="DUENO">Dueño / Administrador</option>
+                        <option value="ASISTENTE_ODONTOLOGO">Asistente / Odontólogo</option>
+                        <option value="RECEPCIONISTA">Recepcionista</option>
+                      </select>
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                        u.activo !== false
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300'
+                      }`}>
+                        {u.activo !== false ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button
+                        disabled={u.id === usuarioActual?.id}
+                        onClick={() => handleToggleStatus(u.id, u.activo !== false)}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors disabled:opacity-40 ${
+                          u.activo !== false
+                            ? 'bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        }`}
+                      >
+                        {u.activo !== false ? 'Desactivar' : 'Activar'}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal Crear Usuario */}
+      {modalCrearOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/40 dark:bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-dark-card rounded-2xl max-w-md w-full p-6 shadow-soft-lg border border-teal-border dark:border-dark-border">
+            <div className="flex items-center justify-between pb-4 border-b border-teal-soft dark:border-dark-border">
+              <h3 className="text-base font-bold text-primary dark:text-dark-text">Agregar Miembro al Equipo</h3>
+              <button onClick={() => setModalCrearOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleCrearUsuario} className="py-4 space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Nombre Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={form.nombre}
+                  onChange={e => setForm({ ...form, nombre: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white dark:bg-dark-input outline-none"
+                  placeholder="Ej: Dra. Andrea Castro"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Correo Electrónico *</label>
+                <input
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white dark:bg-dark-input outline-none"
+                  placeholder="andrea@consultorio.com"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Contraseña *</label>
+                <input
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white dark:bg-dark-input outline-none"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Registro / Cédula Profesional</label>
+                <input
+                  type="text"
+                  value={form.registro}
+                  onChange={e => setForm({ ...form, registro: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white dark:bg-dark-input outline-none"
+                  placeholder="Reg. 98765"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Rol Asignado *</label>
+                <select
+                  value={form.rol}
+                  onChange={e => setForm({ ...form, rol: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white dark:bg-dark-input outline-none font-medium"
+                >
+                  <option value="ASISTENTE_ODONTOLOGO">Asistente / Odontólogo</option>
+                  <option value="RECEPCIONISTA">Recepcionista</option>
+                  <option value="DUENO">Dueño / Administrador</option>
+                </select>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalCrearOpen(false)}
+                  className="px-4 py-2 border rounded-xl hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creando}
+                  className="px-4 py-2 bg-primary dark:bg-teal dark:text-slate-900 text-white rounded-xl font-medium"
+                >
+                  {creando ? 'Creando...' : 'Crear Usuario'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 shadow-soft-lg flex items-center gap-2 border border-white/10 animate-toast">
+          <Check size={14} className="text-teal" /> {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Página Principal ──────────────────────────────────────────────────────────
 
-const TABS = [
+const BASE_TABS = [
   { id: 'general',     label: 'Ajustes Generales',      icon: Settings    },
   { id: 'catalogo',    label: 'Catálogo CUPS',           icon: Stethoscope },
   { id: 'facturacion', label: 'Facturación Electrónica', icon: Receipt     },
+  { id: 'usuarios',    label: 'Gestión de Usuarios',     icon: Users       },
 ];
 
 export default function Configuracion() {
-  const { pacientes } = useApp();
+  const { usuario } = useApp();
   const [tabActivo, setTabActivo] = useState('general');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const tabs = BASE_TABS.filter(t => {
+    if (t.id === 'usuarios' && usuario?.rol !== 'DUENO' && usuario?.rol !== 'SUPERADMIN') return false;
+    return true;
+  });
 
   return (
     <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
@@ -1223,14 +1504,14 @@ export default function Configuracion() {
                 <Settings size={18} className="text-teal" /> Ajustes del Consultorio
               </h2>
               <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
-                Administra la configuración general, catálogo de procedimientos CUPS y facturación electrónica DIAN.
+                Administra la configuración general, equipo de trabajo, catálogo CUPS y facturación electrónica.
               </p>
             </div>
           </div>
 
           {/* Tabs */}
           <div className="flex items-center gap-1 mb-5 bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl p-1 w-full sm:w-fit overflow-x-auto custom-scrollbar shadow-soft-sm">
-            {TABS.map(tab => {
+            {tabs.map(tab => {
               const Icon = tab.icon;
               const isActive = tabActivo === tab.id;
               return (
@@ -1256,9 +1537,10 @@ export default function Configuracion() {
           {tabActivo === 'general'     && <TabAjustesGenerales />}
           {tabActivo === 'catalogo'    && <TabCatalogoCUPS />}
           {tabActivo === 'facturacion' && <TabFacturacionElectronica />}
+          {tabActivo === 'usuarios'    && <TabUsuarios />}
 
         </main>
       </div>
     </div>
   );
-}
+}

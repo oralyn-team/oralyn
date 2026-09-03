@@ -12,6 +12,8 @@ import Consentimientos from './pages/Consentimientos'
 import Configuracion from './pages/Configuracion'
 import Rips from './pages/Rips'
 import Facturacion from './pages/Facturacion'
+import Auditoria from './pages/Auditoria'
+import Superadmin from './pages/Superadmin'
 
 import './index.css'
 
@@ -20,10 +22,31 @@ function PrivateRoute({ children }) {
   return token ? children : <Navigate to="/login" replace />
 }
 
-// Si ya hay sesión activa, redirigir al dashboard en lugar de mostrar el login
+function SuperadminRoute({ children }) {
+  const { token, usuario } = useApp()
+  if (!token) return <Navigate to="/login" replace />
+  if (usuario?.rol !== 'SUPERADMIN') return <Navigate to="/dashboard" replace />
+  return children
+}
+
+// Si ya hay sesión activa, redirigir según el rol del usuario
 function PublicRoute({ children }) {
-  const { token } = useApp()
-  return token ? <Navigate to="/dashboard" replace /> : children
+  const { token, usuario } = useApp()
+  if (token) {
+    if (usuario?.rol === 'SUPERADMIN') {
+      return <Navigate to="/superadmin" replace />
+    }
+    return <Navigate to="/dashboard" replace />
+  }
+  return children
+}
+
+function DefaultRedirect() {
+  const { usuario } = useApp()
+  if (usuario?.rol === 'SUPERADMIN') {
+    return <Navigate to="/superadmin" replace />
+  }
+  return <Navigate to="/dashboard" replace />
 }
 
 createRoot(document.getElementById('root')).render(
@@ -32,7 +55,7 @@ createRoot(document.getElementById('root')).render(
       <AppProvider>
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-          <Route path="/" element={<PrivateRoute><Navigate to="/dashboard" replace /></PrivateRoute>} />
+          <Route path="/" element={<PrivateRoute><DefaultRedirect /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Pacientes /></PrivateRoute>} />
           <Route path="/historias" element={<PrivateRoute><Historias /></PrivateRoute>} />
@@ -41,6 +64,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/rips" element={<PrivateRoute><Rips /></PrivateRoute>} />
           <Route path="/facturacion" element={<PrivateRoute><Facturacion /></PrivateRoute>} />
           <Route path="/configuracion" element={<PrivateRoute><Configuracion /></PrivateRoute>} />
+          <Route path="/auditoria" element={<PrivateRoute><Auditoria /></PrivateRoute>} />
+          <Route path="/superadmin" element={<SuperadminRoute><Superadmin /></SuperadminRoute>} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </AppProvider>
