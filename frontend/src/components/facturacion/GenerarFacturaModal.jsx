@@ -4,7 +4,6 @@ import {
   Receipt,
   User,
   FileText,
-  DollarSign,
   CreditCard,
   CheckCircle,
   X,
@@ -12,10 +11,12 @@ import {
   AlertCircle,
   ShieldCheck,
   Plus,
-  Trash2
+  Trash2,
+  FileCheck
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoiceService';
 import { useApp } from '../../context/Appcontext';
+import { api } from '../../api';
 
 function fmtCOP(val) {
   const num = Number(val) || 0;
@@ -29,28 +30,35 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
   const [error, setError] = useState(null);
   const [facturaCreada, setFacturaCreada] = useState(null);
 
-  // Selección de paciente si no viene pre-definido en data
+  // Selección de paciente
   const [selectedPacienteId, setSelectedPacienteId] = useState(() => {
     return data?.patient?.id || data?.paciente?.id || data?.paciente_id || data?.pacienteId || (pacientes?.[0]?.id || '');
   });
 
+  // Cotizaciones y pagos del paciente seleccionado
+  const [cotizaciones, setCotizaciones] = useState([]);
+  const [pagos, setPagos] = useState([]);
+  const [loadingOrigen, setLoadingOrigen] = useState(false);
+  const [selectedCotizacionId, setSelectedCotizacionId] = useState(data?.cotizacion_id || data?.cotizacionId || '');
+  const [selectedPagoId, setSelectedPagoId] = useState(data?.pago_id || data?.pagoId || '');
+
   const pacienteSeleccionado = pacientes?.find(p => String(p.id) === String(selectedPacienteId)) || data?.patient || data?.paciente || {
-    nombre: data?.info?.pacienteNombre || 'Laura Martínez',
+    nombre: data?.info?.pacienteNombre || 'Paciente',
     tipoDocumento: 'CC',
-    documento: data?.info?.pacienteDocumento || '1018432910',
-    email: data?.info?.pacienteEmail || 'paciente@ejemplo.com',
-    telefono: data?.info?.pacienteTelefono || '310 987 6543'
+    documento: data?.info?.pacienteDocumento || '',
+    email: data?.info?.pacienteEmail || '',
+    telefono: data?.info?.pacienteTelefono || ''
   };
 
   const pacienteNombre = pacienteSeleccionado.nombre || `${pacienteSeleccionado.nombres || ''} ${pacienteSeleccionado.primer_apellido || ''}`.trim();
   const pacienteDoc = pacienteSeleccionado.documento || pacienteSeleccionado.numero_documento;
   const pacienteTipoDoc = pacienteSeleccionado.tipoDocumento || pacienteSeleccionado.tipo_documento || 'CC';
 
-  // Items
+  // Items de la factura
   const [items, setItems] = useState(() => {
     if (data?.procedimientos || data?.items) {
       return (data.procedimientos || data.items).map(p => ({
-        cupsCode: p.cupsCode || p.codigo || '890201',
+        cupsCode: p.cupsCode || p.codigoCups || p.codigo || '890201',
         description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
         quantity: Number(p.quantity || p.cantidad) || 1,
         unitPrice: Number(p.unitPrice || p.valorUnitario) || 0,
@@ -64,6 +72,67 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
 
   const [metodoPago, setMetodoPago] = useState(data?.metodoPago || data?.pagoMetodo || 'Efectivo');
   const [observaciones, setObservaciones] = useState(data?.observacion || '');
+
+  // Cargar cotizaciones y pagos cuando cambie el paciente seleccionado
+  useEffect(() => {
+    if (!selectedPacienteId) return;
+    let cancel = false;
+    setLoadingOrigen(true);
+
+    Promise.all([
+      api.getCotizacionesPaciente(selectedPacienteId).catch(() => []),
+      api.getPagosPaciente(selectedPacienteId).catch(() => [])
+    ]).then(([cotRes, pagRes]) => {
+      if (cancel) return;
+      setCotizaciones(cotRes || []);
+      setPagos(pagRes || []);
+    }).finally(() => {
+      if (!cancel) setLoadingOrigen(false);
+    });
+
+    return () => { cancel = true; };
+  }, [selectedPacienteId]);
+
+  // Manejar selección de cotización pre-llenando los items
+  const handleSelectCotizacion = (cotId) => {
+    setSelectedCotizacionId(cotId);
+    setSelectedPagoId('');
+    if (!cotId) return;
+
+    const cot = cotizaciones.find(c => String(c.id) === String(cotId));
+    if (cot && Array.isArray(cot.procedimientos) && cot.procedimientos.length > 0) {
+      setItems(cot.procedimientos.map(p => ({
+        cupsCode: p.procedimiento_consultorio?.catalogo_oficial?.codigo_cups || p.codigo_cups || '890201',
+        description: p.procedimiento || p.descripcion || 'Procedimiento odontológico',
+        quantity: Number(p.cantidad) || 1,
+        unitPrice: Number(p.valor_unitario) || 0,
+        total: Number(p.subtotal) || (Number(p.cantidad || 1) * Number(p.valor_unitario || 0))
+      })));
+    }
+  };
+
+  // Manejar selección de pago
+  const handleSelectPago = (pagoId) => {
+    setSelectedPagoId(pagoId);
+    setSelectedCotizacionId('');
+    if (!pagoId) return;
+
+    const pg = pagos.find(p => String(p.id) === String(pagoId));
+    if (pg) {
+      setItems([
+        {
+          cupsCode: '890201',
+          description: pg.concepto || 'Pago de tratamiento odontológico',
+          quantity: 1,
+          unitPrice: Number(pg.monto) || 0,
+          total: Number(pg.monto) || 0
+        }
+      ]);
+      if (pg.metodo_pago) {
+        setMetodoPago(pg.metodo_pago);
+      }
+    }
+  };
 
   const subtotal = items.reduce((acc, curr) => acc + (Number(curr.unitPrice) * Number(curr.quantity)), 0);
   const descuento = data?.totales?.descuento ?? 0;
@@ -109,8 +178,8 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     try {
       const inv = await invoiceService.createInvoice({
         patientId: targetPatientId,
-        cotizacionId: data?.cotizacion_id || data?.cotizacionId,
-        pagoId: data?.pago_id || data?.pagoId,
+        cotizacionId: selectedCotizacionId || undefined,
+        pagoId: selectedPagoId || undefined,
         patient: {
           id: targetPatientId,
           nombre: pacienteNombre,
@@ -130,7 +199,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
       if (onFacturaCreada) onFacturaCreada(inv);
     } catch (err) {
       console.error('Error generando factura:', err);
-      setError(err.message || 'No fue posible generar la factura electrónica.');
+      setError(err.message || err.detalle || 'No fue posible generar la factura electrónica.');
     } finally {
       setGenerando(false);
     }
@@ -181,7 +250,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                 <div className="flex justify-between">
                   <span className="text-teal-muted dark:text-slate-400">CUFE:</span>
                   <span className="font-mono text-[10px] text-primary dark:text-dark-text font-medium truncate max-w-[240px]" title={facturaCreada.cufe}>
-                    {facturaCreada.cufe || 'Procesando CUFE...'}
+                    {facturaCreada.cufe || 'En proceso de validación...'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -206,16 +275,20 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                 </div>
               )}
 
-              {/* Selector o Vista de Paciente */}
+              {/* Selector de Paciente */}
               <div className="bg-teal-panel dark:bg-slate-800/50 border border-teal-border dark:border-dark-border rounded-xl p-3.5 space-y-2">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 flex items-center gap-1.5">
-                  <User size={13} /> Adquiriente / Paciente
+                  <User size={13} /> Adquiriente / Paciente *
                 </p>
                 {pacientes && pacientes.length > 0 && !data?.patient && !data?.paciente ? (
                   <select
                     value={selectedPacienteId}
-                    onChange={(e) => setSelectedPacienteId(e.target.value)}
-                    className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2 text-primary dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal"
+                    onChange={(e) => {
+                      setSelectedPacienteId(e.target.value);
+                      setSelectedCotizacionId('');
+                      setSelectedPagoId('');
+                    }}
+                    className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2 text-primary dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal cursor-pointer"
                   >
                     {pacientes.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -233,21 +306,61 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                 )}
               </div>
 
+              {/* Prellenar desde Cotización o Pago si no viene de props */}
+              {!data?.procedimientos && selectedPacienteId && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11.5px]">
+                  <div>
+                    <label className="block text-[10.5px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1 flex items-center gap-1">
+                      <FileCheck size={12} /> Cargar desde Cotización
+                    </label>
+                    <select
+                      value={selectedCotizacionId}
+                      onChange={(e) => handleSelectCotizacion(e.target.value)}
+                      disabled={loadingOrigen}
+                      className="w-full text-[11.5px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-2.5 py-1.5 text-primary dark:text-dark-text focus:outline-none cursor-pointer"
+                    >
+                      <option value="">-- Ninguna --</option>
+                      {cotizaciones.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          Cotización #{c.id} ({fmtCOP(c.total)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10.5px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1 flex items-center gap-1">
+                      <CreditCard size={12} /> Cargar desde Pago
+                    </label>
+                    <select
+                      value={selectedPagoId}
+                      onChange={(e) => handleSelectPago(e.target.value)}
+                      disabled={loadingOrigen}
+                      className="w-full text-[11.5px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-2.5 py-1.5 text-primary dark:text-dark-text focus:outline-none cursor-pointer"
+                    >
+                      <option value="">-- Ninguno --</option>
+                      {pagos.map((pg) => (
+                        <option key={pg.id} value={pg.id}>
+                          Pago #{pg.id} ({fmtCOP(pg.monto)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {/* Servicios */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 flex items-center gap-1.5">
                     <FileText size={13} /> Servicios a facturar ({items.length})
                   </p>
-                  {!data?.procedimientos && (
-                    <button
-                      type="button"
-                      onClick={handleAddItem}
-                      className="text-[11px] text-teal hover:text-primary dark:hover:text-dark-text font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      <Plus size={12} /> Agregar ítem
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="text-[11px] text-teal hover:text-primary dark:hover:text-dark-text font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus size={12} /> Agregar ítem
+                  </button>
                 </div>
 
                 <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden divide-y divide-teal-soft dark:divide-dark-border text-[11.5px]">
@@ -258,7 +371,6 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                           type="text"
                           value={it.description}
                           onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
-                          disabled={Boolean(data?.procedimientos)}
                           className="w-full font-medium text-primary dark:text-dark-text bg-transparent border-none p-0 focus:outline-none text-[12px]"
                           placeholder="Descripción del procedimiento"
                         />
@@ -271,7 +383,6 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                               min={1}
                               value={it.quantity}
                               onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                              disabled={Boolean(data?.procedimientos)}
                               className="w-12 bg-teal-panel dark:bg-slate-800 border border-teal-border dark:border-dark-border rounded px-1 text-center text-[10.5px] font-bold"
                             />
                           </span>
@@ -279,7 +390,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-primary dark:text-dark-text tabular-nums">{fmtCOP(it.total)}</span>
-                        {!data?.procedimientos && items.length > 1 && (
+                        {items.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(idx)}
@@ -324,7 +435,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                   <select
                     value={metodoPago}
                     onChange={(e) => setMetodoPago(e.target.value)}
-                    className="text-[11.5px] bg-teal-panel dark:bg-slate-800 border border-teal-border dark:border-dark-border rounded-lg px-2 py-1 font-semibold text-primary dark:text-dark-text focus:outline-none"
+                    className="text-[11.5px] bg-teal-panel dark:bg-slate-800 border border-teal-border dark:border-dark-border rounded-lg px-2 py-1 font-semibold text-primary dark:text-dark-text focus:outline-none cursor-pointer"
                   >
                     <option value="Efectivo">Efectivo</option>
                     <option value="Transferencia">Transferencia bancaria</option>
@@ -336,7 +447,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
 
               {/* Pregunta de confirmación */}
               <div className="p-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900/50 rounded-xl text-[11.5px] text-teal-800 dark:text-teal-300 text-center font-medium">
-                ¿Deseas generar la factura electrónica con esta información?
+                ¿Deseas generar la factura electrónica con esta información ante la DIAN?
               </div>
             </>
           )}

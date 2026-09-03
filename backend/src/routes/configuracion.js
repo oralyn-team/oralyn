@@ -4,20 +4,31 @@ const verificarToken = require('../middlewares/auth')
 
 const router = express.Router()
 
-router.use(verificarToken) // ← descomenta esto
+router.use(verificarToken)
+
+// Helper para limpiar campos sensibles antes de enviar al frontend
+function sanitizarConfiguracion(config) {
+  if (!config) return null
+  const { factus_client_secret, factus_password, ...resto } = config
+  return {
+    ...resto,
+    has_factus_secret: Boolean(factus_client_secret),
+    has_factus_password: Boolean(factus_password),
+  }
+}
 
 // GET — obtener configuración del consultorio del usuario logueado
 router.get('/', async (req, res) => {
   try {
     const config = await prisma.configuracion.findUnique({
-      where: { id: req.usuario.consultorio_id } // ← filtra por consultorio
+      where: { id: req.usuario.consultorio_id }
     })
 
     if (!config) {
       return res.status(404).json({ error: 'Configuración no encontrada' })
     }
 
-    res.json(config)
+    res.json(sanitizarConfiguracion(config))
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
@@ -55,7 +66,7 @@ router.post('/', async (req, res) => {
       }
     })
 
-    res.status(201).json(config)
+    res.status(201).json(sanitizarConfiguracion(config))
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
@@ -65,12 +76,25 @@ router.post('/', async (req, res) => {
 // PUT — actualizar configuración del consultorio del usuario logueado
 router.put('/', async (req, res) => {
   try {
+    const updateData = { ...req.body }
+
+    // Evitar sobreescribir la clave con los enmascarados del frontend (••••••••)
+    if (updateData.factus_client_secret === '••••••••' || updateData.factus_client_secret === '') {
+      delete updateData.factus_client_secret
+    }
+    if (updateData.factus_password === '••••••••' || updateData.factus_password === '') {
+      delete updateData.factus_password
+    }
+
+    // No permitir cambiar id de consultorio por req.body
+    delete updateData.id
+
     const config = await prisma.configuracion.update({
-      where: { id: req.usuario.consultorio_id }, // ← directo, sin findFirst
-      data: req.body
+      where: { id: req.usuario.consultorio_id },
+      data: updateData
     })
 
-    res.json(config)
+    res.json(sanitizarConfiguracion(config))
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })

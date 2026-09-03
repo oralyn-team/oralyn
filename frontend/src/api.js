@@ -289,6 +289,7 @@ export const api = {
   crearNotaCreditoFactura: (id, data) => request(`/facturas/${id}/notas-credito`, { method: 'POST', body: JSON.stringify(data) }),
   descargarFacturaPdf: async (id) => {
     const response = await fetch(`${BASE_URL}/facturas/${id}/pdf`, {
+      credentials: 'include',
       headers: { ...getAuthHeaders() },
     });
     if (!response.ok) {
@@ -297,10 +298,16 @@ export const api = {
       throw new Error(err.error || 'Error al descargar PDF de la factura');
     }
     const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `factura_${id}.pdf`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = objectUrl;
-    a.download = `factura_${id}.pdf`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -308,6 +315,7 @@ export const api = {
   },
   descargarFacturaXml: async (id) => {
     const response = await fetch(`${BASE_URL}/facturas/${id}/xml`, {
+      credentials: 'include',
       headers: { ...getAuthHeaders() },
     });
     if (!response.ok) {
@@ -316,10 +324,16 @@ export const api = {
       throw new Error(err.error || 'Error al descargar XML de la factura');
     }
     const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `factura_${id}.xml`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
     const objectUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = objectUrl;
-    a.download = `factura_${id}.xml`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();

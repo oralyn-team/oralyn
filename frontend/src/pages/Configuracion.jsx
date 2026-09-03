@@ -1004,9 +1004,9 @@ function TabFacturacionElectronica() {
     nit_dv: configuracion?.nit_dv || '',
     municipio_code: configuracion?.municipio_code || '',
     factus_client_id: configuracion?.factus_client_id || '',
-    factus_client_secret: configuracion?.factus_client_secret || '',
+    factus_client_secret: configuracion?.has_factus_secret ? '••••••••' : (configuracion?.factus_client_secret || ''),
     factus_username: configuracion?.factus_username || '',
-    factus_password: configuracion?.factus_password || '',
+    factus_password: configuracion?.has_factus_password ? '••••••••' : (configuracion?.factus_password || ''),
     facturacion_habilitada: configuracion?.facturacion_habilitada || false,
   });
 
@@ -1020,9 +1020,9 @@ function TabFacturacionElectronica() {
         nit_dv: configuracion.nit_dv || '',
         municipio_code: configuracion.municipio_code || '',
         factus_client_id: configuracion.factus_client_id || '',
-        factus_client_secret: configuracion.factus_client_secret || '',
+        factus_client_secret: configuracion.has_factus_secret ? '••••••••' : (configuracion.factus_client_secret || ''),
         factus_username: configuracion.factus_username || '',
-        factus_password: configuracion.factus_password || '',
+        factus_password: configuracion.has_factus_password ? '••••••••' : (configuracion.factus_password || ''),
         facturacion_habilitada: Boolean(configuracion.facturacion_habilitada),
       });
     }
