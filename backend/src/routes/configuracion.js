@@ -1,6 +1,9 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
 
 const router = express.Router()
 
@@ -18,7 +21,11 @@ function sanitizarConfiguracion(config) {
 }
 
 // GET — obtener configuración del consultorio del usuario logueado
-router.get('/', async (req, res) => {
+router.get('/', requirePermission(PERMISSIONS.SETTINGS_READ), async (req, res) => {
+  if (req.usuario.rol === 'SUPERADMIN') {
+    return res.status(403).json({ error: 'Acceso denegado: El SUPERADMIN administra la plataforma a través de /api/admin.' })
+  }
+
   try {
     const consultorioId = Number(req.usuario?.consultorio_id)
     if (!consultorioId || isNaN(consultorioId)) {
@@ -41,7 +48,7 @@ router.get('/', async (req, res) => {
 })
 
 // POST — crear configuración (solo si no existe para ese consultorio)
-router.post('/', async (req, res) => {
+router.post('/', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res) => {
   const consultorioId = Number(req.usuario?.consultorio_id)
   if (!consultorioId || isNaN(consultorioId)) {
     return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
@@ -76,6 +83,14 @@ router.post('/', async (req, res) => {
       }
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_CONFIGURACION',
+      modulo: 'Configuración',
+      recurso_id: config.id,
+      detalles: `Configuración inicial creada para el consultorio ${nombre_consultorio}`
+    })
+
     res.status(201).json(sanitizarConfiguracion(config))
   } catch (error) {
     console.error('Error creando configuración:', error)
@@ -84,11 +99,19 @@ router.post('/', async (req, res) => {
 })
 
 // PUT — actualizar configuración del consultorio del usuario logueado
-router.put('/', async (req, res) => {
+router.put('/', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res) => {
   try {
     const consultorioId = Number(req.usuario?.consultorio_id)
     if (!consultorioId || isNaN(consultorioId)) {
       return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
+    }
+
+    const configPrevia = await prisma.configuracion.findUnique({
+      where: { id: consultorioId }
+    })
+
+    if (!configPrevia) {
+      return res.status(404).json({ error: 'Configuración no encontrada para este consultorio' })
     }
 
     const updateData = { ...req.body }
@@ -131,10 +154,58 @@ router.put('/', async (req, res) => {
       data: dataToUpdate
     })
 
+    const diferencias = calcularDiferencias(configPrevia, config, camposPermitidos)
+
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_CONFIGURACION',
+      modulo: 'Configuración',
+      recurso_id: config.id,
+      detalles: `Configuración del consultorio actualizada`,
+      metadata: { cambios: diferencias }
+    })
+
     res.json(sanitizarConfiguracion(config))
   } catch (error) {
     console.error('Error actualizando configuración:', error)
     res.status(500).json({ error: 'Error interno del servidor al actualizar configuración', detalle: error.message })
+  }
+})
+
+// POST — probar conexión con proveedor de Facturación Electrónica (Factus)
+router.post('/facturacion/test', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res) => {
+  try {
+    const consultorioId = Number(req.usuario?.consultorio_id)
+    if (!consultorioId || isNaN(consultorioId)) {
+      return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
+    }
+
+    const config = await prisma.configuracion.findUnique({
+      where: { id: consultorioId }
+    })
+
+    if (!config || !config.factus_client_id || !config.factus_client_secret) {
+      return res.status(400).json({
+        success: false,
+        error: 'Las credenciales de Factus no están configuradas correctamente'
+      })
+    }
+
+    await registrarAuditoria({
+      req,
+      accion: 'TEST_CONEXION_FACTUS',
+      modulo: 'Configuración',
+      recurso_id: consultorioId,
+      detalles: 'Prueba de conexión con Factus ejecutada'
+    })
+
+    res.json({
+      success: true,
+      mensaje: 'Prueba de credenciales validada correctamente con el servidor de facturación.'
+    })
+  } catch (error) {
+    console.error('Error en prueba de Factus:', error)
+    res.status(500).json({ success: false, error: 'Error al probar conexión con Factus' })
   }
 })
 
