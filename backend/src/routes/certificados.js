@@ -1,13 +1,16 @@
-//certificados.js - Rutas para gestionar certificados dentales
+// certificados.js - Rutas para gestionar certificados dentales
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria } = require('../services/audit.service')
 
 const router = express.Router()
-
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN
 
-router.post('/', async (req, res) => {
+router.post('/', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async (req, res) => {
   const { paciente_id, cita_id, tipo_cita_texto, fecha_expedicion, ciudad } = req.body
 
   if (!paciente_id || !tipo_cita_texto || !fecha_expedicion) {
@@ -33,6 +36,15 @@ router.post('/', async (req, res) => {
         ciudad: ciudad || 'Villavicencio'
       }
     })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_CERTIFICADO',
+      modulo: 'Certificados',
+      recurso_id: certificado.id,
+      detalles: `Certificado emitido para el paciente #${paciente_id}`
+    })
+
     res.status(201).json(certificado)
   } catch (error) {
     console.error(error)
@@ -40,7 +52,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.get('/paciente/:pacienteId', async (req, res) => {
+router.get('/paciente/:pacienteId', requirePermission(PERMISSIONS.CERTIFICADOS_READ), async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   try {
     const paciente = await prisma.paciente.findUnique({
@@ -61,7 +73,7 @@ router.get('/paciente/:pacienteId', async (req, res) => {
   }
 })
 
-router.patch('/:id/anular', async (req, res) => {
+router.patch('/:id/anular', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const { motivo_anulacion } = req.body
 
@@ -87,6 +99,14 @@ router.patch('/:id/anular', async (req, res) => {
       }
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'ANULAR_CERTIFICADO',
+      modulo: 'Certificados',
+      recurso_id: certificado.id,
+      detalles: `Certificado #${id} anulado`
+    })
+
     res.json(certificado)
   } catch (error) {
     console.error(error)
@@ -94,7 +114,7 @@ router.patch('/:id/anular', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
@@ -109,6 +129,15 @@ router.delete('/:id', async (req, res) => {
     }
 
     await prisma.certificadoDental.delete({ where: { id } })
+
+    await registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_CERTIFICADO',
+      modulo: 'Certificados',
+      recurso_id: id,
+      detalles: `Certificado #${id} eliminado`
+    })
+
     res.status(204).send()
   } catch (error) {
     console.error(error)
@@ -118,7 +147,7 @@ router.delete('/:id', async (req, res) => {
 
 const generarCertificadoPDF = require("../pdf/generators/generarCertificadoPDF");
 
-router.get("/:id/pdf", async (req, res) => {
+router.get("/:id/pdf", requirePermission(PERMISSIONS.CERTIFICADOS_READ), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 
