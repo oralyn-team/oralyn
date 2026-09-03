@@ -1,8 +1,10 @@
-// src/pages/Historias.jsx
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/Appcontext';
 import { api } from '../api';
 import { antecedentesDbToForm } from '../data/historiasData';
+import { hasPermission, PERMISSIONS } from '../utils/rbac';
+import { ShieldAlert } from 'lucide-react';
 
 import Sidebar       from '../components/layout/Sidebar';
 import Topbar        from '../components/layout/Topbar';
@@ -162,13 +164,20 @@ function formatearEvolucion(ev) {
 }
 
 export default function Historias() {
-  const { pacientes, actualizarHistoria } = useApp();
+  const navigate = useNavigate();
+  const { usuario, pacientes, actualizarHistoria } = useApp();
   const [historias, setHistorias]           = useState([]);
   const [historiaActiva, setHistoriaActiva] = useState(null);
   const [loadingH, setLoadingH]             = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const tienePermisoClinico = hasPermission(usuario, PERMISSIONS.CLINICAL_RECORDS_READ);
+
   useEffect(() => {
+    if (!tienePermisoClinico) {
+      setLoadingH(false);
+      return;
+    }
     if (pacientes.length === 0) {
       setHistorias([]);
       setLoadingH(false);
@@ -226,6 +235,32 @@ export default function Historias() {
   }
 
   const stats = buildStats(historias, pacientes);
+
+  if (!tienePermisoClinico) {
+    return (
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 px-4 sm:px-6 py-5">
+            <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-6 text-center max-w-md mx-auto mt-12 shadow-soft-md space-y-3">
+              <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto" />
+              <h3 className="text-sm font-bold text-primary dark:text-dark-text">Acceso Restringido por Rol</h3>
+              <p className="text-xs text-teal-muted dark:text-slate-400 leading-relaxed">
+                Tu usuario actual (<strong>{usuario?.nombre}</strong>) con rol <strong>{usuario?.rol}</strong> no posee autorización para consultar expedientes e historias médicas clínicas.
+              </p>
+              <button 
+                onClick={() => navigate('/pacientes')} 
+                className="px-4 py-2 bg-primary dark:bg-teal dark:text-slate-900 text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer mt-2"
+              >
+                Ir a Gestión de Pacientes
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">

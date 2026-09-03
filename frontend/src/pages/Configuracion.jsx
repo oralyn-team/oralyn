@@ -1,5 +1,5 @@
-// src/pages/Configuracion.jsx
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/Appcontext';
 import { api } from '../api';
 
@@ -35,7 +35,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   CalendarDays,
-  Globe
+  Globe,
+  Lock
 } from 'lucide-react';
 
 // ── Categorías predefinidas (sirven como opciones en el modal) ─────────────────
@@ -1473,22 +1474,193 @@ function TabUsuarios() {
 
 // ── Página Principal ──────────────────────────────────────────────────────────
 
-const BASE_TABS = [
-  { id: 'general',     label: 'Ajustes Generales',      icon: Settings    },
-  { id: 'catalogo',    label: 'Catálogo CUPS',           icon: Stethoscope },
-  { id: 'facturacion', label: 'Facturación Electrónica', icon: Receipt     },
-  { id: 'usuarios',    label: 'Gestión de Usuarios',     icon: Users       },
+// ── Tab: Perfil y Seguridad del Superadministrador ──────────────────────────
+
+function TabPerfilSuperadmin() {
+  const { usuario } = useApp();
+  const navigate = useNavigate();
+  const [formPass, setFormPass] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [savingPass, setSavingPass] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const mostrarToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleCambiarPassword = async (e) => {
+    e.preventDefault();
+    if (formPass.newPassword !== formPass.confirmPassword) {
+      alert('Las contraseñas nuevas no coinciden');
+      return;
+    }
+    setSavingPass(true);
+    try {
+      await api.cambiarPassword({
+        currentPassword: formPass.currentPassword,
+        newPassword: formPass.newPassword
+      });
+      mostrarToast('Contraseña de Superadministrador actualizada correctamente');
+      setFormPass({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      alert(err.error || 'Error al cambiar contraseña');
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header Info */}
+      <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-teal text-white flex items-center justify-center flex-shrink-0 shadow-md">
+            <ShieldCheck size={26} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-primary dark:text-dark-text">Superadministrador de Plataforma</h3>
+            <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
+              Cuenta técnica global con control de infraestructura, licencias y auditoría de Oralyn.
+            </p>
+          </div>
+        </div>
+        <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-full text-xs font-bold border border-emerald-300 dark:border-emerald-800 flex-shrink-0">
+          Licencia Global Activa
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Datos de la cuenta */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4 flex flex-col justify-between">
+          <div className="space-y-4">
+            <h4 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+              <UserRound size={15} className="text-teal" /> Información de Cuenta
+            </h4>
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="text-teal-muted dark:text-slate-400 block font-medium">Nombre de Usuario</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{usuario?.nombre || 'Administrador Plataforma'}</span>
+              </div>
+              <div>
+                <span className="text-teal-muted dark:text-slate-400 block font-medium">Correo Electrónico</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{usuario?.email || 'superadmin@oralyn.com'}</span>
+              </div>
+              <div>
+                <span className="text-teal-muted dark:text-slate-400 block font-medium">Rol Técnico</span>
+                <span className="font-semibold text-primary dark:text-teal font-mono">SUPERADMIN</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-teal-soft dark:border-dark-border flex flex-col gap-2">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Acceso a Módulos Globales</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => navigate('/superadmin')}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary dark:text-teal rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <Building2 size={14} /> Gestión de Consultorios
+              </button>
+              <button
+                onClick={() => navigate('/auditoria')}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-teal/10 hover:bg-teal/20 text-teal dark:text-teal-light rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <ShieldCheck size={14} /> Registro de Auditoría
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Cambiar Contraseña */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4">
+          <h4 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+            <Lock size={15} className="text-teal" /> Seguridad & Contraseña
+          </h4>
+
+          <form onSubmit={handleCambiarPassword} className="space-y-3 text-xs">
+            <div>
+              <label className="block font-semibold mb-1">Contraseña Actual *</label>
+              <input
+                type="password"
+                required
+                value={formPass.currentPassword}
+                onChange={e => setFormPass({ ...formPass, currentPassword: e.target.value })}
+                className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">Nueva Contraseña *</label>
+              <input
+                type="password"
+                required
+                value={formPass.newPassword}
+                onChange={e => setFormPass({ ...formPass, newPassword: e.target.value })}
+                className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">Confirmar Nueva Contraseña *</label>
+              <input
+                type="password"
+                required
+                value={formPass.confirmPassword}
+                onChange={e => setFormPass({ ...formPass, confirmPassword: e.target.value })}
+                className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none"
+              />
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={savingPass}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary dark:bg-teal dark:text-slate-900 text-white rounded-xl font-medium text-xs disabled:opacity-50 cursor-pointer shadow-soft-sm"
+              >
+                {savingPass ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {savingPass ? 'Actualizando...' : 'Actualizar Contraseña'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 shadow-soft-lg flex items-center gap-2 border border-white/10 animate-toast">
+          <Check size={14} className="text-teal" /> {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Página Principal ──────────────────────────────────────────────────────────
+
+const ALL_TABS = [
+  { id: 'superadmin_perfil', label: 'Perfil y Seguridad Superadmin', icon: ShieldCheck, roles: ['SUPERADMIN'] },
+  { id: 'general',           label: 'Ajustes Generales',           icon: Settings,    roles: ['DUENO'] },
+  { id: 'catalogo',          label: 'Catálogo CUPS',                icon: Stethoscope, roles: ['DUENO', 'ASISTENTE_ODONTOLOGO', 'RECEPCIONISTA'] },
+  { id: 'facturacion',       label: 'Facturación Electrónica',      icon: Receipt,     roles: ['DUENO'] },
+  { id: 'usuarios',          label: 'Gestión de Usuarios',          icon: Users,       roles: ['DUENO'] },
 ];
 
 export default function Configuracion() {
   const { usuario } = useApp();
-  const [tabActivo, setTabActivo] = useState('general');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const tabs = BASE_TABS.filter(t => {
-    if (t.id === 'usuarios' && usuario?.rol !== 'DUENO' && usuario?.rol !== 'SUPERADMIN') return false;
-    return true;
+  const tabs = useMemo(() => {
+    const rolActual = usuario?.rol || 'DUENO';
+    return ALL_TABS.filter(t => t.roles.includes(rolActual));
+  }, [usuario]);
+
+  const [tabActivo, setTabActivo] = useState(() => {
+    if (usuario?.rol === 'SUPERADMIN') return 'superadmin_perfil';
+    return 'general';
   });
+
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.some(t => t.id === tabActivo)) {
+      setTabActivo(tabs[0].id);
+    }
+  }, [tabs, tabActivo]);
 
   return (
     <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
@@ -1502,46 +1674,53 @@ export default function Configuracion() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-[15px] font-semibold text-primary dark:text-dark-text flex items-center gap-1.5">
-                <Settings size={18} className="text-teal" /> Ajustes del Consultorio
+                <Settings size={18} className="text-teal" />
+                {usuario?.rol === 'SUPERADMIN' ? 'Ajustes de Plataforma Superadmin' : 'Ajustes del Consultorio'}
               </h2>
               <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
-                Administra la configuración general, equipo de trabajo, catálogo CUPS y facturación electrónica.
+                {usuario?.rol === 'SUPERADMIN'
+                  ? 'Gestione el perfil de la cuenta técnica, seguridad y accesos directos a la administración global.'
+                  : 'Administra la configuración general, equipo de trabajo, catálogo CUPS y facturación electrónica.'}
               </p>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 mb-5 bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl p-1 w-full sm:w-fit overflow-x-auto custom-scrollbar shadow-soft-sm">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              const isActive = tabActivo === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setTabActivo(tab.id)}
-                  className={[
-                    'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-[12.5px] font-semibold transition-all duration-150 cursor-pointer touch-target whitespace-nowrap',
-                    isActive
-                      ? 'bg-primary dark:bg-teal text-white dark:text-slate-900 shadow-soft-sm'
-                      : 'text-teal-muted dark:text-slate-400 hover:text-primary dark:hover:text-dark-text hover:bg-teal-panel dark:hover:bg-slate-800/40',
-                  ].join(' ')}
-                >
-                  <Icon size={14} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+          {tabs.length > 1 && (
+            <div className="flex items-center gap-1 mb-5 bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl p-1 w-full sm:w-fit overflow-x-auto custom-scrollbar shadow-soft-sm">
+              {tabs.map(tab => {
+                const Icon = tab.icon;
+                const isActive = tabActivo === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setTabActivo(tab.id)}
+                    className={[
+                      'flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-[12.5px] font-semibold transition-all duration-150 cursor-pointer touch-target whitespace-nowrap',
+                      isActive
+                        ? 'bg-primary dark:bg-teal text-white dark:text-slate-900 shadow-soft-sm'
+                        : 'text-teal-muted dark:text-slate-400 hover:text-primary dark:hover:text-dark-text hover:bg-teal-panel dark:hover:bg-slate-800/40',
+                    ].join(' ')}
+                  >
+                    <Icon size={14} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Contenido del tab activo */}
-          {tabActivo === 'general'     && <TabAjustesGenerales />}
-          {tabActivo === 'catalogo'    && <TabCatalogoCUPS />}
-          {tabActivo === 'facturacion' && <TabFacturacionElectronica />}
-          {tabActivo === 'usuarios'    && <TabUsuarios />}
+          {tabActivo === 'superadmin_perfil' && <TabPerfilSuperadmin />}
+          {tabActivo === 'general'           && <TabAjustesGenerales />}
+          {tabActivo === 'catalogo'          && <TabCatalogoCUPS />}
+          {tabActivo === 'facturacion'       && <TabFacturacionElectronica />}
+          {tabActivo === 'usuarios'          && <TabUsuarios />}
 
         </main>
       </div>
     </div>
   );
-}
+}
+
