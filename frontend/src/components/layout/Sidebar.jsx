@@ -2,19 +2,22 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays,
   Stethoscope, ClipboardList, Settings, LogOut, FileBarChart, Receipt,
-  Sun, Moon, X
+  Sun, Moon, X, ShieldCheck, Building2
 } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
+import { ROLES, PERMISSIONS, ROLE_LABELS, hasPermission } from '../../utils/rbac';
 
-const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: 'Dashboard',       path: '/dashboard'       },
-  { icon: Users,           label: 'Pacientes',       path: '/pacientes'       },
-  { icon: CalendarDays,    label: 'Citas',            path: '/citas'           },
-  { icon: Stethoscope,     label: 'Consentimientos',  path: '/consentimientos' },
-  { icon: ClipboardList,   label: 'Historias',        path: '/historias'       },
-  { icon: FileBarChart,    label: 'RIPS',             path: '/rips'            },
-  { icon: Receipt,         label: 'Facturación',      path: '/facturacion'     },
-  { icon: Settings,        label: 'Ajustes',          path: '/configuracion'   },
+const ALL_NAV_ITEMS = [
+  { icon: Building2,       label: 'Superadmin',       path: '/superadmin',       permission: PERMISSIONS.SUPERADMIN_MANAGE_CONSULTORIOS },
+  { icon: LayoutDashboard, label: 'Dashboard',        path: '/dashboard',        permission: null },
+  { icon: Users,           label: 'Pacientes',        path: '/pacientes',        permission: PERMISSIONS.PATIENTS_READ },
+  { icon: CalendarDays,    label: 'Citas',            path: '/citas',            permission: PERMISSIONS.APPOINTMENTS_READ },
+  { icon: Stethoscope,     label: 'Consentimientos',  path: '/consentimientos',  permission: PERMISSIONS.CONSENTIMIENTOS_READ },
+  { icon: ClipboardList,   label: 'Historias',        path: '/historias',        permission: PERMISSIONS.CLINICAL_RECORDS_READ },
+  { icon: FileBarChart,    label: 'RIPS',             path: '/rips',             permission: PERMISSIONS.RIPS_READ },
+  { icon: Receipt,         label: 'Facturación',      path: '/facturacion',      permission: PERMISSIONS.INVOICES_READ },
+  { icon: ShieldCheck,     label: 'Auditoría',        path: '/auditoria',        permission: PERMISSIONS.AUDIT_READ },
+  { icon: Settings,        label: 'Ajustes',          path: '/configuracion',    permission: PERMISSIONS.SETTINGS_READ },
 ];
 
 function ToothIcon() {
@@ -31,13 +34,22 @@ function ToothIcon() {
 }
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { configuracion, cerrarSesion, darkMode, toggleDarkMode } = useApp();
+  const { usuario, configuracion, cerrarSesion, darkMode, toggleDarkMode } = useApp();
   const navigate = useNavigate();
 
   function handleLogout() {
     cerrarSesion();
     navigate('/login', { replace: true });
   }
+
+  // Filtrar items según los permisos del usuario
+  const navItems = ALL_NAV_ITEMS.filter(item => {
+    if (!item.permission) return usuario?.rol !== ROLES.SUPERADMIN; // Dashboard no se muestra al SUPERADMIN
+    if (item.permission === PERMISSIONS.AUDIT_READ && usuario?.rol === ROLES.SUPERADMIN) return true; // Superadmin ve auditoría
+    return hasPermission(usuario, item.permission);
+  });
+
+  const rolText = usuario?.rol ? (ROLE_LABELS[usuario.rol] || usuario.rol) : 'Odontólogo';
 
   const sidebarContent = (
     <aside className="w-[240px] h-full bg-primary dark:bg-slate-900 flex flex-col flex-shrink-0 text-white select-none shadow-soft-lg">
@@ -49,7 +61,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <p className="font-display text-xl text-white tracking-wide">Oralyn</p>
           </div>
           <p className="text-[10px] text-teal-light dark:text-teal tracking-[1.5px] uppercase mt-0.5 font-medium">
-            Sistema Odontológico
+            {usuario?.rol === ROLES.SUPERADMIN ? 'Plataforma Superadmin' : 'Sistema Odontológico'}
           </p>
         </div>
         {onClose && (
@@ -66,7 +78,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
       {/* Nav items */}
       <nav className="py-3 flex-1 overflow-y-auto custom-scrollbar">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -108,15 +120,17 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* User profile info */}
         <div className="flex items-center gap-2.5 pt-1">
           <div className="w-8 h-8 rounded-full bg-teal flex items-center justify-center text-[12px] font-bold text-primary flex-shrink-0 shadow-sm">
-            {configuracion?.nombre_profesional
-              ? configuracion.nombre_profesional.split(' ').map((w) => w[0]).slice(0, 2).join('')
-              : 'DR'}
+            {usuario?.nombre
+              ? usuario.nombre.split(' ').map((w) => w[0]).slice(0, 2).join('')
+              : (configuracion?.nombre_profesional ? configuracion.nombre_profesional.split(' ').map(w => w[0]).slice(0, 2).join('') : 'US')}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-medium text-white truncate">
-              {configuracion?.nombre_profesional || 'Doctor'}
+              {usuario?.nombre || configuracion?.nombre_profesional || 'Usuario'}
             </p>
-            <p className="text-[10px] text-white/50 dark:text-slate-400 truncate">Odontólogo</p>
+            <p className="text-[10px] text-white/50 dark:text-slate-400 truncate" title={rolText}>
+              {rolText}
+            </p>
           </div>
           <button
             type="button"
@@ -153,4 +167,3 @@ export default function Sidebar({ isOpen, onClose }) {
     </>
   );
 }
-

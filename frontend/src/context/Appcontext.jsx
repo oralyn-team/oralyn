@@ -198,7 +198,7 @@ export function AppProvider({ children }) {
 
   // ── Carga inicial de pacientes ────────────────────────────────────────────
   useEffect(() => {
-    if (!usuario) { setLoadingPacientes(false); return; }
+    if (!usuario || usuario.rol === 'SUPERADMIN') { setLoadingPacientes(false); return; }
     setLoadingPacientes(true);
     setError(null);
     api.getPacientes()
@@ -216,15 +216,15 @@ export function AppProvider({ children }) {
 
   // ── Carga inicial de configuración ────────────────────────────────────────
   useEffect(() => {
-    if (!usuario) return;
+    if (!usuario || usuario.rol === 'SUPERADMIN') return;
     api.getConfiguracion()
       .then(setConfiguracion)
-      .catch(() => {}); // Si no existe aún, simplemente queda null
+      .catch(() => {});
   }, [usuario]);
 
   // ── Carga inicial de usuarios del consultorio ──────────────────────────────
   useEffect(() => {
-    if (!usuario) return;
+    if (!usuario || usuario.rol === 'SUPERADMIN') return;
     api.getUsuarios()
       .then((data) => setUsuariosConsultorio(Array.isArray(data) ? data : []))
       .catch(() => setUsuariosConsultorio([]));
@@ -232,7 +232,7 @@ export function AppProvider({ children }) {
 
   // ── Carga inicial del catálogo de procedimientos CUPS ─────────────────────
   useEffect(() => {
-    if (!usuario) return;
+    if (!usuario || usuario.rol === 'SUPERADMIN') return;
     setLoadingProcedimientos(true);
     api.getProcedimientos()
       .then(setProcedimientosCatalog)
