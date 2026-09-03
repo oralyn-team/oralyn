@@ -42,9 +42,14 @@ router.post('/', requirePermission(PERMISSIONS.USERS_CREATE), async (req, res) =
 
   const rolAsignar = rol || ROLES.ASISTENTE_ODONTOLOGO
 
-  // RESTRICCIÓN DE SEGURIDAD: Un administrador/dueño de consultorio NUNCA puede crear ni asignar un SUPERADMIN
+  // RESTRICCIÓN DE SEGURIDAD: Un administrador/dueño NUNCA puede crear ni asignar SUPERADMIN
   if (rolAsignar === ROLES.SUPERADMIN && req.usuario.rol !== ROLES.SUPERADMIN) {
     return res.status(403).json({ error: 'Acceso denegado: No está autorizado para asignar el rol SUPERADMIN' })
+  }
+
+  // RESTRICCIÓN DE SEGURIDAD: Para asignar rol DUEÑO debe utilizarse el endpoint de transferencia de propiedad
+  if (rolAsignar === ROLES.DUENO && req.usuario.rol !== ROLES.SUPERADMIN) {
+    return res.status(403).json({ error: 'Acceso denegado: La asignación del rol DUEÑO requiere ejecutar la transferencia de propiedad.' })
   }
 
   try {
@@ -90,6 +95,85 @@ router.post('/', requirePermission(PERMISSIONS.USERS_CREATE), async (req, res) =
   } catch (error) {
     console.error('Error al crear usuario:', error)
     res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// POST /api/usuarios/transferir-propiedad — Transferir atómicamente la propiedad del consultorio
+router.post('/transferir-propiedad', requirePermission(PERMISSIONS.USERS_TRANSFER_OWNERSHIP), async (req, res) => {
+  const { nuevo_dueno_id, rol_anterior } = req.body
+
+  if (!nuevo_dueno_id) {
+    return res.status(400).json({ error: 'El ID del nuevo propietario es obligatorio' })
+  }
+
+  const targetId = Number(nuevo_dueno_id)
+  if (isNaN(targetId)) {
+    return res.status(400).json({ error: 'ID de usuario no válido' })
+  }
+
+  if (targetId === req.usuario.id) {
+    return res.status(400).json({ error: 'Usted ya es el dueño actual de este consultorio' })
+  }
+
+  try {
+    const nuevoDueno = await prisma.usuario.findUnique({
+      where: { id: targetId }
+    })
+
+    if (!nuevoDueno || nuevoDueno.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(404).json({ error: 'Usuario destino no encontrado en este consultorio' })
+    }
+
+    if (!nuevoDueno.activo) {
+      return res.status(400).json({ error: 'No se puede transferir la propiedad a un usuario desactivado' })
+    }
+
+    const nuevoRolAnterior = [ROLES.ASISTENTE_ODONTOLOGO, ROLES.RECEPCIONISTA].includes(rol_anterior)
+      ? rol_anterior
+      : ROLES.ASISTENTE_ODONTOLOGO
+
+    // Ejecución atómica en transacción Prisma
+    const resultado = await prisma.$transaction(async (tx) => {
+      // 1. Promover nuevo dueño e incrementar token_version
+      const promocionado = await tx.usuario.update({
+        where: { id: nuevoDueno.id },
+        data: {
+          rol: ROLES.DUENO,
+          token_version: nuevoDueno.token_version + 1
+        },
+        select: { id: true, nombre: true, email: true, rol: true }
+      })
+
+      // 2. Degradar dueño anterior e incrementar token_version para invalidar sesión previa
+      const anteriorActual = await tx.usuario.findUnique({ where: { id: req.usuario.id } })
+      const degradado = await tx.usuario.update({
+        where: { id: req.usuario.id },
+        data: {
+          rol: nuevoRolAnterior,
+          token_version: (anteriorActual?.token_version || 0) + 1
+        },
+        select: { id: true, nombre: true, email: true, rol: true }
+      })
+
+      return { promocionado, degradado }
+    })
+
+    await registrarAuditoria({
+      req,
+      accion: 'TRANSFERIR_PROPIEDAD',
+      modulo: 'Usuarios',
+      recurso_id: resultado.promocionado.id,
+      detalles: `Propiedad del consultorio transferida de ${resultado.degradado.email} a ${resultado.promocionado.email}`
+    })
+
+    res.json({
+      mensaje: 'Propiedad del consultorio transferida exitosamente',
+      nuevo_dueno: resultado.promocionado,
+      dueno_anterior: resultado.degradado
+    })
+  } catch (error) {
+    console.error('Error en transferencia de propiedad:', error)
+    res.status(500).json({ error: 'Error interno del servidor al transferir propiedad' })
   }
 })
 
@@ -169,6 +253,11 @@ router.patch('/:id/role', requirePermission(PERMISSIONS.USERS_UPDATE), async (re
   // RESTRICCIÓN DE SEGURIDAD: Un dueño/admin de consultorio NUNCA puede asignar el rol SUPERADMIN
   if (rol === ROLES.SUPERADMIN && req.usuario.rol !== ROLES.SUPERADMIN) {
     return res.status(403).json({ error: 'Acceso denegado: No está autorizado para asignar el rol SUPERADMIN' })
+  }
+
+  // RESTRICCIÓN DE SEGURIDAD: Un dueño NUNCA puede asignar rol DUEÑO mediante este endpoint
+  if (rol === ROLES.DUENO && req.usuario.rol !== ROLES.SUPERADMIN) {
+    return res.status(403).json({ error: 'Acceso denegado: Para asignar el rol DUEÑO utilice el módulo de Transferencia de Propiedad.' })
   }
 
   try {
