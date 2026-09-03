@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "db:migrate": "prisma migrate deploy",
     "postinstall": "prisma generate && npx puppeteer browsers install chrome",
     "test": "node --test \"test/**/*.test.js\"",
     "test:unit": "node --test \"test/unit/*.test.js\"",
