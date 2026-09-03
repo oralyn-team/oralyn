@@ -16,6 +16,19 @@ const ESTADO_A_ELECTRONIC_STATUS = {
 
 // ── Serializa un registro Factura (Prisma) a la forma que ya entiende el frontend ──
 function serializarFactura(factura, paciente, configuracion) {
+  let codigoRechazo = null
+  let mensajeRechazo = null
+  if (factura.errores) {
+    if (typeof factura.errores === 'object') {
+      codigoRechazo = factura.errores.code || factura.errores.codigo || (Array.isArray(factura.errores.errors) ? factura.errores.errors[0]?.code : null) || 'ERR-VAL-001'
+      mensajeRechazo = factura.errores.message || factura.errores.mensaje || (Array.isArray(factura.errores.errors) ? factura.errores.errors[0]?.message : null) || JSON.stringify(factura.errores)
+    } else {
+      mensajeRechazo = String(factura.errores)
+    }
+  }
+
+  const statusMapped = ESTADO_A_ELECTRONIC_STATUS[factura.estado] || 'Pendiente'
+
   return {
     id: String(factura.id),
     number: factura.numero || null,
@@ -37,19 +50,32 @@ function serializarFactura(factura, paciente, configuracion) {
       email: configuracion.email || '',
     },
     issueDate: factura.fecha_emision?.toISOString().split('T')[0],
+    dueDate: factura.fecha_emision?.toISOString().split('T')[0],
     subtotal: Number(factura.subtotal),
     tax: Number(factura.impuestos),
+    discount: 0,
     total: Number(factura.total),
-    electronicStatus: ESTADO_A_ELECTRONIC_STATUS[factura.estado] || 'Pendiente',
+    electronicStatus: statusMapped,
+    dianStatus: statusMapped,
     cufe: factura.cufe || null,
     dianResponse: {
-      mensaje: factura.errores ? (typeof factura.errores === 'string' ? factura.errores : JSON.stringify(factura.errores)) : null,
+      mensaje: mensajeRechazo,
+      codigoRechazo: codigoRechazo || (factura.estado === 'rechazada' ? 'ERR-VAL-001' : null),
+      mensajeRechazo: mensajeRechazo || 'Detalle no disponible',
       fechaValidacion: factura.fecha_validacion?.toISOString() || null,
+      fechaIntento: factura.actualizado_en?.toISOString() || factura.creado_en?.toISOString(),
     },
     environment: process.env.FACTUS_ENV === 'production' ? 'Producción' : 'Pruebas',
     provider: 'Factus',
     items: factura.items_json || [],
-    creditNotes: factura.notas_credito || [],
+    creditNotes: (factura.notas_credito || []).map((nc, index) => ({
+      id: nc.id || nc.reference_code || String(index + 1),
+      number: nc.number || (nc.cufe ? nc.cufe.slice(0, 14) : `NC-${index + 1}`),
+      reason: nc.reason || nc.motivo || 'Nota Crédito',
+      observations: nc.observations || nc.observacion || '',
+      amount: Number(nc.amount ?? nc.monto ?? 0),
+      date: nc.date || nc.fecha,
+    })),
     createdAt: factura.creado_en?.toISOString(),
     updatedAt: factura.actualizado_en?.toISOString(),
   }
@@ -282,7 +308,7 @@ router.get('/:id/xml', async (req, res) => {
 })
 
 // POST /api/facturas/:id/notas-credito
-// Body esperado: { motivo, correctionCode, items: [{nombre, cantidad, valorUnitario, codigoCups}] }
+// Body esperado: { motivo, correctionCode, observations, items: [{nombre, cantidad, valorUnitario, codigoCups}] }
 router.post('/:id/notas-credito', async (req, res) => {
   try {
     const configuracion = await obtenerConfiguracion(req.usuario.consultorio_id)
@@ -292,7 +318,7 @@ router.post('/:id/notas-credito', async (req, res) => {
     })
     if (!factura?.numero) return res.status(404).json({ error: 'Factura no encontrada o aún no validada' })
 
-    const { motivo, correctionCode, items } = req.body
+    const { motivo, correctionCode, items, observations } = req.body
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'items es obligatorio' })
     }
@@ -303,7 +329,7 @@ router.post('/:id/notas-credito', async (req, res) => {
       items,
       pagos: [],
       referenceCode: referenceCodeNota,
-      observacion: motivo,
+      observacion: observations || motivo,
     })
 
     const payloadNota = {
@@ -317,9 +343,13 @@ router.post('/:id/notas-credito', async (req, res) => {
 
     const nuevaNota = {
       reference_code: referenceCodeNota,
+      number: data.number || referenceCodeNota,
       cufe: data.cufe,
-      motivo,
-      monto: Number(data.totals?.total || 0),
+      reason: motivo,
+      motivo: motivo,
+      observations: observations || '',
+      amount: Number(data.totals?.total || items.reduce((acc, i) => acc + Number(i.valorUnitario || 0) * Number(i.cantidad || 1), 0)),
+      monto: Number(data.totals?.total || items.reduce((acc, i) => acc + Number(i.valorUnitario || 0) * Number(i.cantidad || 1), 0)),
       fecha: new Date().toISOString(),
     }
 
