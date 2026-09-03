@@ -45,7 +45,9 @@ export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, sho
     } catch (err) {
       console.error('Error reintentando envío:', err);
       if (showToast) showToast(err.message || 'Error al reintentar el envío');
-    } fontName: setReintentando(false);
+    } finally {
+      setReintentando(false);
+    }
   };
 
   const handleDescargarPDF = async () => {
@@ -242,10 +244,12 @@ export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, sho
                   <span>Subtotal:</span>
                   <span className="font-semibold text-primary dark:text-dark-text tabular-nums">{fmtCOP(invoice.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
-                  <span>Descuentos:</span>
-                  <span className="font-semibold tabular-nums">-{fmtCOP(invoice.discount)}</span>
-                </div>
+                {Boolean(invoice.discount && Number(invoice.discount) > 0) && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                    <span>Descuentos:</span>
+                    <span className="font-semibold tabular-nums">-{fmtCOP(invoice.discount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-teal-muted dark:text-slate-400">
                   <span>Impuestos (IVA 0% / Exento):</span>
                   <span className="font-semibold text-primary dark:text-dark-text tabular-nums">+{fmtCOP(invoice.tax)}</span>

@@ -95,6 +95,7 @@ export const invoiceService = {
     const payload = {
       motivo: noteData.reason || noteData.motivo || 'Anulación de factura',
       correctionCode: noteData.correctionCode || '2',
+      observations: noteData.observations || noteData.observaciones || '',
       items: (noteData.items || []).length > 0 ? noteData.items : [
         {
           nombre: noteData.reason || 'Ajuste de factura',
