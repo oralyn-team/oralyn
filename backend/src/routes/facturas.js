@@ -2,10 +2,14 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria } = require('../services/audit.service')
 const facturaProvider = require('../services/facturaProvider.service')
 
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe a SUPERADMIN de ver o emitir facturas clínicas
 
 const ESTADO_A_ELECTRONIC_STATUS = {
   pendiente: 'Pendiente',
@@ -14,7 +18,6 @@ const ESTADO_A_ELECTRONIC_STATUS = {
   anulada: 'Anulada',
 }
 
-// ── Serializa un registro Factura (Prisma) a la forma que ya entiende el frontend ──
 function serializarFactura(factura, paciente, configuracion) {
   if (!factura) return null
 
@@ -104,8 +107,8 @@ async function obtenerConfiguracion(consultorioId) {
   return configuracion
 }
 
-// GET /api/facturas — listado con filtros básicos (estado, rango de fechas, búsqueda)
-router.get('/', async (req, res) => {
+// GET /api/facturas — listado de facturas
+router.get('/', requirePermission(PERMISSIONS.INVOICES_READ), async (req, res) => {
   try {
     const { estado, fechaInicio, fechaFin, search } = req.query
     const consultorioId = Number(req.usuario?.consultorio_id)
@@ -136,10 +139,7 @@ router.get('/', async (req, res) => {
       where,
       include: { paciente: true, consultorio: true },
       orderBy: { fecha_emision: 'desc' },
-    }).catch((err) => {
-      console.warn('Advertencia en prisma.factura.findMany (posible tabla no migrada aun):', err.message)
-      return []
-    })
+    }).catch(() => [])
 
     const resultado = facturas
       .map((f) => serializarFactura(f, f.paciente, f.consultorio))
@@ -148,13 +148,12 @@ router.get('/', async (req, res) => {
     res.json(resultado)
   } catch (error) {
     console.error('Error listando facturas:', error)
-    // Responder con array vacío en lugar de 500 para mantener la UI limpia ante problemas de migración
     res.json([])
   }
 })
 
 // GET /api/facturas/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission(PERMISSIONS.INVOICES_READ), async (req, res) => {
   try {
     const facturaId = Number(req.params.id)
     if (!facturaId || isNaN(facturaId)) return res.status(400).json({ error: 'ID de factura inválido' })
@@ -172,7 +171,7 @@ router.get('/:id', async (req, res) => {
 })
 
 // POST /api/facturas — crea y valida una factura ante la DIAN vía Factus
-router.post('/', async (req, res) => {
+router.post('/', requirePermission(PERMISSIONS.INVOICES_CREATE), async (req, res) => {
   try {
     const configuracion = await obtenerConfiguracion(req.usuario.consultorio_id)
     const { pacienteId, cotizacionId, pagoId, items, pagos, observacion } = req.body
@@ -182,7 +181,7 @@ router.post('/', async (req, res) => {
     }
 
     const paciente = await prisma.paciente.findFirst({
-      where: { id: Number(pacienteId), consultorio_id: req.usuario.consultorio_id },
+      where: { id: Number(pacienteId), consultorio_id: req.usuario.consultorio_id, activo: true },
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
@@ -218,6 +217,17 @@ router.post('/', async (req, res) => {
         where: { id: facturaLocal.id },
         data: { estado: 'rechazada', errores: errorFactus.detalle || { mensaje: errorFactus.message } },
       })
+
+      await registrarAuditoria({
+        req,
+        accion: 'FACTURA_RECHAZADA_FACTUS',
+        modulo: 'Facturación',
+        recurso_id: facturaLocal.id,
+        detalles: `Rechazo de factura electrónica ante la DIAN/Factus`,
+        estado: 'FALLIDO',
+        metadata: { error: errorFactus.detalle || errorFactus.message }
+      })
+
       return res.status(errorFactus.status || 502).json({
         error: 'La DIAN (vía Factus) rechazó la factura.',
         detalle: errorFactus.detalle || errorFactus.message,
@@ -243,6 +253,15 @@ router.post('/', async (req, res) => {
       include: { paciente: true, consultorio: true },
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'EMITIR_FACTURA_ELECTRONICA',
+      modulo: 'Facturación',
+      recurso_id: facturaActualizada.id,
+      detalles: `Factura ${facturaActualizada.numero || referenceCode} validada exitosamente ante la DIAN`,
+      metadata: { numero: facturaActualizada.numero, cufe: facturaActualizada.cufe, total: facturaActualizada.total }
+    })
+
     res.status(201).json(serializarFactura(facturaActualizada, facturaActualizada.paciente, facturaActualizada.consultorio))
   } catch (error) {
     console.error('Error creando factura:', error)
@@ -250,8 +269,8 @@ router.post('/', async (req, res) => {
   }
 })
 
-// POST /api/facturas/:id/reintentar — vuelve a intentar crear/validar la misma factura
-router.post('/:id/reintentar', async (req, res) => {
+// POST /api/facturas/:id/reintentar
+router.post('/:id/reintentar', requirePermission(PERMISSIONS.INVOICES_CREATE), async (req, res) => {
   try {
     const configuracion = await obtenerConfiguracion(req.usuario.consultorio_id)
     const facturaLocal = await prisma.factura.findFirst({
@@ -282,6 +301,14 @@ router.post('/:id/reintentar', async (req, res) => {
       include: { paciente: true, consultorio: true },
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'REINTENTAR_FACTURA_ELECTRONICA',
+      modulo: 'Facturación',
+      recurso_id: facturaActualizada.id,
+      detalles: `Reintento de validación de factura #${facturaActualizada.id}`
+    })
+
     res.json(serializarFactura(facturaActualizada, facturaActualizada.paciente, facturaActualizada.consultorio))
   } catch (error) {
     console.error('Error reintentando factura:', error)
@@ -289,8 +316,8 @@ router.post('/:id/reintentar', async (req, res) => {
   }
 })
 
-// GET /api/facturas/:id/pdf — proxy de la descarga de PDF desde Factus
-router.get('/:id/pdf', async (req, res) => {
+// GET /api/facturas/:id/pdf
+router.get('/:id/pdf', requirePermission(PERMISSIONS.INVOICES_READ), async (req, res) => {
   try {
     const configuracion = await obtenerConfiguracion(req.usuario.consultorio_id)
     const factura = await prisma.factura.findFirst({
@@ -309,8 +336,8 @@ router.get('/:id/pdf', async (req, res) => {
   }
 })
 
-// GET /api/facturas/:id/xml — proxy de la descarga de XML desde Factus
-router.get('/:id/xml', async (req, res) => {
+// GET /api/facturas/:id/xml
+router.get('/:id/xml', requirePermission(PERMISSIONS.INVOICES_READ), async (req, res) => {
   try {
     const configuracion = await obtenerConfiguracion(req.usuario.consultorio_id)
     const factura = await prisma.factura.findFirst({
@@ -330,7 +357,7 @@ router.get('/:id/xml', async (req, res) => {
 })
 
 // POST /api/facturas/:id/notas-credito
-router.post('/:id/notas-credito', async (req, res) => {
+router.post('/:id/notas-credito', requirePermission(PERMISSIONS.INVOICES_UPDATE), async (req, res) => {
   try {
     const configuracion = await obtenerConfiguracion(req.usuario.consultorio_id)
     const factura = await prisma.factura.findFirst({
@@ -378,6 +405,14 @@ router.post('/:id/notas-credito', async (req, res) => {
       where: { id: factura.id },
       data: { notas_credito: [...(factura.notas_credito || []), nuevaNota] },
       include: { paciente: true, consultorio: true },
+    })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_NOTA_CREDITO_FACTURA',
+      modulo: 'Facturación',
+      recurso_id: factura.id,
+      detalles: `Nota crédito creada para la factura ${factura.numero}`
     })
 
     res.status(201).json(serializarFactura(facturaActualizada, facturaActualizada.paciente, facturaActualizada.consultorio))

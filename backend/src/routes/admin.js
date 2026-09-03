@@ -1,11 +1,15 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const bcrypt = require('bcryptjs')
-const verificarAdmin = require('../middlewares/verificarAdmin')
+const verificarToken = require('../middlewares/auth')
+const { requireRole } = require('../middlewares/rbac')
+const { ROLES } = require('../lib/permissions')
+const { registrarAuditoria } = require('../services/audit.service')
 
 const router = express.Router()
 
-router.use(verificarAdmin)
+// Middleware de autenticación y autorización para Superadministradores
+router.use(verificarToken, requireRole(ROLES.SUPERADMIN))
 
 // POST /api/admin/consultorio — crear consultorio nuevo
 router.post('/consultorio', async (req, res) => {
@@ -18,7 +22,6 @@ router.post('/consultorio', async (req, res) => {
     telefono,
     ciudad,
     email,
-    // datos del primer usuario admin del consultorio
     usuario_email,
     usuario_password,
     usuario_nombre,
@@ -31,7 +34,6 @@ router.post('/consultorio', async (req, res) => {
 
   try {
     const resultado = await prisma.$transaction(async (tx) => {
-      // Crear consultorio
       const consultorio = await tx.configuracion.create({
         data: {
           nombre_consultorio,
@@ -41,11 +43,11 @@ router.post('/consultorio', async (req, res) => {
           direccion,
           telefono,
           ciudad: ciudad || 'Villavicencio',
-          email
+          email,
+          activo: true
         }
       })
 
-      // Crear usuario admin del consultorio
       const password_hash = await bcrypt.hash(usuario_password, 10)
       const usuario = await tx.usuario.create({
         data: {
@@ -53,11 +55,21 @@ router.post('/consultorio', async (req, res) => {
           email: usuario_email,
           password_hash,
           nombre: usuario_nombre,
-          registro: usuario_registro
+          registro: usuario_registro,
+          rol: ROLES.DUENO,
+          activo: true
         }
       })
 
       return { consultorio, usuario }
+    })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_CONSULTORIO',
+      modulo: 'Superadmin',
+      recurso_id: resultado.consultorio.id,
+      detalles: `Consultorio ${resultado.consultorio.nombre_consultorio} creado con dueño ${resultado.usuario.email}`
     })
 
     res.status(201).json({
@@ -82,11 +94,71 @@ router.get('/consultorios', async (req, res) => {
       orderBy: { creado_en: 'asc' },
       include: {
         _count: {
-          select: { pacientes: true, usuarios: true }
+          select: { pacientes: true, usuarios: true, citas: true }
         }
       }
     })
     res.json(consultorios)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// PATCH /api/admin/consultorios/:id/status — Activar o desactivar consultorio
+router.patch('/consultorios/:id/status', async (req, res) => {
+  const { id } = req.params
+  const { activo } = req.body
+
+  if (typeof activo !== 'boolean') {
+    return res.status(400).json({ error: 'El campo activo debe ser booleano' })
+  }
+
+  try {
+    const consultorio = await prisma.configuracion.findUnique({
+      where: { id: Number(id) }
+    })
+
+    if (!consultorio) {
+      return res.status(404).json({ error: 'Consultorio no encontrado' })
+    }
+
+    const consultorioActualizado = await prisma.configuracion.update({
+      where: { id: consultorio.id },
+      data: { activo }
+    })
+
+    await registrarAuditoria({
+      req,
+      accion: activo ? 'ACTIVAR_CONSULTORIO' : 'DESACTIVAR_CONSULTORIO',
+      modulo: 'Superadmin',
+      recurso_id: consultorioActualizado.id,
+      detalles: `Consultorio ${consultorioActualizado.nombre_consultorio} ${activo ? 'activado' : 'desactivado'}`
+    })
+
+    res.json(consultorioActualizado)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// GET /api/admin/stats — Obtener estadísticas globales para Superadmin
+router.get('/stats', async (req, res) => {
+  try {
+    const [totalConsultorios, totalUsuarios, totalPacientes, totalCitas] = await Promise.all([
+      prisma.configuracion.count(),
+      prisma.usuario.count(),
+      prisma.paciente.count(),
+      prisma.cita.count()
+    ])
+
+    res.json({
+      totalConsultorios,
+      totalUsuarios,
+      totalPacientes,
+      totalCitas
+    })
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })

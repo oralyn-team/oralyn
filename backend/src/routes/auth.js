@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken')
 const { rateLimit } = require('express-rate-limit')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { registrarAuditoria } = require('../services/audit.service')
 
 const router = express.Router()
 
@@ -17,7 +18,7 @@ const loginLimiter = rateLimit({
 
 // POST /api/auth/registro
 router.post('/registro', async (req, res) => {
-  const { email, password, nombre, registro, consultorio_id } = req.body
+  const { email, password, nombre, registro, consultorio_id, rol } = req.body
 
   if (!email || !password || !nombre) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' })
@@ -49,13 +50,32 @@ router.post('/registro', async (req, res) => {
         password_hash,
         nombre,
         registro,
+        rol: rol || 'DUENO',
         token_version: 0
       }
     })
 
+    await registrarAuditoria({
+      req,
+      usuario_id: usuario.id,
+      usuario_nombre: usuario.nombre,
+      usuario_rol: usuario.rol,
+      consultorio_id: usuario.consultorio_id,
+      accion: 'CREAR',
+      modulo: 'Usuarios',
+      recurso_id: usuario.id,
+      detalles: `Registro de usuario ${usuario.email} (${usuario.rol})`
+    })
+
     res.status(201).json({
       mensaje: 'Usuario creado correctamente',
-      usuario: { id: usuario.id, email: usuario.email, nombre: usuario.nombre, consultorio_id: usuario.consultorio_id }
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        consultorio_id: usuario.consultorio_id,
+        rol: usuario.rol
+      }
     })
   } catch (error) {
     console.error(error)
@@ -75,11 +95,44 @@ router.post('/login', loginLimiter, async (req, res) => {
     const usuario = await prisma.usuario.findUnique({ where: { email } })
 
     if (!usuario) {
+      await registrarAuditoria({
+        req,
+        accion: 'LOGIN_FALLIDO',
+        modulo: 'Autenticación',
+        detalles: `Intento de inicio de sesión fallido con correo: ${email}`,
+        estado: 'FALLIDO'
+      })
       return res.status(401).json({ error: 'Credenciales incorrectas' })
+    }
+
+    if (usuario.activo === false) {
+      await registrarAuditoria({
+        req,
+        usuario_id: usuario.id,
+        usuario_nombre: usuario.nombre,
+        usuario_rol: usuario.rol,
+        consultorio_id: usuario.consultorio_id,
+        accion: 'LOGIN_BLOQUEADO',
+        modulo: 'Autenticación',
+        detalles: `Intento de inicio de sesión en cuenta desactivada: ${email}`,
+        estado: 'FALLIDO'
+      })
+      return res.status(403).json({ error: 'Cuenta de usuario desactivada' })
     }
 
     const passwordValida = await bcrypt.compare(password, usuario.password_hash)
     if (!passwordValida) {
+      await registrarAuditoria({
+        req,
+        usuario_id: usuario.id,
+        usuario_nombre: usuario.nombre,
+        usuario_rol: usuario.rol,
+        consultorio_id: usuario.consultorio_id,
+        accion: 'LOGIN_FALLIDO',
+        modulo: 'Autenticación',
+        detalles: `Contraseña incorrecta para el usuario: ${email}`,
+        estado: 'FALLIDO'
+      })
       return res.status(401).json({ error: 'Credenciales incorrectas' })
     }
 
@@ -89,6 +142,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         consultorio_id: usuario.consultorio_id,
         email: usuario.email,
         nombre: usuario.nombre,
+        rol: usuario.rol,
         tv: usuario.token_version
       },
       process.env.JWT_SECRET,
@@ -102,13 +156,25 @@ router.post('/login', loginLimiter, async (req, res) => {
       maxAge: 8 * 60 * 60 * 1000 // 8 horas
     })
 
+    await registrarAuditoria({
+      req,
+      usuario_id: usuario.id,
+      usuario_nombre: usuario.nombre,
+      usuario_rol: usuario.rol,
+      consultorio_id: usuario.consultorio_id,
+      accion: 'LOGIN_EXITOSO',
+      modulo: 'Autenticación',
+      detalles: `Inicio de sesión exitoso de ${usuario.email}`
+    })
+
     res.json({
       token,
       usuario: {
         id: usuario.id,
         email: usuario.email,
         nombre: usuario.nombre,
-        consultorio_id: usuario.consultorio_id
+        consultorio_id: usuario.consultorio_id,
+        rol: usuario.rol
       }
     })
   } catch (error) {
@@ -118,7 +184,16 @@ router.post('/login', loginLimiter, async (req, res) => {
 })
 
 // POST /api/auth/logout
-router.post('/logout', (req, res) => {
+router.post('/logout', verificarToken, async (req, res) => {
+  if (req.usuario) {
+    await registrarAuditoria({
+      req,
+      accion: 'LOGOUT',
+      modulo: 'Autenticación',
+      detalles: `Cierre de sesión de ${req.usuario.email}`
+    })
+  }
+
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -151,6 +226,13 @@ router.post('/change-password', verificarToken, async (req, res) => {
 
     const passwordValida = await bcrypt.compare(currentPassword, usuario.password_hash)
     if (!passwordValida) {
+      await registrarAuditoria({
+        req,
+        accion: 'CAMBIO_PASSWORD_FALLIDO',
+        modulo: 'Autenticación',
+        detalles: 'Intento fallido de cambio de contraseña',
+        estado: 'FALLIDO'
+      })
       return res.status(400).json({ error: 'Contraseña actual incorrecta' })
     }
 
@@ -162,6 +244,13 @@ router.post('/change-password', verificarToken, async (req, res) => {
         password_hash,
         token_version: { increment: 1 }
       }
+    })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CAMBIO_PASSWORD_EXITOSO',
+      modulo: 'Autenticación',
+      detalles: 'Cambio de contraseña exitoso'
     })
 
     res.clearCookie('token', {

@@ -1,10 +1,14 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
 const generarCotizacionPDF = require('../pdf/generators/generarCotizacionPDF')
 
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de ver/modificar cotizaciones y tratamientos
 
 const estadosValidos = ['borrador', 'pendiente', 'aprobado', 'en_proceso', 'finalizado', 'cancelado']
 const prioridadesValidas = ['baja', 'media', 'alta']
@@ -117,7 +121,7 @@ function validarCotizacion({ paciente_id, procedimientos, estado, prioridad }) {
 
 async function asegurarPaciente(paciente_id, consultorio_id) {
   return prisma.paciente.findFirst({
-    where: { id: paciente_id, consultorio_id }
+    where: { id: paciente_id, consultorio_id, activo: true }
   })
 }
 
@@ -144,7 +148,8 @@ function includeCompleto() {
   }
 }
 
-router.post('/', async (req, res) => {
+// POST /api/cotizaciones — crear cotización / tratamiento
+router.post('/', requirePermission(PERMISSIONS.TREATMENTS_CREATE), async (req, res) => {
   const {
     paciente_id,
     doctor,
@@ -203,6 +208,14 @@ router.post('/', async (req, res) => {
       })
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_TRATAMIENTO',
+      modulo: 'Tratamientos',
+      recurso_id: cotizacion.id,
+      detalles: `Tratamiento/Cotización #${cotizacion.id} creado para el paciente #${paciente_id} por valor de ${total}`
+    })
+
     res.status(201).json(cotizacion)
   } catch (error) {
     if (error instanceof BadRequestError) return res.status(error.statusCode).json({ error: error.message })
@@ -211,7 +224,8 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.get('/paciente/:pacienteId', async (req, res) => {
+// GET /api/cotizaciones/paciente/:pacienteId — cotizaciones de un paciente
+router.get('/paciente/:pacienteId', requirePermission(PERMISSIONS.TREATMENTS_READ), async (req, res) => {
   const pacienteId = parseId(req.params.pacienteId)
   if (!pacienteId) return res.status(400).json({ error: 'ID inválido' })
 
@@ -228,7 +242,8 @@ router.get('/paciente/:pacienteId', async (req, res) => {
   }
 })
 
-router.get('/:id', async (req, res) => {
+// GET /api/cotizaciones/:id — ver una cotización
+router.get('/:id', requirePermission(PERMISSIONS.TREATMENTS_READ), async (req, res) => {
   const id = parseId(req.params.id)
   if (!id) return res.status(400).json({ error: 'ID inválido' })
 
@@ -246,7 +261,8 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+// PUT /api/cotizaciones/:id — actualizar cotización
+router.put('/:id', requirePermission(PERMISSIONS.TREATMENTS_UPDATE), async (req, res) => {
   const id = parseId(req.params.id)
   if (!id) return res.status(400).json({ error: 'ID inválido' })
 
@@ -300,7 +316,6 @@ router.put('/:id', async (req, res) => {
         procedimientosData.filter(p => p.id).map(p => p.id)
       )
 
-      // 1. Borrar solo los que ya no vienen en el payload
       const idsABorrar = [...idsExistentes].filter(pid => !idsEnPayload.has(pid))
       if (idsABorrar.length > 0) {
         await tx.procedimientoCotizacion.deleteMany({
@@ -308,13 +323,11 @@ router.put('/:id', async (req, res) => {
         })
       }
 
-      // 2. Actualizar los que ya existían y vienen con id
       for (const p of procedimientosData.filter(p => p.id && idsExistentes.has(p.id))) {
         const { id: procId, ...datos } = p
         await tx.procedimientoCotizacion.update({ where: { id: procId }, data: datos })
       }
 
-      // 3. Crear los nuevos (sin id, o con id que no existía)
       const nuevos = procedimientosData.filter(p => !p.id || !idsExistentes.has(p.id))
       if (nuevos.length > 0) {
         await tx.procedimientoCotizacion.createMany({
@@ -351,6 +364,17 @@ router.put('/:id', async (req, res) => {
       })
     })
 
+    const diferencias = calcularDiferencias(existe, cotizacion, ['estado', 'total', 'saldo', 'prioridad'])
+
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_TRATAMIENTO',
+      modulo: 'Tratamientos',
+      recurso_id: cotizacion.id,
+      detalles: `Tratamiento/Cotización #${cotizacion.id} actualizado`,
+      metadata: { cambios: diferencias }
+    })
+
     res.json(cotizacion)
   } catch (error) {
     if (error instanceof BadRequestError) return res.status(error.statusCode).json({ error: error.message })
@@ -359,7 +383,8 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id/estado', async (req, res) => {
+// PATCH /api/cotizaciones/:id/estado — cambiar estado
+router.patch('/:id/estado', requirePermission(PERMISSIONS.TREATMENTS_UPDATE), async (req, res) => {
   const id = parseId(req.params.id)
   const { estado } = req.body
 
@@ -373,6 +398,18 @@ router.patch('/:id/estado', async (req, res) => {
     if (!existe) return res.status(404).json({ error: 'Cotización no encontrada' })
 
     const cotizacion = await prisma.cotizacion.update({ where: { id }, data: { estado } })
+
+    const diferencias = calcularDiferencias({ estado: existe.estado }, { estado: cotizacion.estado }, ['estado'])
+
+    await registrarAuditoria({
+      req,
+      accion: 'CAMBIAR_ESTADO_TRATAMIENTO',
+      modulo: 'Tratamientos',
+      recurso_id: cotizacion.id,
+      detalles: `Estado de cotización #${id} cambiado a ${estado}`,
+      metadata: { cambios: diferencias }
+    })
+
     res.json(cotizacion)
   } catch (error) {
     console.error(error)
@@ -380,7 +417,8 @@ router.patch('/:id/estado', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+// DELETE /api/cotizaciones/:id — eliminar cotización
+router.delete('/:id', requirePermission(PERMISSIONS.TREATMENTS_DELETE), async (req, res) => {
   const id = parseId(req.params.id)
   if (!id) return res.status(400).json({ error: 'ID inválido' })
 
@@ -394,6 +432,14 @@ router.delete('/:id', async (req, res) => {
       await tx.cotizacion.delete({ where: { id } })
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_TRATAMIENTO',
+      modulo: 'Tratamientos',
+      recurso_id: id,
+      detalles: `Cotización/Tratamiento #${id} eliminado`
+    })
+
     res.status(204).send()
   } catch (error) {
     console.error(error)
@@ -401,7 +447,8 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-router.get('/:id/pdf', async (req, res) => {
+// GET /api/cotizaciones/:id/pdf — PDF de la cotización
+router.get('/:id/pdf', requirePermission(PERMISSIONS.TREATMENTS_READ), async (req, res) => {
   const id = parseId(req.params.id)
   if (!id) return res.status(400).json({ error: 'ID inválido' })
 

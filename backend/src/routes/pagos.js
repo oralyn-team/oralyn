@@ -1,9 +1,13 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria } = require('../services/audit.service')
 
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de ver/modificar pagos
 
 const metodosValidos = ['efectivo', 'transferencia_bancaria', 'tarjeta_debito', 'tarjeta_credito', 'nequi', 'daviplata', 'otro']
 const estadosConSaldo = ['aprobado', 'en_proceso', 'finalizado']
@@ -44,7 +48,8 @@ async function recalcularSaldoCotizacion(tx, cotizacionId, consultorioId) {
   })
 }
 
-router.post('/', async (req, res) => {
+// POST /api/pagos — registrar pago
+router.post('/', requirePermission(PERMISSIONS.PAYMENTS_CREATE), async (req, res) => {
   const pacienteId = parseId(req.body.paciente_id)
   const cotizacionId = req.body.cotizacion_id ? parseId(req.body.cotizacion_id) : null
   const monto = parseMonto(req.body.monto)
@@ -64,7 +69,7 @@ router.post('/', async (req, res) => {
 
   try {
     const paciente = await prisma.paciente.findFirst({
-      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
@@ -100,6 +105,14 @@ router.post('/', async (req, res) => {
       return nuevoPago
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'REGISTRAR_PAGO',
+      modulo: 'Pagos',
+      recurso_id: pago.id,
+      detalles: `Pago por \$${monto} (${metodo_pago}) registrado para el paciente #${pacienteId}`
+    })
+
     res.status(201).json(pago)
   } catch (error) {
     console.error(error)
@@ -107,13 +120,14 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.get('/paciente/:pacienteId', async (req, res) => {
+// GET /api/pagos/paciente/:pacienteId — obtener pagos de un paciente
+router.get('/paciente/:pacienteId', requirePermission(PERMISSIONS.PAYMENTS_READ), async (req, res) => {
   const pacienteId = parseId(req.params.pacienteId)
   if (!pacienteId) return res.status(400).json({ error: 'ID de paciente inválido' })
 
   try {
     const paciente = await prisma.paciente.findFirst({
-      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id }
+      where: { id: pacienteId, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 

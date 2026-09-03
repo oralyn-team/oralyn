@@ -1,11 +1,15 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria } = require('../services/audit.service')
 const { validarRips } = require('../services/ripsValidator.service')
 const { construirRips } = require('../services/ripsBuilder.service')
 
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de consultar/generar RIPS clínicos
 
 function formatearPeriodo(inicioStr, finStr) {
   try {
@@ -35,7 +39,7 @@ function formatearFechaGeneracion(date) {
 }
 
 // GET /api/rips — Listar generaciones de RIPS (snapshots)
-router.get('/', async (req, res) => {
+router.get('/', requirePermission(PERMISSIONS.RIPS_READ), async (req, res) => {
   const consultorioId = req.usuario.consultorio_id
   const { fecha_inicio, fecha_fin, estado, profesional, page = 1, limit = 20 } = req.query
 
@@ -91,7 +95,6 @@ router.get('/', async (req, res) => {
       }
     })
 
-    // Si la query del profesional está especificada, filtrar
     let resultadoFinal = mapped
     if (profesional && profesional !== 'Todos') {
       resultadoFinal = mapped.filter(m => m.profesionales.toLowerCase().includes(profesional.toLowerCase()))
@@ -104,8 +107,8 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /api/rips/:id — Detalle de una generación RIPS (snapshot)
-router.get('/:id', async (req, res) => {
+// GET /api/rips/:id — Detalle de una generación RIPS
+router.get('/:id', requirePermission(PERMISSIONS.RIPS_READ), async (req, res) => {
   const id = parseInt(req.params.id)
   const consultorioId = req.usuario.consultorio_id
 
@@ -154,8 +157,8 @@ function escapeCSV(val) {
   return `"${str}"`
 }
 
-// GET /api/rips/:id/descargar — Descargar archivo RIPS en JSON o CSV
-router.get('/:id/descargar', async (req, res) => {
+// GET /api/rips/:id/descargar — Descargar archivo RIPS
+router.get('/:id/descargar', requirePermission(PERMISSIONS.RIPS_READ), async (req, res) => {
   const id = parseInt(req.params.id)
   const consultorioId = req.usuario.consultorio_id
   const formato = (req.query.formato || 'json').toLowerCase()
@@ -180,6 +183,14 @@ router.get('/:id/descargar', async (req, res) => {
     const fInicioStr = gen.fecha_inicio.toISOString().split('T')[0]
     const fFinStr = gen.fecha_fin.toISOString().split('T')[0]
     const json = gen.json_generado || {}
+
+    await registrarAuditoria({
+      req,
+      accion: 'DESCARGAR_RIPS',
+      modulo: 'RIPS',
+      recurso_id: gen.id,
+      detalles: `Descarga de RIPS #${gen.id} en formato ${formato.toUpperCase()}`
+    })
 
     if (formato === 'csv') {
       const procs = json.procedimientos || []
@@ -206,7 +217,6 @@ router.get('/:id/descargar', async (req, res) => {
       return res.send(csvContent)
     }
 
-    // Default: JSON
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
     res.setHeader('Content-Disposition', `attachment; filename="rips_${gen.id}_${fInicioStr}_${fFinStr}.json"`)
     return res.send(JSON.stringify(json, null, 2))
@@ -217,7 +227,7 @@ router.get('/:id/descargar', async (req, res) => {
 })
 
 // POST /api/rips/generar — Generar RIPS y snapshot
-router.post('/generar', async (req, res) => {
+router.post('/generar', requirePermission(PERMISSIONS.RIPS_CREATE), async (req, res) => {
   const consultorioId = req.usuario.consultorio_id
   const { fecha_inicio, fecha_fin, fechaInicial, fechaFinal } = req.body
 
@@ -238,11 +248,9 @@ router.post('/generar', async (req, res) => {
   }
 
   try {
-    // 1. Validar
     const resultadoValidacion = await validarRips(consultorioId, dInicio, dFin)
 
     if (!resultadoValidacion.valido) {
-      // Si existen errores, devolvemos el informe de inconsistencias
       return res.status(200).json({
         valido: false,
         estado: 'Con observaciones',
@@ -251,10 +259,8 @@ router.post('/generar', async (req, res) => {
       })
     }
 
-    // 2. Si no hay errores, construir el RIPS
     const ripsJson = await construirRips(consultorioId, dInicio, dFin)
 
-    // 3. Guardar Snapshot en rips_generaciones
     const snapshot = await prisma.ripsGeneracion.create({
       data: {
         consultorio_id: consultorioId,
@@ -269,7 +275,14 @@ router.post('/generar', async (req, res) => {
     const fInicioStr = snapshot.fecha_inicio.toISOString().split('T')[0]
     const fFinStr = snapshot.fecha_fin.toISOString().split('T')[0]
 
-    // 4. Retornar el resultado
+    await registrarAuditoria({
+      req,
+      accion: 'GENERAR_RIPS',
+      modulo: 'RIPS',
+      recurso_id: snapshot.id,
+      detalles: `RIPS generado exitosamente para el periodo ${fInicioStr} a ${fFinStr} con ${snapshot.cantidad_registros} registros`
+    })
+
     res.status(201).json({
       valido: true,
       mensaje: 'RIPS generado exitosamente',
@@ -295,7 +308,7 @@ router.post('/generar', async (req, res) => {
 })
 
 // DELETE /api/rips/:id — Eliminar una generación RIPS
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requirePermission(PERMISSIONS.RIPS_CREATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const consultorioId = req.usuario.consultorio_id
 
@@ -316,6 +329,14 @@ router.delete('/:id', async (req, res) => {
       where: { id }
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_RIPS',
+      modulo: 'RIPS',
+      recurso_id: id,
+      detalles: `Eliminación de generación de RIPS #${id}`
+    })
+
     res.json({ mensaje: 'Registro de RIPS eliminado correctamente' })
   } catch (error) {
     console.error('Error al eliminar RIPS:', error)
@@ -324,4 +345,3 @@ router.delete('/:id', async (req, res) => {
 })
 
 module.exports = router
-

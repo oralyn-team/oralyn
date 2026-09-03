@@ -28,6 +28,7 @@ const catalogoCie10Routes = require('./routes/catalogoCie10')
 const procedimientosRoutes = require('./routes/procedimientos')
 const ripsRoutes = require('./routes/rips')
 const facturasRoutes = require('./routes/facturas')
+const auditoriaRoutes = require('./routes/auditoria')
 const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
@@ -80,6 +81,7 @@ app.use('/api/catalogo-cie10', catalogoCie10Routes)
 app.use('/api/procedimientos', procedimientosRoutes)
 app.use('/api/rips', ripsRoutes)
 app.use('/api/facturas', facturasRoutes)
+app.use('/api/auditoria', auditoriaRoutes)
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })

@@ -20,21 +20,40 @@ async function main() {
 
   console.log('Consultorio listo:', config.id)
 
-  // Crear o actualizar usuario doctora
+  // Crear o actualizar usuario doctora (DUEÑO)
   const password_hash = await bcrypt.hash('123456', 10)
   const usuario = await prisma.usuario.upsert({
     where: { email: 'doctora@oralyn.com' },
-    update: {},
+    update: { rol: 'DUENO' },
     create: {
       consultorio_id: config.id,
       email: 'doctora@oralyn.com',
       password_hash,
       nombre: 'Rocío Murillo',
-      registro: '3989'
+      registro: '3989',
+      rol: 'DUENO',
+      activo: true
     }
   })
 
-  console.log('Usuario listo:', usuario.email)
+  console.log('Usuario listo:', usuario.email, usuario.rol)
+
+  // Crear o actualizar usuario SUPERADMIN de plataforma
+  const superadminHash = await bcrypt.hash('admin123', 10)
+  const superadmin = await prisma.usuario.upsert({
+    where: { email: 'superadmin@oralyn.com' },
+    update: { rol: 'SUPERADMIN' },
+    create: {
+      consultorio_id: null,
+      email: 'superadmin@oralyn.com',
+      password_hash: superadminHash,
+      nombre: 'Administrador Plataforma',
+      rol: 'SUPERADMIN',
+      activo: true
+    }
+  })
+
+  console.log('Superadmin listo:', superadmin.email, superadmin.rol)
 
   // Catálogo Oficial CUPS
   const cupsList = [
