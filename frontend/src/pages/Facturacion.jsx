@@ -211,7 +211,7 @@ export default function Facturacion() {
                 onClick={() => setShowNuevaFacturaModal(true)}
                 className="flex items-center gap-1.5 px-4 py-2.5 text-[12.5px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity cursor-pointer shadow-soft-sm touch-target"
               >
-                <Plus size={15} /> + Nueva factura
+                <Plus size={15} /> Nueva factura
               </button>
             </div>
           </div>

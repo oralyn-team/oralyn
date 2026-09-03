@@ -30,9 +30,12 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
   const [error, setError] = useState(null);
   const [facturaCreada, setFacturaCreada] = useState(null);
 
+  // Lista segura de pacientes
+  const safePacientes = Array.isArray(pacientes) ? pacientes : [];
+
   // Selección de paciente
   const [selectedPacienteId, setSelectedPacienteId] = useState(() => {
-    return data?.patient?.id || data?.paciente?.id || data?.paciente_id || data?.pacienteId || (pacientes?.[0]?.id || '');
+    return data?.patient?.id || data?.paciente?.id || data?.paciente_id || data?.pacienteId || (safePacientes?.[0]?.id || '');
   });
 
   // Cotizaciones y pagos del paciente seleccionado
@@ -42,7 +45,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
   const [selectedCotizacionId, setSelectedCotizacionId] = useState(data?.cotizacion_id || data?.cotizacionId || '');
   const [selectedPagoId, setSelectedPagoId] = useState(data?.pago_id || data?.pagoId || '');
 
-  const pacienteSeleccionado = pacientes?.find(p => String(p.id) === String(selectedPacienteId)) || data?.patient || data?.paciente || {
+  const pacienteSeleccionado = safePacientes.find(p => String(p.id) === String(selectedPacienteId)) || data?.patient || data?.paciente || {
     nombre: data?.info?.pacienteNombre || 'Paciente',
     tipoDocumento: 'CC',
     documento: data?.info?.pacienteDocumento || '',
@@ -57,13 +60,16 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
   // Items de la factura
   const [items, setItems] = useState(() => {
     if (data?.procedimientos || data?.items) {
-      return (data.procedimientos || data.items).map(p => ({
-        cupsCode: p.cupsCode || p.codigoCups || p.codigo || '890201',
-        description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
-        quantity: Number(p.quantity || p.cantidad) || 1,
-        unitPrice: Number(p.unitPrice || p.valorUnitario) || 0,
-        total: Number(p.total) || (Number(p.quantity || p.cantidad || 1) * Number(p.unitPrice || p.valorUnitario || 0))
-      }));
+      const raw = data.procedimientos || data.items;
+      if (Array.isArray(raw)) {
+        return raw.map(p => ({
+          cupsCode: p.cupsCode || p.codigoCups || p.codigo || '890201',
+          description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
+          quantity: Number(p.quantity || p.cantidad) || 1,
+          unitPrice: Number(p.unitPrice || p.valorUnitario) || 0,
+          total: Number(p.total) || (Number(p.quantity || p.cantidad || 1) * Number(p.unitPrice || p.valorUnitario || 0))
+        }));
+      }
     }
     return [
       { cupsCode: '890201', description: 'Consulta odontológica de tratamiento', quantity: 1, unitPrice: data?.totales?.subtotal || data?.monto || 150000, total: data?.totales?.subtotal || data?.monto || 150000 }
@@ -84,8 +90,8 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
       api.getPagosPaciente(selectedPacienteId).catch(() => [])
     ]).then(([cotRes, pagRes]) => {
       if (cancel) return;
-      setCotizaciones(cotRes || []);
-      setPagos(pagRes || []);
+      setCotizaciones(Array.isArray(cotRes) ? cotRes : (Array.isArray(cotRes?.data) ? cotRes.data : []));
+      setPagos(Array.isArray(pagRes) ? pagRes : (Array.isArray(pagRes?.data) ? pagRes.data : []));
     }).finally(() => {
       if (!cancel) setLoadingOrigen(false);
     });
@@ -93,13 +99,17 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     return () => { cancel = true; };
   }, [selectedPacienteId]);
 
+  const safeCotizaciones = Array.isArray(cotizaciones) ? cotizaciones : [];
+  const safePagos = Array.isArray(pagos) ? pagos : [];
+  const safeItems = Array.isArray(items) ? items : [];
+
   // Manejar selección de cotización pre-llenando los items
   const handleSelectCotizacion = (cotId) => {
     setSelectedCotizacionId(cotId);
     setSelectedPagoId('');
     if (!cotId) return;
 
-    const cot = cotizaciones.find(c => String(c.id) === String(cotId));
+    const cot = safeCotizaciones.find(c => String(c.id) === String(cotId));
     if (cot && Array.isArray(cot.procedimientos) && cot.procedimientos.length > 0) {
       setItems(cot.procedimientos.map(p => ({
         cupsCode: p.procedimiento_consultorio?.catalogo_oficial?.codigo_cups || p.codigo_cups || '890201',
@@ -117,7 +127,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     setSelectedCotizacionId('');
     if (!pagoId) return;
 
-    const pg = pagos.find(p => String(p.id) === String(pagoId));
+    const pg = safePagos.find(p => String(p.id) === String(pagoId));
     if (pg) {
       setItems([
         {
@@ -134,26 +144,27 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     }
   };
 
-  const subtotal = items.reduce((acc, curr) => acc + (Number(curr.unitPrice) * Number(curr.quantity)), 0);
+  const subtotal = safeItems.reduce((acc, curr) => acc + (Number(curr.unitPrice) * Number(curr.quantity)), 0);
   const descuento = data?.totales?.descuento ?? 0;
   const impuesto = data?.totales?.impuesto ?? 0;
   const total = subtotal - descuento + impuesto;
 
   const handleAddItem = () => {
     setItems(prev => [
-      ...prev,
+      ...(Array.isArray(prev) ? prev : []),
       { cupsCode: '890201', description: 'Procedimiento odontológico', quantity: 1, unitPrice: 50000, total: 50000 }
     ]);
   };
 
   const handleRemoveItem = (index) => {
-    if (items.length <= 1) return;
-    setItems(prev => prev.filter((_, i) => i !== index));
+    if (safeItems.length <= 1) return;
+    setItems(prev => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== index));
   };
 
   const handleItemChange = (index, field, value) => {
     setItems(prev => {
-      const next = [...prev];
+      const next = [...(Array.isArray(prev) ? prev : [])];
+      if (!next[index]) return prev;
       next[index] = { ...next[index], [field]: value };
       if (field === 'quantity' || field === 'unitPrice') {
         const q = Number(next[index].quantity) || 0;
@@ -186,7 +197,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
           tipoDocumento: pacienteTipoDoc,
           documento: pacienteDoc
         },
-        items,
+        items: safeItems,
         subtotal,
         discount: descuento,
         tax: impuesto,
@@ -280,7 +291,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 flex items-center gap-1.5">
                   <User size={13} /> Adquiriente / Paciente *
                 </p>
-                {pacientes && pacientes.length > 0 && !data?.patient && !data?.paciente ? (
+                {safePacientes.length > 0 && !data?.patient && !data?.paciente ? (
                   <select
                     value={selectedPacienteId}
                     onChange={(e) => {
@@ -290,7 +301,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                     }}
                     className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2 text-primary dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal cursor-pointer"
                   >
-                    {pacientes.map((p) => (
+                    {safePacientes.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.nombres} {p.primer_apellido} ({p.tipo_documento}: {p.numero_documento})
                       </option>
@@ -320,7 +331,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                       className="w-full text-[11.5px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-2.5 py-1.5 text-primary dark:text-dark-text focus:outline-none cursor-pointer"
                     >
                       <option value="">-- Ninguna --</option>
-                      {cotizaciones.map((c) => (
+                      {safeCotizaciones.map((c) => (
                         <option key={c.id} value={c.id}>
                           Cotización #{c.id} ({fmtCOP(c.total)})
                         </option>
@@ -338,7 +349,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                       className="w-full text-[11.5px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-2.5 py-1.5 text-primary dark:text-dark-text focus:outline-none cursor-pointer"
                     >
                       <option value="">-- Ninguno --</option>
-                      {pagos.map((pg) => (
+                      {safePagos.map((pg) => (
                         <option key={pg.id} value={pg.id}>
                           Pago #{pg.id} ({fmtCOP(pg.monto)})
                         </option>
@@ -352,7 +363,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 flex items-center gap-1.5">
-                    <FileText size={13} /> Servicios a facturar ({items.length})
+                    <FileText size={13} /> Servicios a facturar ({safeItems.length})
                   </p>
                   <button
                     type="button"
@@ -364,7 +375,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                 </div>
 
                 <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden divide-y divide-teal-soft dark:divide-dark-border text-[11.5px]">
-                  {items.map((it, idx) => (
+                  {safeItems.map((it, idx) => (
                     <div key={idx} className="p-2.5 flex items-center justify-between gap-2 bg-white dark:bg-dark-input">
                       <div className="flex-1 space-y-1">
                         <input
@@ -390,7 +401,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-primary dark:text-dark-text tabular-nums">{fmtCOP(it.total)}</span>
-                        {items.length > 1 && (
+                        {safeItems.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(idx)}
