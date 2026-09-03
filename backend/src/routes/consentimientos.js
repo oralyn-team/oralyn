@@ -2,11 +2,15 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
+const { registrarAuditoria } = require('../services/audit.service')
 
 const router = express.Router()
 router.use(verificarToken)
+router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de ver/modificar consentimientos
 
-router.post('/', async (req, res) => {
+router.post('/', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (req, res) => {
   const { paciente_id, tipo, ciudad, campos_especificos, nombre_paciente_declarado, cc_paciente_declarado, firma_paciente, cc_profesional, firma_doctor } = req.body
 
   if (!paciente_id || !tipo) {
@@ -20,7 +24,7 @@ router.post('/', async (req, res) => {
 
   try {
     const paciente = await prisma.paciente.findFirst({
-      where: { id: paciente_id, consultorio_id: req.usuario.consultorio_id }
+      where: { id: paciente_id, consultorio_id: req.usuario.consultorio_id, activo: true }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
 
@@ -38,6 +42,15 @@ router.post('/', async (req, res) => {
         firma_doctor
       }
     })
+
+    await registrarAuditoria({
+      req,
+      accion: 'CREAR_CONSENTIMIENTO',
+      modulo: 'Consentimientos',
+      recurso_id: consentimiento.id,
+      detalles: `Consentimiento (${tipo}) registrado para el paciente #${paciente_id}`
+    })
+
     res.status(201).json(consentimiento)
   } catch (error) {
     console.error(error)
@@ -45,7 +58,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.get('/paciente/:pacienteId', async (req, res) => {
+router.get('/paciente/:pacienteId', requirePermission(PERMISSIONS.CONSENTIMIENTOS_READ), async (req, res) => {
   const pacienteId = parseInt(req.params.pacienteId)
   try {
     const consentimientos = await prisma.consentimiento.findMany({
@@ -59,7 +72,7 @@ router.get('/paciente/:pacienteId', async (req, res) => {
   }
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission(PERMISSIONS.CONSENTIMIENTOS_READ), async (req, res) => {
   const id = parseInt(req.params.id)
   try {
     const consentimiento = await prisma.consentimiento.findFirst({
@@ -78,7 +91,7 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id/firmas', async (req, res) => {
+router.patch('/:id/firmas', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const { firma_paciente, nombre_paciente_declarado, cc_paciente_declarado, firma_doctor, cc_profesional } = req.body
 
@@ -92,6 +105,15 @@ router.patch('/:id/firmas', async (req, res) => {
       where: { id },
       data: { firma_paciente, nombre_paciente_declarado, cc_paciente_declarado, firma_doctor, cc_profesional, pdf_generado_en: new Date() }
     })
+
+    await registrarAuditoria({
+      req,
+      accion: 'FIRMAR_CONSENTIMIENTO',
+      modulo: 'Consentimientos',
+      recurso_id: consentimiento.id,
+      detalles: `Consentimiento #${id} firmado`
+    })
+
     res.json(consentimiento)
   } catch (error) {
     console.error(error)
@@ -99,7 +121,7 @@ router.patch('/:id/firmas', async (req, res) => {
   }
 })
 
-router.patch('/:id/anular', async (req, res) => {
+router.patch('/:id/anular', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (req, res) => {
   const id = parseInt(req.params.id)
   const { motivo_anulacion } = req.body
 
@@ -125,6 +147,14 @@ router.patch('/:id/anular', async (req, res) => {
       }
     })
 
+    await registrarAuditoria({
+      req,
+      accion: 'ANULAR_CONSENTIMIENTO',
+      modulo: 'Consentimientos',
+      recurso_id: consentimiento.id,
+      detalles: `Consentimiento #${id} anulado por: ${motivo_anulacion}`
+    })
+
     res.json(consentimiento)
   } catch (error) {
     console.error(error)
@@ -132,7 +162,7 @@ router.patch('/:id/anular', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (req, res) => {
   const id = parseInt(req.params.id)
 
   try {
@@ -147,6 +177,15 @@ router.delete('/:id', async (req, res) => {
     }
 
     await prisma.consentimiento.delete({ where: { id } })
+
+    await registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_CONSENTIMIENTO',
+      modulo: 'Consentimientos',
+      recurso_id: id,
+      detalles: `Consentimiento #${id} eliminado`
+    })
+
     res.status(204).send()
   } catch (error) {
     console.error(error)
@@ -156,7 +195,7 @@ router.delete('/:id', async (req, res) => {
 
 const generarConsentimientoPDF = require("../pdf/generators/generarConsentimientoPDF");
 
-router.get("/:id/pdf", async (req, res) => {
+router.get("/:id/pdf", requirePermission(PERMISSIONS.CONSENTIMIENTOS_READ), async (req, res) => {
   try {
     const id = parseInt(req.params.id);
 

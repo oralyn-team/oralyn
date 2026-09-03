@@ -6,6 +6,21 @@ const router = express.Router()
 router.use(verificarToken)
 
 router.get('/', async (req, res) => {
+  if (req.usuario.rol === 'SUPERADMIN') {
+    return res.json({
+      fecha_hoy: new Date().toISOString().split('T')[0],
+      citas_hoy: [],
+      resumen: {
+        total_citas_hoy: 0,
+        citas_pendientes: 0,
+        citas_atendidas: 0,
+        citas_canceladas: 0,
+        total_pacientes: 0,
+        pacientes_con_deuda: 0
+      }
+    })
+  }
+
   const consultorioId = req.usuario.consultorio_id
 
   try {
