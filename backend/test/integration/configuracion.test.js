@@ -212,3 +212,77 @@ test('Aislamiento Configuración: No mezcla ni permite leer o modificar configur
   const configA = prismaMock.__db.configuracion.find(c => c.id === 10)
   assert.equal(configA.nombre_consultorio, 'Consultorio A')
 })
+
+// ─────────────────────────────────────────────────────────────
+// 5. PUT /api/configuracion/firma-doctor-default
+// ─────────────────────────────────────────────────────────────
+
+test('PUT /api/configuracion/firma-doctor-default — actualiza firma default correctamente', async (t) => {
+  const prismaMock = createConfiguracionMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const tokenA = generateToken(1, 10)
+  const base64Firma = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+  const { response, body } = await harness.request('/api/configuracion/firma-doctor-default', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${tokenA}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ firma_doctor_default: base64Firma })
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(body.firma_doctor_default, base64Firma)
+  assert.ok(body.firma_doctor_actualizada_en)
+
+  const dbConfig = prismaMock.__db.configuracion.find(c => c.id === 10)
+  assert.equal(dbConfig.firma_doctor_default, base64Firma)
+})
+
+test('PUT /api/configuracion/firma-doctor-default — rechaza si la firma está vacía', async (t) => {
+  const harness = await startAppWithPrisma(createConfiguracionMock())
+  t.after(() => harness.close())
+
+  const tokenA = generateToken(1, 10)
+
+  const { response, body } = await harness.request('/api/configuracion/firma-doctor-default', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${tokenA}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ firma_doctor_default: '' })
+  })
+
+  assert.equal(response.status, 400)
+  assert.equal(body.error, 'La firma es obligatoria y debe ser un texto base64')
+})
+
+test('Aislamiento Firma Doctor Default: No modifica la firma default de otro consultorio', async (t) => {
+  const prismaMock = createConfiguracionMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const tokenB = generateToken(2, 99)
+  const base64FirmaB = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+  const { response, body } = await harness.request('/api/configuracion/firma-doctor-default', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${tokenB}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ firma_doctor_default: base64FirmaB })
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(body.id, 99)
+  assert.equal(body.firma_doctor_default, base64FirmaB)
+
+  const configA = prismaMock.__db.configuracion.find(c => c.id === 10)
+  assert.equal(configA.firma_doctor_default, undefined)
+})
+

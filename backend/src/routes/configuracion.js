@@ -77,4 +77,33 @@ router.put('/', async (req, res) => {
   }
 })
 
+// PUT — actualizar firma default del doctor del consultorio
+router.put('/firma-doctor-default', async (req, res) => {
+  const firma = req.body.firma_doctor_default ?? req.body.firma_doctor ?? req.body.firma
+
+  if (!firma || typeof firma !== 'string') {
+    return res.status(400).json({ error: 'La firma es obligatoria y debe ser un texto base64' })
+  }
+
+  const isBase64Image = firma.startsWith('data:image/') || /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/.test(firma.trim())
+  if (!isBase64Image) {
+    return res.status(400).json({ error: 'La firma debe ser una imagen válida en formato base64' })
+  }
+
+  try {
+    const config = await prisma.configuracion.update({
+      where: { id: req.usuario.consultorio_id },
+      data: {
+        firma_doctor_default: firma,
+        firma_doctor_actualizada_en: new Date()
+      }
+    })
+
+    res.json(config)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
 module.exports = router
