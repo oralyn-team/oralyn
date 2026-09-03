@@ -62,13 +62,18 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     if (data?.procedimientos || data?.items) {
       const raw = data.procedimientos || data.items;
       if (Array.isArray(raw)) {
-        return raw.map(p => ({
-          cupsCode: p.cupsCode || p.codigoCups || p.codigo || '890201',
-          description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
-          quantity: Number(p.quantity || p.cantidad) || 1,
-          unitPrice: Number(p.unitPrice || p.valorUnitario) || 0,
-          total: Number(p.total) || (Number(p.quantity || p.cantidad || 1) * Number(p.unitPrice || p.valorUnitario || 0))
-        }));
+        return raw.map(p => {
+          const q = Number(p.quantity || p.cantidad) || 1;
+          const sub = p.total !== undefined && p.total !== null ? Number(p.total) : (p.subtotal !== undefined && p.subtotal !== null ? Number(p.subtotal) : (Number(p.unitPrice || p.valorUnitario || 0) * q));
+          const uPrice = q > 0 ? (sub / q) : Number(p.unitPrice || p.valorUnitario || 0);
+          return {
+            cupsCode: p.cupsCode || p.codigoCups || p.codigo || '890201',
+            description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
+            quantity: q,
+            unitPrice: uPrice,
+            total: sub
+          };
+        });
       }
     }
     return [
@@ -111,13 +116,18 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
 
     const cot = safeCotizaciones.find(c => String(c.id) === String(cotId));
     if (cot && Array.isArray(cot.procedimientos) && cot.procedimientos.length > 0) {
-      setItems(cot.procedimientos.map(p => ({
-        cupsCode: p.procedimiento_consultorio?.catalogo_oficial?.codigo_cups || p.codigo_cups || '890201',
-        description: p.procedimiento || p.descripcion || 'Procedimiento odontológico',
-        quantity: Number(p.cantidad) || 1,
-        unitPrice: Number(p.valor_unitario) || 0,
-        total: Number(p.subtotal) || (Number(p.cantidad || 1) * Number(p.valor_unitario || 0))
-      })));
+      setItems(cot.procedimientos.map(p => {
+        const q = Number(p.cantidad) || 1;
+        const sub = p.subtotal !== undefined && p.subtotal !== null ? Number(p.subtotal) : (Number(p.valor_unitario || 0) * q);
+        const uPrice = q > 0 ? (sub / q) : Number(p.valor_unitario || 0);
+        return {
+          cupsCode: p.procedimiento_consultorio?.catalogo_oficial?.codigo_cups || p.codigo_cups || '890201',
+          description: p.procedimiento || p.descripcion || 'Procedimiento odontológico',
+          quantity: q,
+          unitPrice: uPrice,
+          total: sub
+        };
+      }));
     }
   };
 
@@ -129,13 +139,14 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
 
     const pg = safePagos.find(p => String(p.id) === String(pagoId));
     if (pg) {
+      const monto = Number(pg.monto) || 0;
       setItems([
         {
           cupsCode: '890201',
           description: pg.concepto || 'Pago de tratamiento odontológico',
           quantity: 1,
-          unitPrice: Number(pg.monto) || 0,
-          total: Number(pg.monto) || 0
+          unitPrice: monto,
+          total: monto
         }
       ]);
       if (pg.metodo_pago) {
@@ -144,7 +155,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     }
   };
 
-  const subtotal = safeItems.reduce((acc, curr) => acc + (Number(curr.unitPrice) * Number(curr.quantity)), 0);
+  const subtotal = safeItems.reduce((acc, curr) => acc + Number(curr.total ?? (Number(curr.unitPrice || 0) * Number(curr.quantity || 1))), 0);
   const descuento = data?.totales?.descuento ?? 0;
   const impuesto = data?.totales?.impuesto ?? 0;
   const total = subtotal - descuento + impuesto;
