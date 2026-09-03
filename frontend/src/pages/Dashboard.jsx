@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/Appcontext';
 import { api } from '../api';
+import { hasPermission, PERMISSIONS } from '../utils/rbac';
 
 import Sidebar       from '../components/layout/Sidebar';
 import Topbar        from '../components/layout/Topbar';
@@ -45,7 +46,7 @@ const ESTADOS_INFO = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { pacientes, agregarPaciente, recargarPacientes, configuracion } = useApp();
+  const { usuario, pacientes, agregarPaciente, recargarPacientes, configuracion } = useApp();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -315,15 +316,25 @@ export default function Dashboard() {
                                 </select>
                               )}
                             </td>
-                            <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/historias?pacienteId=${paciente.id}`)}
-                                className="text-[11px] text-primary dark:text-teal font-medium hover:underline flex items-center gap-0.5 justify-end ml-auto cursor-pointer"
-                              >
-                                Ver Historia <ChevronRight size={13} />
-                              </button>
-                            </td>
+                             <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                               {hasPermission(usuario, PERMISSIONS.CLINICAL_RECORDS_READ) ? (
+                                 <button
+                                   type="button"
+                                   onClick={() => navigate(`/historias?pacienteId=${paciente.id}`)}
+                                   className="text-[11px] text-primary dark:text-teal font-medium hover:underline flex items-center gap-0.5 justify-end ml-auto cursor-pointer"
+                                 >
+                                   Ver Historia <ChevronRight size={13} />
+                                 </button>
+                               ) : (
+                                 <button
+                                   type="button"
+                                   onClick={() => navigate('/pacientes')}
+                                   className="text-[11px] text-primary dark:text-teal font-medium hover:underline flex items-center gap-0.5 justify-end ml-auto cursor-pointer"
+                                 >
+                                   Ver Paciente <ChevronRight size={13} />
+                                 </button>
+                               )}
+                             </td>
                           </tr>
                         );
                       })

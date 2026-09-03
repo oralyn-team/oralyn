@@ -205,7 +205,7 @@ export function AppProvider({ children }) {
       .then((data) => setPacientes(Array.isArray(data) ? data : (data?.data || [])))
       .catch((err) => {
         console.error('Error cargando pacientes:', err);
-        if (err.status === 401 || err.status === 403) {
+        if (err.status === 401) {
           cerrarSesion({ expirada: true });
         } else {
           setError('No se pudieron cargar los pacientes');
@@ -224,7 +224,7 @@ export function AppProvider({ children }) {
 
   // ── Carga inicial de usuarios del consultorio ──────────────────────────────
   useEffect(() => {
-    if (!usuario || usuario.rol === 'SUPERADMIN') return;
+    if (usuario?.rol !== 'DUENO') return;
     api.getUsuarios()
       .then((data) => setUsuariosConsultorio(Array.isArray(data) ? data : []))
       .catch(() => setUsuariosConsultorio([]));

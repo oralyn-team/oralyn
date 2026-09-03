@@ -13,7 +13,7 @@ function getAuthHeaders() {
 
 async function abrirPDFBlob(response, defaultFilename) {
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       onUnauthorized?.();
     }
     const errObj = await response.json().catch(() => ({}));
@@ -82,7 +82,7 @@ async function request(path, options = {}) {
   });
 
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       onUnauthorized?.();
     }
     const error = await res.json().catch(() => ({}));
@@ -144,6 +144,7 @@ export const api = {
     }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   getMe: () => request('/auth/me'),
+  cambiarPassword: (data) => request('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
   getUsuarios: () => request('/usuarios'),
 
   // Pacientes
