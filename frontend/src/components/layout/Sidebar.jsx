@@ -42,11 +42,21 @@ export default function Sidebar({ isOpen, onClose }) {
     navigate('/login', { replace: true });
   }
 
-  // Filtrar items según los permisos del usuario
+  // Filtrar e ir adaptando etiquetas según el rol del usuario
   const navItems = ALL_NAV_ITEMS.filter(item => {
     if (!item.permission) return usuario?.rol !== ROLES.SUPERADMIN; // Dashboard no se muestra al SUPERADMIN
     if (item.permission === PERMISSIONS.AUDIT_READ && usuario?.rol === ROLES.SUPERADMIN) return true; // Superadmin ve auditoría
     return hasPermission(usuario, item.permission);
+  }).map(item => {
+    if (item.path === '/configuracion') {
+      if (usuario?.rol === ROLES.SUPERADMIN) {
+        return { ...item, label: 'Configuración Oralyn' };
+      }
+      if (usuario?.rol === ROLES.ASISTENTE_ODONTOLOGO || usuario?.rol === ROLES.RECEPCIONISTA) {
+        return { ...item, label: 'Catálogo CUPS', icon: Stethoscope };
+      }
+    }
+    return item;
   });
 
   const rolText = usuario?.rol ? (ROLE_LABELS[usuario.rol] || usuario.rol) : 'Odontólogo';
