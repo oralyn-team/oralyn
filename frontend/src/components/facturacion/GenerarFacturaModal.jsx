@@ -1,5 +1,5 @@
 // src/components/facturacion/GenerarFacturaModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Receipt,
   User,
@@ -10,9 +10,12 @@ import {
   X,
   Loader2,
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoiceService';
+import { useApp } from '../../context/Appcontext';
 
 function fmtCOP(val) {
   const num = Number(val) || 0;
@@ -20,12 +23,18 @@ function fmtCOP(val) {
 }
 
 export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) {
+  const { pacientes } = useApp();
+
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState(null);
   const [facturaCreada, setFacturaCreada] = useState(null);
 
-  // Extraer información del objeto prop data (cotización / pago / paciente)
-  const paciente = data?.patient || data?.paciente || {
+  // Selección de paciente si no viene pre-definido en data
+  const [selectedPacienteId, setSelectedPacienteId] = useState(() => {
+    return data?.patient?.id || data?.paciente?.id || data?.paciente_id || data?.pacienteId || (pacientes?.[0]?.id || '');
+  });
+
+  const pacienteSeleccionado = pacientes?.find(p => String(p.id) === String(selectedPacienteId)) || data?.patient || data?.paciente || {
     nombre: data?.info?.pacienteNombre || 'Laura Martínez',
     tipoDocumento: 'CC',
     documento: data?.info?.pacienteDocumento || '1018432910',
@@ -33,35 +42,88 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     telefono: data?.info?.pacienteTelefono || '310 987 6543'
   };
 
-  const items = (data?.procedimientos || data?.items || [
-    { cupsCode: '890201', description: 'Consulta odontológica de tratamiento', quantity: 1, unitPrice: data?.totales?.subtotal || data?.monto || 150000 }
-  ]).map(p => ({
-    cupsCode: p.cupsCode || p.codigo || '890201',
-    description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
-    quantity: Number(p.quantity || p.cantidad) || 1,
-    unitPrice: Number(p.unitPrice || p.valorUnitario) || 0,
-    total: Number(p.total) || (Number(p.quantity || p.cantidad || 1) * Number(p.unitPrice || p.valorUnitario || 0))
-  }));
+  const pacienteNombre = pacienteSeleccionado.nombre || `${pacienteSeleccionado.nombres || ''} ${pacienteSeleccionado.primer_apellido || ''}`.trim();
+  const pacienteDoc = pacienteSeleccionado.documento || pacienteSeleccionado.numero_documento;
+  const pacienteTipoDoc = pacienteSeleccionado.tipoDocumento || pacienteSeleccionado.tipo_documento || 'CC';
 
-  const subtotal = data?.totales?.subtotal ?? items.reduce((acc, curr) => acc + curr.total, 0);
+  // Items
+  const [items, setItems] = useState(() => {
+    if (data?.procedimientos || data?.items) {
+      return (data.procedimientos || data.items).map(p => ({
+        cupsCode: p.cupsCode || p.codigo || '890201',
+        description: p.description || p.nombre || p.procedimiento || 'Procedimiento odontológico',
+        quantity: Number(p.quantity || p.cantidad) || 1,
+        unitPrice: Number(p.unitPrice || p.valorUnitario) || 0,
+        total: Number(p.total) || (Number(p.quantity || p.cantidad || 1) * Number(p.unitPrice || p.valorUnitario || 0))
+      }));
+    }
+    return [
+      { cupsCode: '890201', description: 'Consulta odontológica de tratamiento', quantity: 1, unitPrice: data?.totales?.subtotal || data?.monto || 150000, total: data?.totales?.subtotal || data?.monto || 150000 }
+    ];
+  });
+
+  const [metodoPago, setMetodoPago] = useState(data?.metodoPago || data?.pagoMetodo || 'Efectivo');
+  const [observaciones, setObservaciones] = useState(data?.observacion || '');
+
+  const subtotal = items.reduce((acc, curr) => acc + (Number(curr.unitPrice) * Number(curr.quantity)), 0);
   const descuento = data?.totales?.descuento ?? 0;
   const impuesto = data?.totales?.impuesto ?? 0;
-  const total = data?.totales?.total ?? (subtotal - descuento + impuesto);
-  const metodoPago = data?.metodoPago || data?.pagoMetodo || 'Transferencia';
+  const total = subtotal - descuento + impuesto;
+
+  const handleAddItem = () => {
+    setItems(prev => [
+      ...prev,
+      { cupsCode: '890201', description: 'Procedimiento odontológico', quantity: 1, unitPrice: 50000, total: 50000 }
+    ]);
+  };
+
+  const handleRemoveItem = (index) => {
+    if (items.length <= 1) return;
+    setItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    setItems(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      if (field === 'quantity' || field === 'unitPrice') {
+        const q = Number(next[index].quantity) || 0;
+        const p = Number(next[index].unitPrice) || 0;
+        next[index].total = q * p;
+      }
+      return next;
+    });
+  };
 
   const handleConfirmarGeneracion = async () => {
     setGenerando(true);
     setError(null);
 
+    const targetPatientId = selectedPacienteId || pacienteSeleccionado.id;
+    if (!targetPatientId) {
+      setError('Debes seleccionar un paciente para generar la factura.');
+      setGenerando(false);
+      return;
+    }
+
     try {
       const inv = await invoiceService.createInvoice({
-        patient: paciente,
+        patientId: targetPatientId,
+        cotizacionId: data?.cotizacion_id || data?.cotizacionId,
+        pagoId: data?.pago_id || data?.pagoId,
+        patient: {
+          id: targetPatientId,
+          nombre: pacienteNombre,
+          tipoDocumento: pacienteTipoDoc,
+          documento: pacienteDoc
+        },
         items,
         subtotal,
         discount: descuento,
         tax: impuesto,
         total,
-        paymentMethod: metodoPago
+        paymentMethod: metodoPago,
+        observacion: observaciones
       });
 
       setFacturaCreada(inv);
@@ -89,7 +151,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
             </div>
             <div>
               <h3 className="text-[14px] font-semibold text-white">Generar Factura Electrónica</h3>
-              <p className="text-[11px] text-teal-light dark:text-slate-400 mt-0.5">Emisión oficial DIAN</p>
+              <p className="text-[11px] text-teal-light dark:text-slate-400 mt-0.5">Emisión oficial DIAN (Factus)</p>
             </div>
           </div>
           <button
@@ -119,13 +181,13 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                 <div className="flex justify-between">
                   <span className="text-teal-muted dark:text-slate-400">CUFE:</span>
                   <span className="font-mono text-[10px] text-primary dark:text-dark-text font-medium truncate max-w-[240px]" title={facturaCreada.cufe}>
-                    {facturaCreada.cufe}
+                    {facturaCreada.cufe || 'Procesando CUFE...'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-teal-muted dark:text-slate-400">Estado DIAN:</span>
                   <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <ShieldCheck size={12} /> {facturaCreada.dianStatus}
+                    <ShieldCheck size={12} /> {facturaCreada.electronicStatus || 'Validada'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -144,32 +206,89 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                 </div>
               )}
 
-              {/* Paciente info */}
-              <div className="bg-teal-panel dark:bg-slate-800/50 border border-teal-border dark:border-dark-border rounded-xl p-3.5 space-y-1">
+              {/* Selector o Vista de Paciente */}
+              <div className="bg-teal-panel dark:bg-slate-800/50 border border-teal-border dark:border-dark-border rounded-xl p-3.5 space-y-2">
                 <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 flex items-center gap-1.5">
                   <User size={13} /> Adquiriente / Paciente
                 </p>
-                <div className="flex justify-between items-center text-[12px] pt-1">
-                  <span className="font-semibold text-primary dark:text-dark-text">{paciente.nombre}</span>
-                  <span className="text-teal-muted dark:text-slate-400 font-mono text-[11px]">
-                    {paciente.tipoDocumento || 'CC'}: {paciente.documento}
-                  </span>
-                </div>
+                {pacientes && pacientes.length > 0 && !data?.patient && !data?.paciente ? (
+                  <select
+                    value={selectedPacienteId}
+                    onChange={(e) => setSelectedPacienteId(e.target.value)}
+                    className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2 text-primary dark:text-dark-text focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal"
+                  >
+                    {pacientes.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombres} {p.primer_apellido} ({p.tipo_documento}: {p.numero_documento})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="flex justify-between items-center text-[12px] pt-1">
+                    <span className="font-semibold text-primary dark:text-dark-text">{pacienteNombre}</span>
+                    <span className="text-teal-muted dark:text-slate-400 font-mono text-[11px]">
+                      {pacienteTipoDoc}: {pacienteDoc}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Servicios */}
-              <div>
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
-                  <FileText size={13} /> Servicios a facturar ({items.length})
-                </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10.5px] font-semibold uppercase tracking-[0.7px] text-teal-muted dark:text-slate-400 flex items-center gap-1.5">
+                    <FileText size={13} /> Servicios a facturar ({items.length})
+                  </p>
+                  {!data?.procedimientos && (
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      className="text-[11px] text-teal hover:text-primary dark:hover:text-dark-text font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus size={12} /> Agregar ítem
+                    </button>
+                  )}
+                </div>
+
                 <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden divide-y divide-teal-soft dark:divide-dark-border text-[11.5px]">
                   {items.map((it, idx) => (
-                    <div key={idx} className="p-2.5 flex items-center justify-between bg-white dark:bg-dark-input">
-                      <div>
-                        <p className="font-medium text-primary dark:text-dark-text leading-snug">{it.description}</p>
-                        <span className="text-[10px] font-mono text-teal-muted dark:text-teal">CUPS: {it.cupsCode} x{it.quantity}</span>
+                    <div key={idx} className="p-2.5 flex items-center justify-between gap-2 bg-white dark:bg-dark-input">
+                      <div className="flex-1 space-y-1">
+                        <input
+                          type="text"
+                          value={it.description}
+                          onChange={(e) => handleItemChange(idx, 'description', e.target.value)}
+                          disabled={Boolean(data?.procedimientos)}
+                          className="w-full font-medium text-primary dark:text-dark-text bg-transparent border-none p-0 focus:outline-none text-[12px]"
+                          placeholder="Descripción del procedimiento"
+                        />
+                        <div className="flex items-center gap-3 text-[10px] text-teal-muted dark:text-slate-400">
+                          <span className="font-mono">CUPS: {it.cupsCode}</span>
+                          <span className="flex items-center gap-1">
+                            Cant:
+                            <input
+                              type="number"
+                              min={1}
+                              value={it.quantity}
+                              onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                              disabled={Boolean(data?.procedimientos)}
+                              className="w-12 bg-teal-panel dark:bg-slate-800 border border-teal-border dark:border-dark-border rounded px-1 text-center text-[10.5px] font-bold"
+                            />
+                          </span>
+                        </div>
                       </div>
-                      <span className="font-semibold text-primary dark:text-dark-text tabular-nums">{fmtCOP(it.total)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-primary dark:text-dark-text tabular-nums">{fmtCOP(it.total)}</span>
+                        {!data?.procedimientos && items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="text-slate-400 hover:text-red-500 p-1 rounded cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -197,9 +316,21 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                   <span className="text-primary dark:text-dark-text">Total a facturar:</span>
                   <span className="text-primary dark:text-teal tabular-nums">{fmtCOP(total)}</span>
                 </div>
-                <div className="flex items-center gap-2 pt-2 text-[11px] text-teal-muted dark:text-slate-400">
-                  <CreditCard size={13} className="text-teal" />
-                  <span>Método de pago: <strong className="text-primary dark:text-dark-text font-semibold">{metoDopago || 'Transferencia'}</strong></span>
+
+                <div className="pt-2 flex items-center justify-between text-[11px] text-teal-muted dark:text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <CreditCard size={13} className="text-teal" /> Método de pago:
+                  </span>
+                  <select
+                    value={metodoPago}
+                    onChange={(e) => setMetodoPago(e.target.value)}
+                    className="text-[11.5px] bg-teal-panel dark:bg-slate-800 border border-teal-border dark:border-dark-border rounded-lg px-2 py-1 font-semibold text-primary dark:text-dark-text focus:outline-none"
+                  >
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia bancaria</option>
+                    <option value="Tarjeta">Tarjeta débito/crédito</option>
+                    <option value="Nequi">Nequi / Daviplata</option>
+                  </select>
                 </div>
               </div>
 
