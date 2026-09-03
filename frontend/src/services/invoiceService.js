@@ -18,9 +18,13 @@ export const invoiceService = {
 
     try {
       const facturas = await api.getFacturas(params);
-      return facturas || [];
+      return Array.isArray(facturas) ? facturas : [];
     } catch (err) {
-      console.warn('Backend API no disponible, usando fallback temporal:', err);
+      if (err?.status === 404) {
+        console.warn('El endpoint /api/facturas devolvió 404 (Aún no desplegado en el backend o sin servidor activo). Retornando lista vacía.');
+        return [];
+      }
+      console.error('Error en invoiceService.getInvoices:', err);
       throw err;
     }
   },
@@ -29,7 +33,12 @@ export const invoiceService = {
    * Obtiene el detalle de una factura por ID
    */
   async getInvoiceById(id) {
-    return api.getFactura(id);
+    try {
+      return await api.getFactura(id);
+    } catch (err) {
+      if (err?.status === 404) return null;
+      throw err;
+    }
   },
 
   /**
@@ -50,7 +59,7 @@ export const invoiceService = {
       pagos: (invoiceData.paymentMethod || invoiceData.pagos) ? [
         {
           monto: Number(invoiceData.total) || 0,
-          metodoPago: invoiceData.paymentMethod || 'Efectivo',
+          metodoPago: invoiceData.paymentMethod || 'efectivo',
         }
       ] : []
     };
@@ -103,7 +112,11 @@ export const invoiceService = {
    * Obtiene la respuesta técnica DIAN de la factura
    */
   async getDianResponse(id) {
-    const inv = await api.getFactura(id);
-    return inv ? inv.dianResponse : null;
+    try {
+      const inv = await api.getFactura(id);
+      return inv ? inv.dianResponse : null;
+    } catch {
+      return null;
+    }
   }
 };

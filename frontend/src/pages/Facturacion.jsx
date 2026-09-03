@@ -30,6 +30,19 @@ import GenerarFacturaModal from '../components/facturacion/GenerarFacturaModal';
 import CreditNoteModal from '../components/facturacion/CreditNoteModal';
 import { invoiceService } from '../services/invoiceService';
 
+const METODO_PAGO_LABELS = {
+  efectivo: 'Efectivo',
+  transferencia_bancaria: 'Transferencia bancaria',
+  tarjeta_debito: 'Tarjeta débito',
+  tarjeta_credito: 'Tarjeta crédito',
+  nequi: 'Nequi',
+  daviplata: 'Daviplata',
+  otro: 'Otro',
+  Efectivo: 'Efectivo',
+  Transferencia: 'Transferencia bancaria',
+  Tarjeta: 'Tarjeta débito/crédito'
+};
+
 function fmtCOP(n) {
   const num = Number(n) || 0;
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
@@ -306,11 +319,8 @@ export default function Facturacion() {
                     className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2 outline-none focus:border-primary dark:focus:border-teal text-primary dark:text-dark-text appearance-none min-h-[38px] cursor-pointer"
                   >
                     <option value="Todos">Todos los estados</option>
-                    <option value="Borrador">Borrador</option>
                     <option value="Pendiente">Pendiente</option>
-                    <option value="Enviada">Enviada</option>
                     <option value="Validada">Validada</option>
-                    <option value="Aceptada">Aceptada</option>
                     <option value="Rechazada">Rechazada</option>
                     <option value="Anulada">Anulada</option>
                   </select>
@@ -473,7 +483,7 @@ export default function Facturacion() {
 
                             {/* Método de Pago */}
                             <td className="px-4 py-3.5 text-teal-muted dark:text-slate-400 text-[11.5px]">
-                              {inv.paymentMethod || 'Efectivo'}
+                              {METODO_PAGO_LABELS[inv.paymentMethod] || inv.paymentMethod || 'Efectivo'}
                             </td>
 
                             {/* 7. Acciones por estado */}

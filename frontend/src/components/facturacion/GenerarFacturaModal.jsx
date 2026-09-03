@@ -70,7 +70,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
     ];
   });
 
-  const [metodoPago, setMetodoPago] = useState(data?.metodoPago || data?.pagoMetodo || 'Efectivo');
+  const [metodoPago, setMetodoPago] = useState(data?.metodoPago || data?.pagoMetodo || 'efectivo');
   const [observaciones, setObservaciones] = useState(data?.observacion || '');
 
   // Cargar cotizaciones y pagos cuando cambie el paciente seleccionado
@@ -437,10 +437,13 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
                     onChange={(e) => setMetodoPago(e.target.value)}
                     className="text-[11.5px] bg-teal-panel dark:bg-slate-800 border border-teal-border dark:border-dark-border rounded-lg px-2 py-1 font-semibold text-primary dark:text-dark-text focus:outline-none cursor-pointer"
                   >
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Transferencia">Transferencia bancaria</option>
-                    <option value="Tarjeta">Tarjeta débito/crédito</option>
-                    <option value="Nequi">Nequi / Daviplata</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="transferencia_bancaria">Transferencia bancaria</option>
+                    <option value="tarjeta_debito">Tarjeta débito</option>
+                    <option value="tarjeta_credito">Tarjeta crédito</option>
+                    <option value="nequi">Nequi</option>
+                    <option value="daviplata">Daviplata</option>
+                    <option value="otro">Otro</option>
                   </select>
                 </div>
               </div>
