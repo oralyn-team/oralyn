@@ -279,6 +279,65 @@ export const api = {
     a.click();
     a.remove();
     URL.revokeObjectURL(objectUrl);
+  },
+
+  // Facturación Electrónica (Factus / DIAN)
+  getFacturas: (params) => request(`/facturas${buildQuery(params)}`),
+  getFactura: (id) => request(`/facturas/${id}`),
+  crearFactura: (data) => request('/facturas', { method: 'POST', body: JSON.stringify(data) }),
+  reintentarFactura: (id) => request(`/facturas/${id}/reintentar`, { method: 'POST' }),
+  crearNotaCreditoFactura: (id, data) => request(`/facturas/${id}/notas-credito`, { method: 'POST', body: JSON.stringify(data) }),
+  descargarFacturaPdf: async (id) => {
+    const response = await fetch(`${BASE_URL}/facturas/${id}/pdf`, {
+      credentials: 'include',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) onUnauthorized?.();
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al descargar PDF de la factura');
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `factura_${id}.pdf`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  },
+  descargarFacturaXml: async (id) => {
+    const response = await fetch(`${BASE_URL}/facturas/${id}/xml`, {
+      credentials: 'include',
+      headers: { ...getAuthHeaders() },
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) onUnauthorized?.();
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al descargar XML de la factura');
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `factura_${id}.xml`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
   }
 }
 

@@ -74,6 +74,20 @@ model Configuracion {
   logo_url             String?
   creado_en            DateTime @default(now())
 
+  // ── Datos fiscales para facturación electrónica (DIAN / Factus) ──
+  razon_social              String?
+  nit_dv                    String? // dígito de verificación del NIT
+  municipio_code             String? // código DIVIPOLA (ver tablas de referencia Factus)
+  factus_numbering_range_id Int?    // opcional: solo si el consultorio tiene más de un rango activo
+
+  // Credenciales Factus por consultorio (modelo "casa de software" / multiempresa).
+  // Nunca se exponen al frontend; solo las usa el backend para autenticar contra Factus.
+  factus_client_id     String?
+  factus_client_secret String?
+  factus_username      String?
+  factus_password      String?
+  facturacion_habilitada Boolean @default(false)
+
   usuarios                   Usuario[]
   pacientes                  Paciente[]
   citas                      Cita[]
@@ -83,6 +97,7 @@ model Configuracion {
   certificados               CertificadoDental[]
   procedimientos_consultorio ProcedimientoConsultorio[]
   rips_generaciones          RipsGeneracion[]
+  facturas                   Factura[]
 }
 
 // ─── CATÁLOGO OFICIAL CUPS ──────────────────────────────────
@@ -212,6 +227,7 @@ model Paciente {
   pagos           Pago[]
   consentimientos Consentimiento[]
   certificados    CertificadoDental[]
+  facturas        Factura[]
 
   @@unique([consultorio_id, numero_documento])
   @@index([consultorio_id])
@@ -424,6 +440,7 @@ model Cotizacion {
 
   procedimientos   ProcedimientoCotizacion[]
   pagos            Pago[]
+  facturas         Factura[]
 
   @@index([consultorio_id])
   @@index([paciente_id])
@@ -455,7 +472,58 @@ model ProcedimientoCotizacion {
   @@index([cotizacion_id])
 }
 
-// ─── PAGOS ──────────────────────────────────────────────────
+// ─── FACTURAS & PAGOS ────────────────────────────────────────
+
+enum EstadoFactura {
+  pendiente
+  validada
+  rechazada
+  anulada
+}
+
+model Factura {
+  id             Int           @id @default(autoincrement())
+  consultorio_id Int
+  consultorio    Configuracion @relation(fields: [consultorio_id], references: [id])
+  paciente_id    Int
+  paciente       Paciente      @relation(fields: [paciente_id], references: [id])
+  cotizacion_id  Int?
+  cotizacion     Cotizacion?   @relation(fields: [cotizacion_id], references: [id])
+  pago_id        Int?
+  pago           Pago?         @relation(fields: [pago_id], references: [id])
+
+  // Idempotencia hacia Factus: nunca se debe reutilizar entre facturas distintas.
+  reference_code String @unique
+
+  // Datos que devuelve Factus una vez validada ante la DIAN
+  numero         String? // ej. "SETP990000550"
+  prefijo        String?
+  cufe           String?
+  estado         EstadoFactura @default(pendiente)
+  errores        Json? // notificaciones/errores devueltos por la DIAN
+  qr_url         String?
+  public_url     String?
+
+  subtotal       Decimal @default(0) @db.Decimal(12, 2)
+  impuestos      Decimal @default(0) @db.Decimal(12, 2)
+  total          Decimal @default(0) @db.Decimal(12, 2)
+
+  // Snapshot de los items enviados, para poder regenerar/auditar sin depender
+  // de que la cotización original no haya cambiado después.
+  items_json     Json
+
+  notas_credito  Json? // array liviano [{ reference_code, cufe, motivo, monto, fecha }]
+
+  fecha_emision    DateTime  @default(now())
+  fecha_validacion DateTime?
+  creado_en        DateTime  @default(now())
+  actualizado_en   DateTime  @default(now()) @updatedAt
+
+  @@index([consultorio_id])
+  @@index([paciente_id])
+  @@index([cotizacion_id])
+}
+
 model Pago {
   id            Int         @id @default(autoincrement())
   consultorio_id Int
@@ -470,6 +538,7 @@ model Pago {
   referencia    String?
   concepto      String?
   creado_en     DateTime    @default(now())
+  facturas      Factura[]
 
   @@index([consultorio_id])
   @@index([paciente_id])
@@ -568,5 +637,3 @@ model Administrador {
   creado_en     DateTime  @default(now())
   ultimo_login  DateTime?
 }
-
-
