@@ -351,7 +351,11 @@ export const api = {
   // Usuarios del consultorio
   crearUsuarioConsultorio: (data) => request('/usuarios', { method: 'POST', body: JSON.stringify(data) }),
   cambiarRolUsuario: (id, rol) => request(`/usuarios/${id}/role`, { method: 'PATCH', body: JSON.stringify({ rol }) }),
-  toggleStatusUsuario: (id, activo) => request(`/usuarios/${id}/status`, { method: 'PATCH', body: JSON.stringify({ activo }) })
+  toggleStatusUsuario: (id, activo) => request(`/usuarios/${id}/status`, { method: 'PATCH', body: JSON.stringify({ activo }) }),
+  transferirPropiedad: (data) => request('/usuarios/transferir-propiedad', { method: 'POST', body: JSON.stringify(data) }),
+
+  // Configuración / Facturación Test
+  probarConexionFactus: () => request('/configuracion/facturacion/test', { method: 'POST' })
 }
 
 

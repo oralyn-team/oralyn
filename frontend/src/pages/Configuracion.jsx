@@ -1035,6 +1035,20 @@ function TabFacturacionElectronica() {
     setTimeout(() => setToast(null), 2500);
   };
 
+  const [testingFactus, setTestingFactus] = useState(false);
+
+  const handleTestFactus = async () => {
+    setTestingFactus(true);
+    try {
+      const res = await api.probarConexionFactus();
+      mostrarToast(res.mensaje || 'Conexión con Factus validada correctamente.');
+    } catch (err) {
+      alert(err.error || 'Error al probar conexión con Factus');
+    } finally {
+      setTestingFactus(false);
+    }
+  };
+
   const handleSaveAll = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -1176,8 +1190,18 @@ function TabFacturacionElectronica() {
 
       </div>
 
-      {/* Botón Guardar */}
-      <div className="pt-4 border-t border-teal-soft dark:border-dark-border flex justify-end">
+      {/* Botones Acciones */}
+      <div className="pt-4 border-t border-teal-soft dark:border-dark-border flex items-center justify-end gap-3">
+        <button
+          type="button"
+          disabled={testingFactus}
+          onClick={handleTestFactus}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 text-[12px] font-semibold text-teal dark:text-teal-light bg-teal/10 hover:bg-teal/20 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          {testingFactus ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
+          {testingFactus ? 'Probando...' : 'Probar Conexión Factus'}
+        </button>
+
         <button
           type="submit"
           disabled={saving}
@@ -1674,12 +1698,19 @@ export default function Configuracion() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-[15px] font-semibold text-primary dark:text-dark-text flex items-center gap-1.5">
-                <Settings size={18} className="text-teal" />
-                {usuario?.rol === 'SUPERADMIN' ? 'Ajustes de Plataforma Superadmin' : 'Ajustes del Consultorio'}
+                {usuario?.rol === 'SUPERADMIN' ? (
+                  <><Settings size={18} className="text-teal" /> Configuración de Plataforma Oralyn</>
+                ) : (usuario?.rol === 'ASISTENTE_ODONTOLOGO' || usuario?.rol === 'RECEPCIONISTA') ? (
+                  <><Stethoscope size={18} className="text-teal" /> Catálogo de Procedimientos CUPS</>
+                ) : (
+                  <><Settings size={18} className="text-teal" /> Ajustes del Consultorio</>
+                )}
               </h2>
               <p className="text-[11px] text-teal dark:text-teal-light font-medium mt-0.5">
                 {usuario?.rol === 'SUPERADMIN'
                   ? 'Gestione el perfil de la cuenta técnica, seguridad y accesos directos a la administración global.'
+                  : (usuario?.rol === 'ASISTENTE_ODONTOLOGO' || usuario?.rol === 'RECEPCIONISTA')
+                  ? 'Consulte el listado de códigos oficiales CUPS y precios parametrizados para la atención clínica y facturación.'
                   : 'Administra la configuración general, equipo de trabajo, catálogo CUPS y facturación electrónica.'}
               </p>
             </div>
