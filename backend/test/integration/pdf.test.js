@@ -302,3 +302,79 @@ test('PDF Resiliencia: Genera PDF correctamente con una imagen base64 corrupta /
   const buffer = Buffer.from(body)
   assert.ok(isPDFBuffer(buffer), 'Debe generar el PDF sin caerse si la imagen base64 es inválida')
 })
+
+// ─────────────────────────────────────────────────────────────
+// 9. Pruebas de Firma Default del Doctor y Trazabilidad (Origen)
+// ─────────────────────────────────────────────────────────────
+
+test('PDF Firma Doctor: Aplica firma_doctor_default si el documento no tiene firma_doctor propia (origen: default)', async (t) => {
+  const mockPrisma = createPDFPrismaMock()
+  const base64Default = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+  // Config con firma_doctor_default
+  mockPrisma.configuracion.findUnique = async () => ({
+    id: 10,
+    nombre_consultorio: 'Clínica A',
+    nombre_profesional: 'Dr. A',
+    firma_doctor_default: base64Default
+  })
+
+  // Consentimiento sin firma_doctor propia
+  mockPrisma.consentimiento.findFirst = async () => ({
+    id: 350,
+    consultorio_id: 10,
+    paciente_id: 1,
+    tipo: 'anestesia',
+    fecha: new Date(),
+    ciudad: 'Villavicencio',
+    firma_doctor: null,
+    paciente: { nombres: 'Juan', primer_apellido: 'Pérez', numero_documento: '123' }
+  })
+
+  const harness = await startAppWithPrisma(mockPrisma)
+  t.after(() => harness.close())
+
+  const { response, body } = await harness.request('/api/pdf/consentimiento/350', {
+    headers: authHeaders(10)
+  })
+
+  assert.equal(response.status, 200)
+  const buffer = Buffer.from(body)
+  assert.ok(isPDFBuffer(buffer))
+})
+
+test('PDF Firma Doctor: Prioriza firma_doctor capturada sobre firma_doctor_default (origen: capturada)', async (t) => {
+  const mockPrisma = createPDFPrismaMock()
+  const base64Capturada = 'data:image/png;base64,CAPTURED_DOCTOR_SIGNATURE'
+  const base64Default = 'data:image/png;base64,DEFAULT_DOCTOR_SIGNATURE'
+
+  mockPrisma.configuracion.findUnique = async () => ({
+    id: 10,
+    nombre_consultorio: 'Clínica A',
+    nombre_profesional: 'Dr. A',
+    firma_doctor_default: base64Default
+  })
+
+  mockPrisma.consentimiento.findFirst = async () => ({
+    id: 350,
+    consultorio_id: 10,
+    paciente_id: 1,
+    tipo: 'anestesia',
+    fecha: new Date(),
+    ciudad: 'Villavicencio',
+    firma_doctor: base64Capturada,
+    paciente: { nombres: 'Juan', primer_apellido: 'Pérez', numero_documento: '123' }
+  })
+
+  const harness = await startAppWithPrisma(mockPrisma)
+  t.after(() => harness.close())
+
+  const { response, body } = await harness.request('/api/pdf/consentimiento/350', {
+    headers: authHeaders(10)
+  })
+
+  assert.equal(response.status, 200)
+  const buffer = Buffer.from(body)
+  assert.ok(isPDFBuffer(buffer))
+})
+
