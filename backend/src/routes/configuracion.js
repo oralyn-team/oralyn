@@ -20,8 +20,13 @@ function sanitizarConfiguracion(config) {
 // GET — obtener configuración del consultorio del usuario logueado
 router.get('/', async (req, res) => {
   try {
+    const consultorioId = Number(req.usuario?.consultorio_id)
+    if (!consultorioId || isNaN(consultorioId)) {
+      return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
+    }
+
     const config = await prisma.configuracion.findUnique({
-      where: { id: req.usuario.consultorio_id }
+      where: { id: consultorioId }
     })
 
     if (!config) {
@@ -30,13 +35,18 @@ router.get('/', async (req, res) => {
 
     res.json(sanitizarConfiguracion(config))
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Error interno del servidor' })
+    console.error('Error obteniendo configuración:', error)
+    res.status(500).json({ error: 'Error interno del servidor al consultar configuración', detalle: error.message })
   }
 })
 
 // POST — crear configuración (solo si no existe para ese consultorio)
 router.post('/', async (req, res) => {
+  const consultorioId = Number(req.usuario?.consultorio_id)
+  if (!consultorioId || isNaN(consultorioId)) {
+    return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
+  }
+
   const { nombre_consultorio, nombre_profesional, registro_profesional,
           nit, direccion, telefono, ciudad, email } = req.body
 
@@ -46,7 +56,7 @@ router.post('/', async (req, res) => {
 
   try {
     const existe = await prisma.configuracion.findUnique({
-      where: { id: req.usuario.consultorio_id }
+      where: { id: consultorioId }
     })
     if (existe) {
       return res.status(400).json({ error: 'Ya existe una configuración. Usa PUT para actualizarla.' })
@@ -54,7 +64,7 @@ router.post('/', async (req, res) => {
 
     const config = await prisma.configuracion.create({
       data: {
-        id: req.usuario.consultorio_id,
+        id: consultorioId,
         nombre_consultorio,
         nombre_profesional,
         registro_profesional,
@@ -68,14 +78,19 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(sanitizarConfiguracion(config))
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Error interno del servidor' })
+    console.error('Error creando configuración:', error)
+    res.status(500).json({ error: 'Error interno del servidor al crear configuración', detalle: error.message })
   }
 })
 
 // PUT — actualizar configuración del consultorio del usuario logueado
 router.put('/', async (req, res) => {
   try {
+    const consultorioId = Number(req.usuario?.consultorio_id)
+    if (!consultorioId || isNaN(consultorioId)) {
+      return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
+    }
+
     const updateData = { ...req.body }
 
     // Evitar sobreescribir la clave con los enmascarados del frontend (••••••••)
@@ -89,15 +104,37 @@ router.put('/', async (req, res) => {
     // No permitir cambiar id de consultorio por req.body
     delete updateData.id
 
+    // Filtrar únicamente los campos que existen en la tabla Configuracion
+    const camposPermitidos = [
+      'nombre_consultorio', 'nombre_profesional', 'registro_profesional', 'nit',
+      'direccion', 'telefono', 'ciudad', 'email', 'logo_url',
+      'razon_social', 'nit_dv', 'municipio_code', 'factus_numbering_range_id',
+      'factus_client_id', 'factus_client_secret', 'factus_username', 'factus_password',
+      'facturacion_habilitada'
+    ]
+
+    const dataToUpdate = {}
+    for (const key of camposPermitidos) {
+      if (updateData[key] !== undefined) {
+        if (key === 'factus_numbering_range_id') {
+          dataToUpdate[key] = updateData[key] ? Number(updateData[key]) : null
+        } else if (key === 'facturacion_habilitada') {
+          dataToUpdate[key] = Boolean(updateData[key])
+        } else {
+          dataToUpdate[key] = updateData[key]
+        }
+      }
+    }
+
     const config = await prisma.configuracion.update({
-      where: { id: req.usuario.consultorio_id },
-      data: updateData
+      where: { id: consultorioId },
+      data: dataToUpdate
     })
 
     res.json(sanitizarConfiguracion(config))
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Error interno del servidor' })
+    console.error('Error actualizando configuración:', error)
+    res.status(500).json({ error: 'Error interno del servidor al actualizar configuración', detalle: error.message })
   }
 })
 
