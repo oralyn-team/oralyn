@@ -78,7 +78,25 @@ function serializarFactura(factura, paciente, configuracion) {
     },
     environment: process.env.FACTUS_ENV === 'production' ? 'Producción' : 'Pruebas',
     provider: 'Factus',
-    items: Array.isArray(factura.items_json) ? factura.items_json : [],
+    items: (Array.isArray(factura.items_json) ? factura.items_json : []).map((item) => {
+      const cantidad = Number(item.cantidad ?? item.quantity ?? 1)
+      const valorUnitario = Number(item.valorUnitario ?? item.unitPrice ?? 0)
+      const descuento = Number(item.descuento ?? item.discount ?? 0)
+      const impuesto = Number(item.impuesto ?? item.tax ?? 0)
+      const totalCalculado = item.total !== undefined && item.total !== null
+        ? Number(item.total)
+        : (valorUnitario * cantidad) - descuento + impuesto
+
+      return {
+        cupsCode: item.codigoCups ?? item.cupsCode ?? '',
+        description: item.nombre ?? item.description ?? '',
+        quantity: cantidad,
+        unitPrice: valorUnitario,
+        discount: descuento,
+        tax: impuesto,
+        total: totalCalculado,
+      }
+    }),
     creditNotes: (Array.isArray(factura.notas_credito) ? factura.notas_credito : []).map((nc, index) => ({
       id: nc.id || nc.reference_code || String(index + 1),
       number: nc.number || (nc.cufe ? nc.cufe.slice(0, 14) : `NC-${index + 1}`),
