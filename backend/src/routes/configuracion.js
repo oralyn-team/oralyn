@@ -172,6 +172,54 @@ router.put('/', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res)
   }
 })
 
+// PUT — actualizar firma por defecto del doctor para el consultorio del usuario logueado
+router.put('/firma-doctor-default', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res) => {
+  try {
+    const consultorioId = Number(req.usuario?.consultorio_id)
+    if (!consultorioId || isNaN(consultorioId)) {
+      return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
+    }
+
+    const configPrevia = await prisma.configuracion.findUnique({
+      where: { id: consultorioId }
+    })
+
+    if (!configPrevia) {
+      return res.status(404).json({ error: 'Configuración no encontrada para este consultorio' })
+    }
+
+    const { firma_doctor_default } = req.body
+
+    const config = await prisma.configuracion.update({
+      where: { id: consultorioId },
+      data: {
+        firma_doctor_default: firma_doctor_default || null,
+        firma_doctor_actualizada_en: new Date()
+      }
+    })
+
+    const diferencias = calcularDiferencias(
+      configPrevia,
+      config,
+      ['firma_doctor_default', 'firma_doctor_actualizada_en']
+    )
+
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_FIRMA_DOCTOR_DEFAULT',
+      modulo: 'Configuración',
+      recurso_id: config.id,
+      detalles: 'Firma por defecto del doctor actualizada',
+      metadata: { cambios: diferencias }
+    })
+
+    res.json(sanitizarConfiguracion(config))
+  } catch (error) {
+    console.error('Error actualizando firma por defecto del doctor:', error)
+    res.status(500).json({ error: 'Error interno del servidor al actualizar firma por defecto', detalle: error.message })
+  }
+})
+
 // POST — probar conexión con proveedor de Facturación Electrónica (Factus)
 router.post('/facturacion/test', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res) => {
   try {

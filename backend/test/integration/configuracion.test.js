@@ -212,3 +212,56 @@ test('Aislamiento Configuración: No mezcla ni permite leer o modificar configur
   const configA = prismaMock.__db.configuracion.find(c => c.id === 10)
   assert.equal(configA.nombre_consultorio, 'Consultorio A')
 })
+
+// ─────────────────────────────────────────────────────────────
+// 5. PUT /api/configuracion/firma-doctor-default
+// ─────────────────────────────────────────────────────────────
+
+test('PUT /api/configuracion/firma-doctor-default — actualiza la firma por defecto del doctor y la fecha', async (t) => {
+  const prismaMock = createConfiguracionMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const tokenA = generateToken(1, 10)
+  const fakeFirma = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+  const { response, body } = await harness.request('/api/configuracion/firma-doctor-default', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${tokenA}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ firma_doctor_default: fakeFirma })
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(body.firma_doctor_default, fakeFirma)
+  assert.ok(body.firma_doctor_actualizada_en)
+
+  const dbConfig = prismaMock.__db.configuracion.find(c => c.id === 10)
+  assert.equal(dbConfig.firma_doctor_default, fakeFirma)
+  assert.ok(dbConfig.firma_doctor_actualizada_en)
+})
+
+test('PUT /api/configuracion genérico (Opción A) — NO permite modificar firma_doctor_default', async (t) => {
+  const prismaMock = createConfiguracionMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const tokenA = generateToken(1, 10)
+  const fakeFirma = 'data:image/png;base64,intentodehackeo=='
+
+  const { response } = await harness.request('/api/configuracion', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${tokenA}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ firma_doctor_default: fakeFirma, nombre_consultorio: 'Consultorio A' })
+  })
+
+  assert.equal(response.status, 200)
+  const dbConfig = prismaMock.__db.configuracion.find(c => c.id === 10)
+  assert.notEqual(dbConfig.firma_doctor_default, fakeFirma)
+})
+
