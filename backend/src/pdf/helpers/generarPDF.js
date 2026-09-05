@@ -65,10 +65,23 @@ async function generarPDF({ template, data, consultorio_id }) {
     config.logo_url = await procesarLogoUrl(config.logo_url)
   }
 
+  const firmaDoctorCapturada = data?.firma_doctor || null
+  const firmaDoctorDefault = config?.firma_doctor_default || null
+  let firmaDoctorFinal = null
+  let firmaDoctorOrigen = null
+
+  if (firmaDoctorCapturada) {
+    firmaDoctorFinal = firmaDoctorCapturada
+    firmaDoctorOrigen = 'capturada'
+  } else if (firmaDoctorDefault) {
+    firmaDoctorFinal = firmaDoctorDefault
+    firmaDoctorOrigen = 'default'
+  }
+
   const templatePath = path.resolve(__dirname, '..', 'templates', `${template}.hbs`)
   const source = fs.readFileSync(templatePath, 'utf8')
   const compiledTemplate = handlebars.compile(source)
-  const html = compiledTemplate({ ...data, config })
+  const html = compiledTemplate({ ...data, firma_doctor: firmaDoctorFinal, firma_doctor_origen: firmaDoctorOrigen, config })
 
   const launchOptions = {
     headless: true,

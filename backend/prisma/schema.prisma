@@ -96,6 +96,10 @@ model Configuracion {
   factus_password      String?
   facturacion_habilitada Boolean @default(false)
 
+  // Firma por defecto del doctor
+  firma_doctor_default         String?   @db.Text
+  firma_doctor_actualizada_en  DateTime?
+
   usuarios                   Usuario[]
   pacientes                  Paciente[]
   citas                      Cita[]
