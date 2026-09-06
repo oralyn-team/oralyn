@@ -17,7 +17,8 @@ async function createAdminMock() {
       { id: 10, nombre_consultorio: 'Consultorio A', nombre_profesional: 'Dr. A', creado_en: new Date('2026-01-01T10:00:00Z') }
     ],
     usuario: [
-      { id: 1, consultorio_id: 10, email: 'doctorA@oralyn.test', password_hash: 'hash', nombre: 'Dra. A' }
+      { id: 1, consultorio_id: 10, email: 'doctorA@oralyn.test', password_hash: 'hash', nombre: 'Dra. A', rol: 'DUENO' },
+      { id: 99, consultorio_id: null, email: 'superadmin@oralyn.test', password_hash: hash, nombre: 'Super Admin', rol: 'SUPERADMIN' }
     ],
     administrador: [
       { id: 1, email: 'admin@oralyn.test', password_hash: hash, nombre: 'Admin Uno', activo: true, creado_en: new Date() }
@@ -29,13 +30,14 @@ async function createAdminMock() {
 function signAdminToken(payload = {}, expiresIn = '2h') {
   return jwt.sign(
     {
-      id: 1,
-      email: 'admin@oralyn.test',
-      nombre: 'Admin Uno',
+      id: 99,
+      email: 'superadmin@oralyn.test',
+      nombre: 'Super Admin',
+      rol: 'SUPERADMIN',
       role: 'admin',
       ...payload
     },
-    process.env.JWT_ADMIN_SECRET,
+    process.env.JWT_SECRET,
     { expiresIn }
   )
 }
@@ -150,7 +152,7 @@ test('Admin Permisos: Sin header Authorization retorna 401', async (t) => {
   assert.equal(response.status, 401)
 })
 
-test('Admin Permisos: Con JWT de usuario normal (no admin) retorna 401 (fallo en validación de firma por secreto diferente)', async (t) => {
+test('Admin Permisos: Con JWT de usuario normal (no admin) retorna 403 por rol insuficiente', async (t) => {
   const prismaMock = await createAdminMock()
   const harness = await startAppWithPrisma(prismaMock)
   t.after(() => harness.close())
@@ -160,9 +162,7 @@ test('Admin Permisos: Con JWT de usuario normal (no admin) retorna 401 (fallo en
     headers: { 'Authorization': `Bearer ${userToken}` }
   })
 
-  // Como el token del usuario se firma con JWT_SECRET, al verificarlo con JWT_ADMIN_SECRET
-  // la verificación de firma siempre fallará y debe retornar 401 (no 403)
-  assert.equal(response.status, 401)
+  assert.equal(response.status, 403)
 })
 
 test('Admin Permisos: Con JWT firmado con secret de admin pero sin rol admin retorna 403', async (t) => {
@@ -170,7 +170,7 @@ test('Admin Permisos: Con JWT firmado con secret de admin pero sin rol admin ret
   const harness = await startAppWithPrisma(prismaMock)
   t.after(() => harness.close())
 
-  const tokenWithoutRole = signAdminToken({ role: 'user' })
+  const tokenWithoutRole = signAdminToken({ id: 1, rol: 'DUENO' })
   const { response } = await harness.request('/api/admin/consultorios', {
     headers: { 'Authorization': `Bearer ${tokenWithoutRole}` }
   })
@@ -191,7 +191,7 @@ test('Admin Permisos: Con el antiguo header x-admin-secret retorna 401', async (
   assert.equal(response.status, 401)
 })
 
-test('Admin Permisos: Con JWT de admin expirado retorna 401', async (t) => {
+test('Admin Permisos: Con JWT de admin expirado retorna 403 por token inválido/expirado', async (t) => {
   const prismaMock = await createAdminMock()
   const harness = await startAppWithPrisma(prismaMock)
   t.after(() => harness.close())
@@ -202,7 +202,7 @@ test('Admin Permisos: Con JWT de admin expirado retorna 401', async (t) => {
     headers: { 'Authorization': `Bearer ${expiredToken}` }
   })
 
-  assert.equal(response.status, 401)
+  assert.equal(response.status, 403)
 })
 
 test('Admin Permisos: Con JWT de admin válido retorna 200', async (t) => {

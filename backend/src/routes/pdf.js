@@ -34,7 +34,7 @@ router.get('/historia/:id', async (req, res) => {
   try {
     const historia = await prisma.historiaClinica.findUnique({
       where: { id: Number(req.params.id) },
-      include: { paciente: true, antecedentes: true, examen: true, odontogramas: true, evoluciones: true }
+      include: { paciente: true, antecedentes: true, examen: true, odontogramas: true, evoluciones: true, profesional: true }
     })
     if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
     if (historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
@@ -60,7 +60,8 @@ router.get('/cotizacion/:id', async (req, res) => {
       include: {
         paciente: { select: { nombres: true, primer_apellido: true, segundo_apellido: true, tipo_documento: true, numero_documento: true, telefono: true } },
         procedimientos: { orderBy: { orden: 'asc' } },
-        pagos: { orderBy: { fecha: 'desc' } }
+        pagos: { orderBy: { fecha: 'desc' } },
+        profesional: true
       }
     })
     if (!cotizacion) return res.status(404).json({ error: 'Cotización no encontrada' })
@@ -79,7 +80,8 @@ router.get('/certificado/:id', async (req, res) => {
     const certificado = await prisma.certificadoDental.findFirst({
       where: { id: Number(req.params.id), consultorio_id: req.usuario.consultorio_id },
       include: {
-        paciente: { select: { nombres: true, primer_apellido: true, segundo_apellido: true, tipo_documento: true, numero_documento: true } }
+        paciente: { select: { nombres: true, primer_apellido: true, segundo_apellido: true, tipo_documento: true, numero_documento: true } },
+        profesional: true
       }
     })
     if (!certificado) return res.status(404).json({ error: 'Certificado no encontrado' })
@@ -110,7 +112,8 @@ router.get('/consentimiento/:id', async (req, res) => {
     const consentimiento = await prisma.consentimiento.findFirst({
       where: { id: Number(req.params.id), consultorio_id },
       include: {
-        paciente: { select: { nombres: true, primer_apellido: true, segundo_apellido: true, tipo_documento: true, numero_documento: true } }
+        paciente: { select: { nombres: true, primer_apellido: true, segundo_apellido: true, tipo_documento: true, numero_documento: true } },
+        profesional: true
       }
     })
     if (!consentimiento) return res.status(404).json({ error: 'Consentimiento no encontrado' })

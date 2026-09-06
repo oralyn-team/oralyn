@@ -29,6 +29,7 @@ const procedimientosRoutes = require('./routes/procedimientos')
 const ripsRoutes = require('./routes/rips')
 const facturasRoutes = require('./routes/facturas')
 const auditoriaRoutes = require('./routes/auditoria')
+const profesionalesRoutes = require('./routes/profesionales')
 const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
@@ -82,6 +83,7 @@ app.use('/api/procedimientos', procedimientosRoutes)
 app.use('/api/rips', ripsRoutes)
 app.use('/api/facturas', facturasRoutes)
 app.use('/api/auditoria', auditoriaRoutes)
+app.use('/api/profesionales', profesionalesRoutes)
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })

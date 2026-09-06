@@ -2,6 +2,9 @@ function matchesWhere(row, where = {}) {
   if (!where) return true;
   return Object.entries(where).every(([key, expected]) => {
     if (expected === undefined) return true;
+    if (key === 'activo' && row.activo === undefined) {
+      return expected === true;
+    }
     
     // Match OR clauses
     if (key === 'OR' && Array.isArray(expected)) {
@@ -194,6 +197,8 @@ function createUnifiedPrismaMock(initialData = {}) {
     procedimientoCotizacion: [],
     pago: [],
     recomendacionPostQx: [],
+    profesional: [],
+    auditoria: [],
     ...normalizedData
   };
 
@@ -255,11 +260,11 @@ function createUnifiedPrismaMock(initialData = {}) {
   };
 
   const modelNames = [
-    'usuario', 'administrador', 'configuracion', 'paciente', 'historiaClinica',
+    'usuario', 'administrador', 'configuracion', 'profesional', 'paciente', 'historiaClinica',
     'hcAntecedentes', 'hcExamenEstomatologico', 'hcOdontograma',
     'hojaEvolucion', 'hcAdjunto', 'cita', 'consentimiento',
     'certificadoDental', 'cotizacion', 'procedimientoCotizacion', 'pago',
-    'recomendacionPostQx'
+    'recomendacionPostQx', 'auditoria'
   ];
 
   modelNames.forEach(modelName => {

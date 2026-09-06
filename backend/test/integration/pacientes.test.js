@@ -294,12 +294,9 @@ test('DELETE /api/pacientes/:id — eliminación correcta', async (t) => {
   assert.equal(response.status, 200)
   assert.equal(body.message, 'Paciente eliminado correctamente')
 
-  // Verificar que el paciente y todos sus registros relacionados fueron eliminados
-  assert.equal(prismaMock.__db.paciente.filter(p => p.id === 1).length, 0)
-  assert.equal(prismaMock.__db.historiaClinica.filter(h => h.paciente_id === 1).length, 0)
-  assert.equal(prismaMock.__db.cita.filter(c => c.paciente_id === 1).length, 0)
-  assert.equal(prismaMock.__db.cotizacion.filter(c => c.paciente_id === 1).length, 0)
-  assert.equal(prismaMock.__db.pago.filter(p => p.paciente_id === 1).length, 0)
+  // Verificar que el paciente fue marcado como inactivo (soft-delete)
+  const pacInactivo = prismaMock.__db.paciente.find(p => p.id === 1)
+  assert.equal(pacInactivo.activo, false)
 })
 
 test('DELETE /api/pacientes/:id — paciente de otro consultorio da 404', async (t) => {

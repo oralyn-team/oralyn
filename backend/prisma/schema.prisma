@@ -111,7 +111,32 @@ model Configuracion {
   rips_generaciones          RipsGeneracion[]
   facturas                   Factura[]
   auditorias                 Auditoria[]
+  profesionales              Profesional[]
 }
+
+// ─── PROFESIONALES ──────────────────────────────────────────
+
+model Profesional {
+  id                 Int           @id @default(autoincrement())
+  consultorio_id     Int
+  consultorio        Configuracion @relation(fields: [consultorio_id], references: [id])
+  nombre_completo    String
+  cedula_profesional String?
+  firma_default      String?       @db.Text
+  activo             Boolean       @default(true)
+  creado_en          DateTime      @default(now())
+
+  consentimientos      Consentimiento[]
+  historias            HistoriaClinica[]
+  certificados         CertificadoDental[]
+  evoluciones          HojaEvolucion[]
+  recomendaciones_post RecomendacionPostQx[]
+  citas                Cita[]
+  cotizaciones         Cotizacion[]
+
+  @@index([consultorio_id])
+}
+
 
 // ─── CATÁLOGO OFICIAL CUPS ──────────────────────────────────
 
@@ -297,6 +322,8 @@ model HistoriaClinica {
   observaciones              String?
   recomendaciones            String?
   firma_doctor               String?
+  profesional_id             Int?
+  profesional                Profesional? @relation(fields: [profesional_id], references: [id])
   firma_paciente             String?
   departamento               String?
   estado_civil               String?
@@ -318,6 +345,7 @@ model HistoriaClinica {
   adjuntos               HcAdjunto[]
 
   @@index([paciente_id])
+  @@index([profesional_id])
 }
 
 model HcAntecedentes {
@@ -390,6 +418,8 @@ model HojaEvolucion {
   historia                     HistoriaClinica           @relation(fields: [historia_id], references: [id])
   fecha                        DateTime
   doctor                       String?
+  profesional_id               Int?
+  profesional                  Profesional?              @relation(fields: [profesional_id], references: [id])
   motivo                       String?
   diagnostico                  String?
   procedimiento                String?
@@ -403,6 +433,7 @@ model HojaEvolucion {
   observaciones                String?
 
   @@index([historia_id])
+  @@index([profesional_id])
 }
 
 model HcAdjunto {
@@ -471,6 +502,8 @@ model Cotizacion {
   paciente         Paciente             @relation(fields: [paciente_id], references: [id])
   doctor          String?
   doctor_id        Int?
+  profesional_id   Int?
+  profesional      Profesional?         @relation(fields: [profesional_id], references: [id])
   fecha            DateTime             @default(now())
   tipo_tratamiento String?
   prioridad        PrioridadTratamiento @default(media)
@@ -490,6 +523,7 @@ model Cotizacion {
   @@index([consultorio_id])
   @@index([paciente_id])
   @@index([doctor_id])
+  @@index([profesional_id])
 }
 
 // ─── PROCEDIMIENTOS DEL TRATAMIENTO ─────────────────────────
@@ -600,6 +634,8 @@ model Cita {
   paciente                     Paciente                  @relation(fields: [paciente_id], references: [id])
   fecha_hora                   DateTime
   doctor                       String?
+  profesional_id               Int?
+  profesional                  Profesional?              @relation(fields: [profesional_id], references: [id])
   procedimiento                String
   procedimiento_consultorio_id Int?
   procedimiento_consultorio    ProcedimientoConsultorio? @relation(fields: [procedimiento_consultorio_id], references: [id])
@@ -617,6 +653,7 @@ model Cita {
   @@index([consultorio_id])
   @@index([paciente_id])
   @@index([procedimiento_cotizacion_id])
+  @@index([profesional_id])
 }
 
 model Consentimiento {
@@ -634,6 +671,8 @@ model Consentimiento {
   firma_paciente            String?
   cc_profesional            String?
   firma_doctor              String?
+  profesional_id            Int?
+  profesional               Profesional?       @relation(fields: [profesional_id], references: [id])
   pdf_generado_en           DateTime?
   anulado                   Boolean            @default(false)
   anulado_en                DateTime?
@@ -641,6 +680,7 @@ model Consentimiento {
 
   @@index([consultorio_id])
   @@index([paciente_id])
+  @@index([profesional_id])
 }
 
 model CertificadoDental {
@@ -651,6 +691,8 @@ model CertificadoDental {
   paciente         Paciente      @relation(fields: [paciente_id], references: [id])
   cita_id          Int?
   cita             Cita?         @relation(fields: [cita_id], references: [id])
+  profesional_id   Int?
+  profesional      Profesional?  @relation(fields: [profesional_id], references: [id])
   tipo_cita_texto  String
   ciudad           String        @default("Villavicencio")
   fecha_expedicion DateTime
@@ -661,16 +703,21 @@ model CertificadoDental {
 
   @@index([consultorio_id])
   @@index([paciente_id])
+  @@index([profesional_id])
 }
 
 // ─── RECOMENDACIONES POST-QX ────────────────────────────────
 
 model RecomendacionPostQx {
-  id          Int              @id @default(autoincrement())
-  historia_id Int?
-  historia    HistoriaClinica? @relation(fields: [historia_id], references: [id])
-  fecha       DateTime
-  creado_en   DateTime         @default(now())
+  id             Int              @id @default(autoincrement())
+  historia_id    Int?
+  historia       HistoriaClinica? @relation(fields: [historia_id], references: [id])
+  profesional_id Int?
+  profesional    Profesional?     @relation(fields: [profesional_id], references: [id])
+  fecha          DateTime
+  creado_en      DateTime         @default(now())
+
+  @@index([profesional_id])
 }
 
 model Administrador {

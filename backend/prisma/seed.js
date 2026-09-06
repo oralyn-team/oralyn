@@ -20,6 +20,24 @@ async function main() {
 
   console.log('Consultorio listo:', config.id)
 
+  // Crear o actualizar primer Profesional (Dra. Rocío Murillo)
+  const profesionalInicial = await prisma.profesional.upsert({
+    where: { id: 1 },
+    update: {
+      nombre_completo: 'Dra. Rocío Murillo',
+      cedula_profesional: '39579364'
+    },
+    create: {
+      id: 1,
+      consultorio_id: config.id,
+      nombre_completo: 'Dra. Rocío Murillo',
+      cedula_profesional: '39579364',
+      activo: true
+    }
+  })
+
+  console.log('Profesional inicial listo:', profesionalInicial.nombre_completo)
+
   // Crear o actualizar usuario doctora (DUEÑO)
   const password_hash = await bcrypt.hash('123456', 10)
   const usuario = await prisma.usuario.upsert({
@@ -298,6 +316,29 @@ async function main() {
         }
       })
     }
+  }
+
+  // Catálogo Oficial CIE-10
+  const cie10List = [
+    { codigo_cie10: 'Z012', nombre_oficial: 'Examen odontológico', categoria: 'General', activo: true },
+    { codigo_cie10: 'K021', nombre_oficial: 'Caries de la dentina', categoria: 'Caries', activo: true },
+    { codigo_cie10: 'K020', nombre_oficial: 'Caries limitada al esmalte', categoria: 'Caries', activo: true },
+    { codigo_cie10: 'K040', nombre_oficial: 'Pulpitis', categoria: 'Endodoncia', activo: true },
+    { codigo_cie10: 'K052', nombre_oficial: 'Periodontitis aguda', categoria: 'Periodoncia', activo: true },
+    { codigo_cie10: 'K053', nombre_oficial: 'Periodontitis crónica', categoria: 'Periodoncia', activo: true }
+  ]
+
+  console.log(`Poblando catálogo oficial CIE-10 (${cie10List.length} registros)...`)
+  for (const item of cie10List) {
+    await prisma.catalogoOficialCie10.upsert({
+      where: { codigo_cie10: item.codigo_cie10 },
+      update: {
+        nombre_oficial: item.nombre_oficial,
+        categoria: item.categoria,
+        activo: item.activo
+      },
+      create: item
+    })
   }
 
   console.log('✅ Seed completado con éxito')

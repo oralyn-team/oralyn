@@ -129,6 +129,8 @@ async function generarCotizacionPDF(cotizacion, consultorio_id) {
     // Cotización
     cotizacion_id:   cotizacion.id,
     dia, mes, anio,
+    profesional_id:  cotizacion.profesional_id || null,
+    profesional:     cotizacion.profesional || null,
     tipo_tratamiento: cotizacion.tipo_tratamiento ?? '',
     prioridad:        cotizacion.prioridad        ?? '',
     motivo:           cotizacion.motivo           ?? '',

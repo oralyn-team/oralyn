@@ -58,14 +58,24 @@ async function procesarLogoUrl(logoUrl) {
   }
 }
 
-async function generarPDF({ template, data, consultorio_id }) {
-  const config = await obtenerConfig(consultorio_id)
+async function resolverFirmaDoctor(data, config) {
+  const firmaDoctorCapturada = data?.firma_doctor || null
+  const profesionalId = data?.profesional_id || data?.profesional?.id || null
 
-  if (config && config.logo_url) {
-    config.logo_url = await procesarLogoUrl(config.logo_url)
+  let firmaProfDefault = data?.profesional?.firma_default || null
+  if (!firmaProfDefault && profesionalId) {
+    try {
+      const prof = await prisma.profesional.findFirst({
+        where: { id: Number(profesionalId), activo: true }
+      })
+      if (prof?.firma_default) {
+        firmaProfDefault = prof.firma_default
+      }
+    } catch (err) {
+      console.warn('Error al consultar firma_default del profesional:', err.message)
+    }
   }
 
-  const firmaDoctorCapturada = data?.firma_doctor || null
   const firmaDoctorDefault = config?.firma_doctor_default || null
   let firmaDoctorFinal = null
   let firmaDoctorOrigen = null
@@ -73,10 +83,25 @@ async function generarPDF({ template, data, consultorio_id }) {
   if (firmaDoctorCapturada) {
     firmaDoctorFinal = firmaDoctorCapturada
     firmaDoctorOrigen = 'capturada'
+  } else if (firmaProfDefault) {
+    firmaDoctorFinal = firmaProfDefault
+    firmaDoctorOrigen = 'profesional_default'
   } else if (firmaDoctorDefault) {
     firmaDoctorFinal = firmaDoctorDefault
-    firmaDoctorOrigen = 'default'
+    firmaDoctorOrigen = 'titular_default'
   }
+
+  return { firmaDoctorFinal, firmaDoctorOrigen }
+}
+
+async function generarPDF({ template, data, consultorio_id }) {
+  const config = await obtenerConfig(consultorio_id)
+
+  if (config && config.logo_url) {
+    config.logo_url = await procesarLogoUrl(config.logo_url)
+  }
+
+  const { firmaDoctorFinal, firmaDoctorOrigen } = await resolverFirmaDoctor(data, config)
 
   const templatePath = path.resolve(__dirname, '..', 'templates', `${template}.hbs`)
   const source = fs.readFileSync(templatePath, 'utf8')
@@ -119,3 +144,4 @@ async function generarPDF({ template, data, consultorio_id }) {
 }
 
 module.exports = generarPDF
+module.exports.resolverFirmaDoctor = resolverFirmaDoctor
