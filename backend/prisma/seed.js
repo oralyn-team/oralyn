@@ -20,6 +20,24 @@ async function main() {
 
   console.log('Consultorio listo:', config.id)
 
+  // Crear o actualizar primer Profesional (Dra. Rocío Murillo)
+  const profesionalInicial = await prisma.profesional.upsert({
+    where: { id: 1 },
+    update: {
+      nombre_completo: 'Dra. Rocío Murillo',
+      cedula_profesional: '39579364'
+    },
+    create: {
+      id: 1,
+      consultorio_id: config.id,
+      nombre_completo: 'Dra. Rocío Murillo',
+      cedula_profesional: '39579364',
+      activo: true
+    }
+  })
+
+  console.log('Profesional inicial listo:', profesionalInicial.nombre_completo)
+
   // Crear o actualizar usuario doctora (DUEÑO)
   const password_hash = await bcrypt.hash('123456', 10)
   const usuario = await prisma.usuario.upsert({
