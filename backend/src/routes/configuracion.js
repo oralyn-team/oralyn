@@ -257,4 +257,84 @@ router.post('/facturacion/test', requirePermission(PERMISSIONS.SETTINGS_UPDATE),
   }
 })
 
+// POST — subir imagen del logo a Supabase Storage (bucket: 'logos') y actualizar Configuracion.logo_url
+router.post('/logo', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res) => {
+  try {
+    const consultorioId = Number(req.usuario?.consultorio_id)
+    if (!consultorioId || isNaN(consultorioId)) {
+      return res.status(400).json({ error: 'El usuario no pertenece a un consultorio válido' })
+    }
+
+    const { logo, logo_base64, base64, file } = req.body
+    const rawInput = logo || logo_base64 || base64 || file
+
+    if (!rawInput || typeof rawInput !== 'string') {
+      return res.status(400).json({ error: 'Se requiere una imagen en formato base64 en el campo logo' })
+    }
+
+    let base64Data = rawInput
+    let mimeType = 'image/png'
+    let extension = 'png'
+
+    const matches = rawInput.match(/^data:(image\/[a-zA-Z0-9\+\-\.]+);base64,(.+)$/)
+    if (matches) {
+      mimeType = matches[1]
+      base64Data = matches[2]
+      if (mimeType.includes('jpeg') || mimeType.includes('jpg')) extension = 'jpg'
+      else if (mimeType.includes('svg')) extension = 'svg'
+      else if (mimeType.includes('webp')) extension = 'webp'
+    }
+
+    const buffer = Buffer.from(base64Data, 'base64')
+    if (buffer.length === 0) {
+      return res.status(400).json({ error: 'El contenido base64 provisto es inválido o está vacío' })
+    }
+
+    const { supabase } = require('../lib/supabase')
+    if (!supabase) {
+      return res.status(500).json({ error: 'El cliente de Supabase Storage no está configurado (faltan credenciales SUPABASE_URL / SUPABASE_SERVICE_KEY)' })
+    }
+
+    const fileName = `logo-consultorio-${consultorioId}.${extension}`
+    const { error: uploadError } = await supabase.storage
+      .from('logos')
+      .upload(fileName, buffer, {
+        contentType: mimeType,
+        upsert: true
+      })
+
+    if (uploadError) {
+      console.error('Error al subir imagen a Supabase Storage:', uploadError)
+      return res.status(500).json({ error: 'Error al subir la imagen al almacenamiento de Supabase', detalle: uploadError.message })
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('logos')
+      .getPublicUrl(fileName)
+
+    const logoUrl = publicUrlData?.publicUrl
+
+    const configPrevia = await prisma.configuracion.findUnique({ where: { id: consultorioId } })
+
+    const configActualizada = await prisma.configuracion.update({
+      where: { id: consultorioId },
+      data: { logo_url: logoUrl }
+    })
+
+    await registrarAuditoria({
+      req,
+      accion: 'ACTUALIZAR_LOGO_CONSULTORIO',
+      modulo: 'Configuración',
+      recurso_id: consultorioId,
+      detalles: 'Logo del consultorio subido a Supabase Storage y actualizado',
+      metadata: { cambios: calcularDiferencias(configPrevia, configActualizada, ['logo_url']) }
+    })
+
+    res.json(sanitizarConfiguracion(configActualizada))
+  } catch (error) {
+    console.error('Error procesando subida de logo:', error)
+    res.status(500).json({ error: 'Error interno del servidor al procesar el logo', detalle: error.message })
+  }
+})
+
 module.exports = router
