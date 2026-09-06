@@ -22,7 +22,7 @@ function ModalFirma({ profesional, onClose, onFirmaGuardada, mostrarToast }) {
       onClose();
     } catch (err) {
       console.error(err);
-      mostrarToast?.(err.error || 'Error al guardar la firma por defecto');
+      mostrarToast?.(err?.error || err?.message || 'Error al guardar la firma por defecto');
     } finally {
       setGuardando(false);
     }
@@ -131,7 +131,7 @@ function ModalCrearProfesional({ onClose, onCreado, mostrarToast }) {
       onClose();
     } catch (err) {
       console.error(err);
-      mostrarToast?.(err.error || 'Error al crear el profesional');
+      mostrarToast?.(err?.error || err?.message || 'Error al crear el profesional');
     } finally {
       setCreando(false);
     }
@@ -223,7 +223,7 @@ export default function ProfesionalesSeccion({ mostrarToast }) {
       setProfesionales(data || []);
     } catch (err) {
       console.error(err);
-      setError(err.error || 'No se pudieron cargar los profesionales');
+      setError(err?.error || err?.message || 'No se pudieron cargar los profesionales');
     } finally {
       setCargando(false);
     }
@@ -246,7 +246,7 @@ export default function ProfesionalesSeccion({ mostrarToast }) {
       cargarProfesionales();
     } catch (err) {
       console.error(err);
-      mostrarToast?.(err.error || 'Error al cambiar estado del profesional');
+      mostrarToast?.(err?.error || err?.message || 'Error al cambiar estado del profesional');
     } finally {
       setCambiandoEstadoId(null);
     }
