@@ -255,6 +255,8 @@ async function generarHistoriaPDF(historia, consultorio_id) {
 
       firma_doctor: historia.firma_doctor,
       firma_paciente: historia.firma_paciente,
+      profesional_id: historia.profesional_id || null,
+      profesional: historia.profesional || null,
 
       antecedentes,
 

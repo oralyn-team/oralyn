@@ -19,7 +19,9 @@ async function generarCertificadoPDF(certificado, consultorio_id) {
       numero_documento: p?.numero_documento || '',
       tipo_cita: certificado.tipo_cita_texto,
       dia, mes, anio,
-      firma_doctor: certificado.firma_doctor || null
+      firma_doctor: certificado.firma_doctor || null,
+      profesional_id: certificado.profesional_id || null,
+      profesional: certificado.profesional || null
     }
   })
 }

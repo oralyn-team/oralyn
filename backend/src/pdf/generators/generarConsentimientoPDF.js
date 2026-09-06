@@ -31,6 +31,8 @@ async function generarConsentimientoPDF(consentimiento, consultorio_id) {
     dia, mes, anio,
     firma_paciente: consentimiento.firma_paciente || null,
     firma_doctor: consentimiento.firma_doctor || null,
+    profesional_id: consentimiento.profesional_id || null,
+    profesional: consentimiento.profesional || null,
     protesis_removible: campos.protesis_removible || false,
     protesis_total: campos.protesis_total || false,
     sobredentadura: campos.sobredentadura || false,
