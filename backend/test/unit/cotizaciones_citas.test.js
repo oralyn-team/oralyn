@@ -3,16 +3,15 @@ const assert = require('node:assert')
 const prisma = require('../../src/lib/prisma')
 
 test('Tarea A: Editar una cotización preserva los IDs de sus procedimientos', async () => {
-  // 1. Obtener o crear consultorio y paciente de prueba
-  let consultorio = await prisma.configuracion.findFirst()
-  if (!consultorio) {
-    consultorio = await prisma.configuracion.create({
-      data: { nombre_consultorio: 'Consultorio Test', nombre_profesional: 'Dra. Test' }
-    })
-  }
+  let consultorio = null
+  let paciente = null
+  let cotizacionId = null
 
-  let paciente = await prisma.paciente.findFirst({ where: { consultorio_id: consultorio.id } })
-  if (!paciente) {
+  try {
+    consultorio = await prisma.configuracion.create({
+      data: { nombre_consultorio: 'Consultorio Test Cotizaciones', nombre_profesional: 'Dr. Test Cot' }
+    })
+
     paciente = await prisma.paciente.create({
       data: {
         consultorio_id: consultorio.id,
@@ -25,143 +24,183 @@ test('Tarea A: Editar una cotización preserva los IDs de sus procedimientos', a
         municipio_ciudad: 'Villavicencio'
       }
     })
-  }
 
-  // 2. Crear cotización con 2 procedimientos
-  const cotizacion = await prisma.$transaction(async (tx) => {
-    return tx.cotizacion.create({
+    // 2. Crear cotización con 2 procedimientos
+    const cotizacion = await prisma.$transaction(async (tx) => {
+      return tx.cotizacion.create({
+        data: {
+          consultorio_id: consultorio.id,
+          paciente_id: paciente.id,
+          tipo_tratamiento: 'Ortodoncia Inicial',
+          estado: 'aprobado',
+          total: 150000,
+          total_pagado: 0,
+          saldo: 150000,
+          procedimientos: {
+            create: [
+              { procedimiento: 'Limpieza dental', cantidad: 1, valor_unitario: 50000, descuento: 0, subtotal: 50000, estado: 'pendiente' },
+              { procedimiento: 'Resina fotocurado', cantidad: 1, valor_unitario: 100000, descuento: 0, subtotal: 100000, estado: 'pendiente' }
+            ]
+          }
+        },
+        include: { procedimientos: true }
+      })
+    })
+
+    cotizacionId = cotizacion.id
+    assert.strictEqual(cotizacion.procedimientos.length, 2)
+    const originalIds = cotizacion.procedimientos.map(p => p.id)
+
+    // 3. Simular PUT manteniendo los procedimientos con su ID
+    const procsConId = cotizacion.procedimientos.map((p, idx) => ({
+      id: p.id,
+      procedimiento: idx === 0 ? 'Limpieza dental prof' : p.procedimiento,
+      cantidad: p.cantidad,
+      valor_unitario: p.valor_unitario,
+      descuento: p.descuento,
+      subtotal: p.subtotal,
+      estado: p.estado,
+      orden: idx
+    }))
+
+    const payloadEdit = {
+      paciente_id: paciente.id,
+      tipo_tratamiento: 'Ortodoncia Actualizada',
+      estado: 'en_proceso',
+      procedimientos: procsConId
+    }
+
+    // Ejecutar lógica de PUT usando Prisma transaction directamente
+    const cotizacionEditada = await prisma.$transaction(async (tx) => {
+      const existentes = await tx.procedimientoCotizacion.findMany({
+        where: { cotizacion_id: cotizacion.id },
+        select: { id: true }
+      })
+      const idsExistentes = new Set(existentes.map(p => p.id))
+      const idsEnPayload = new Set(payloadEdit.procedimientos.map(p => p.id))
+
+      const idsABorrar = [...idsExistentes].filter(pid => !idsEnPayload.has(pid))
+      if (idsABorrar.length > 0) {
+        await tx.procedimientoCotizacion.deleteMany({
+          where: { id: { in: idsABorrar }, cotizacion_id: cotizacion.id }
+        })
+      }
+
+      for (const p of payloadEdit.procedimientos.filter(p => p.id && idsExistentes.has(p.id))) {
+        const { id: procId, ...datos } = p
+        await tx.procedimientoCotizacion.update({ where: { id: procId }, data: datos })
+      }
+
+      return tx.cotizacion.findUnique({
+        where: { id: cotizacion.id },
+        include: { procedimientos: { orderBy: { orden: 'asc' } } }
+      })
+    })
+
+    const newIds = cotizacionEditada.procedimientos.map(p => p.id)
+    assert.deepStrictEqual(newIds, originalIds, 'Los IDs de los procedimientos deben ser exactamente iguales después del PUT')
+  } finally {
+    if (cotizacionId) {
+      await prisma.procedimientoCotizacion.deleteMany({ where: { cotizacion_id: cotizacionId } }).catch(() => {})
+      await prisma.cotizacion.deleteMany({ where: { id: cotizacionId } }).catch(() => {})
+    }
+    if (paciente) {
+      await prisma.paciente.deleteMany({ where: { id: paciente.id } }).catch(() => {})
+    }
+    if (consultorio) {
+      await prisma.configuracion.deleteMany({ where: { id: consultorio.id } }).catch(() => {})
+    }
+  }
+})
+
+test('Tarea B & C: Vincular Cita con ProcedimientoCotizacion deriva subtotal y avanza estado a realizado al asistir', async () => {
+  let consultorio = null
+  let paciente = null
+  let cotizacionId = null
+  let citaId = null
+
+  try {
+    consultorio = await prisma.configuracion.create({
+      data: { nombre_consultorio: 'Consultorio Test Cot Cita', nombre_profesional: 'Dr. Test Cot Cita' }
+    })
+
+    paciente = await prisma.paciente.create({
+      data: {
+        consultorio_id: consultorio.id,
+        nombres: 'PruebaBC',
+        primer_apellido: 'TareaBC',
+        tipo_documento: 'CC',
+        numero_documento: '88877766',
+        fecha_nacimiento: new Date('1992-02-02'),
+        sexo: 'masculino',
+        municipio_ciudad: 'Villavicencio'
+      }
+    })
+
+    // 1. Crear cotización con 1 procedimiento que incluye 20% de descuento ($100.000 -> $80.000)
+    const cotizacion = await prisma.cotizacion.create({
       data: {
         consultorio_id: consultorio.id,
         paciente_id: paciente.id,
-        tipo_tratamiento: 'Ortodoncia Inicial',
+        tipo_tratamiento: 'Rehabilitación',
         estado: 'aprobado',
-        total: 150000,
+        total: 80000,
         total_pagado: 0,
-        saldo: 150000,
+        saldo: 80000,
         procedimientos: {
           create: [
-            { procedimiento: 'Limpieza dental', cantidad: 1, valor_unitario: 50000, descuento: 0, subtotal: 50000, estado: 'pendiente' },
-            { procedimiento: 'Resina fotocurado', cantidad: 1, valor_unitario: 100000, descuento: 0, subtotal: 100000, estado: 'pendiente' }
+            {
+              procedimiento: 'Corona Porcelana',
+              cantidad: 1,
+              valor_unitario: 100000,
+              descuento: 20,
+              subtotal: 80000,
+              estado: 'pendiente'
+            }
           ]
         }
       },
       include: { procedimientos: true }
     })
-  })
 
-  assert.strictEqual(cotizacion.procedimientos.length, 2)
-  const originalIds = cotizacion.procedimientos.map(p => p.id)
+    cotizacionId = cotizacion.id
+    const procCot = cotizacion.procedimientos[0]
 
-  // 3. Simular PUT manteniendo los procedimientos con su ID
-  const procsConId = cotizacion.procedimientos.map((p, idx) => ({
-    id: p.id,
-    procedimiento: idx === 0 ? 'Limpieza dental prof' : p.procedimiento,
-    cantidad: p.cantidad,
-    valor_unitario: p.valor_unitario,
-    descuento: p.descuento,
-    subtotal: p.subtotal,
-    estado: p.estado,
-    orden: idx
-  }))
-
-  const payloadEdit = {
-    paciente_id: paciente.id,
-    tipo_tratamiento: 'Ortodoncia Actualizada',
-    estado: 'en_proceso',
-    procedimientos: procsConId
-  }
-
-  // Ejecutar lógica de PUT usando Prisma transaction directamente
-  const cotizacionEditada = await prisma.$transaction(async (tx) => {
-    const existentes = await tx.procedimientoCotizacion.findMany({
-      where: { cotizacion_id: cotizacion.id },
-      select: { id: true }
-    })
-    const idsExistentes = new Set(existentes.map(p => p.id))
-    const idsEnPayload = new Set(payloadEdit.procedimientos.map(p => p.id))
-
-    const idsABorrar = [...idsExistentes].filter(pid => !idsEnPayload.has(pid))
-    if (idsABorrar.length > 0) {
-      await tx.procedimientoCotizacion.deleteMany({
-        where: { id: { in: idsABorrar }, cotizacion_id: cotizacion.id }
-      })
-    }
-
-    for (const p of payloadEdit.procedimientos.filter(p => p.id && idsExistentes.has(p.id))) {
-      const { id: procId, ...datos } = p
-      await tx.procedimientoCotizacion.update({ where: { id: procId }, data: datos })
-    }
-
-    return tx.cotizacion.findUnique({
-      where: { id: cotizacion.id },
-      include: { procedimientos: { orderBy: { orden: 'asc' } } }
-    })
-  })
-
-  const newIds = cotizacionEditada.procedimientos.map(p => p.id)
-  assert.deepStrictEqual(newIds, originalIds, 'Los IDs de los procedimientos deben ser exactamente iguales después del PUT')
-
-  // Limpieza de datos
-  await prisma.procedimientoCotizacion.deleteMany({ where: { cotizacion_id: cotizacion.id } })
-  await prisma.cotizacion.delete({ where: { id: cotizacion.id } })
-})
-
-test('Tarea B & C: Vincular Cita con ProcedimientoCotizacion deriva subtotal y avanza estado a realizado al asistir', async () => {
-  let consultorio = await prisma.configuracion.findFirst()
-  let paciente = await prisma.paciente.findFirst({ where: { consultorio_id: consultorio.id } })
-
-  // 1. Crear cotización con 1 procedimiento que incluye 20% de descuento ($100.000 -> $80.000)
-  const cotizacion = await prisma.cotizacion.create({
-    data: {
-      consultorio_id: consultorio.id,
-      paciente_id: paciente.id,
-      tipo_tratamiento: 'Rehabilitación',
-      estado: 'aprobado',
-      total: 80000,
-      total_pagado: 0,
-      saldo: 80000,
-      procedimientos: {
-        create: [
-          {
-            procedimiento: 'Corona Porcelana',
-            cantidad: 1,
-            valor_unitario: 100000,
-            descuento: 20,
-            subtotal: 80000,
-            estado: 'pendiente'
-          }
-        ]
+    // 2. Crear Cita vinculada a procCot sin especificar valor_cobrado
+    const cita = await prisma.cita.create({
+      data: {
+        consultorio_id: consultorio.id,
+        paciente_id: paciente.id,
+        fecha_hora: new Date('2026-09-01T10:00:00Z'),
+        procedimiento: procCot.procedimiento,
+        procedimiento_cotizacion_id: procCot.id,
+        valor_cobrado: procCot.subtotal,
+        estado: 'pendiente'
       }
-    },
-    include: { procedimientos: true }
-  })
+    })
 
-  const procCot = cotizacion.procedimientos[0]
+    citaId = cita.id
+    assert.strictEqual(Number(cita.valor_cobrado), 80000, 'El valor cobrado derivado debe ser el subtotal cotizado con descuento ($80.000)')
 
-  // 2. Crear Cita vinculada a procCot sin especificar valor_cobrado
-  const cita = await prisma.cita.create({
-    data: {
-      consultorio_id: consultorio.id,
-      paciente_id: paciente.id,
-      fecha_hora: new Date('2026-09-01T10:00:00Z'),
-      procedimiento: procCot.procedimiento,
-      procedimiento_cotizacion_id: procCot.id,
-      valor_cobrado: procCot.subtotal, // En el endpoint se deriva procCot.subtotal
-      estado: 'pendiente'
+    // 3. Simular que la cita pasa a "asistio" (Tarea C)
+    await prisma.cita.update({ where: { id: cita.id }, data: { estado: 'asistio' } })
+    await prisma.procedimientoCotizacion.update({ where: { id: procCot.id }, data: { estado: 'realizado' } })
+
+    const procCotActualizado = await prisma.procedimientoCotizacion.findUnique({ where: { id: procCot.id } })
+    assert.strictEqual(procCotActualizado.estado, 'realizado', 'El procedimiento cotizado debe pasar a estado realizado')
+  } finally {
+    if (citaId) {
+      await prisma.cita.deleteMany({ where: { id: citaId } }).catch(() => {})
     }
-  })
-
-  assert.strictEqual(Number(cita.valor_cobrado), 80000, 'El valor cobrado derivado debe ser el subtotal cotizado con descuento ($80.000)')
-
-  // 3. Simular que la cita pasa a "asistio" (Tarea C)
-  await prisma.cita.update({ where: { id: cita.id }, data: { estado: 'asistio' } })
-  await prisma.procedimientoCotizacion.update({ where: { id: procCot.id }, data: { estado: 'realizado' } })
-
-  const procCotActualizado = await prisma.procedimientoCotizacion.findUnique({ where: { id: procCot.id } })
-  assert.strictEqual(procCotActualizado.estado, 'realizado', 'El procedimiento cotizado debe pasar a estado realizado')
-
-  // Limpieza
-  await prisma.cita.delete({ where: { id: cita.id } })
-  await prisma.procedimientoCotizacion.deleteMany({ where: { cotizacion_id: cotizacion.id } })
-  await prisma.cotizacion.delete({ where: { id: cotizacion.id } })
+    if (cotizacionId) {
+      await prisma.procedimientoCotizacion.deleteMany({ where: { cotizacion_id: cotizacionId } }).catch(() => {})
+      await prisma.cotizacion.deleteMany({ where: { id: cotizacionId } }).catch(() => {})
+    }
+    if (paciente) {
+      await prisma.paciente.deleteMany({ where: { id: paciente.id } }).catch(() => {})
+    }
+    if (consultorio) {
+      await prisma.configuracion.deleteMany({ where: { id: consultorio.id } }).catch(() => {})
+    }
+  }
 })

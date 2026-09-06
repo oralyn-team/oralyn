@@ -5,40 +5,27 @@ const generarCertificadoPDF = require('../../src/pdf/generators/generarCertifica
 const { resolverFirmaDoctor } = require('../../src/pdf/helpers/generarPDF')
 
 test('Verificación de fallback de firma por profesional_default sobre titular_default', async () => {
-  let consultorioOriginal = await prisma.configuracion.findFirst()
-  const firmaOriginal = consultorioOriginal?.firma_doctor_default || null
+  let consultorioTest = null
+  let profesionalTest = null
 
   try {
-    // 1. Configurar consultorio con firma_doctor_default del titular
     const firmaTitularMock = 'data:image/png;base64,FIRMA_TITULAR_Y'
-    if (!consultorioOriginal) {
-      consultorioOriginal = await prisma.configuracion.create({
-        data: {
-          nombre_consultorio: 'Consultorio Test Firma Prof',
-          nombre_profesional: 'Dra. Titular',
-          firma_doctor_default: firmaTitularMock
-        }
-      })
-    } else {
-      await prisma.configuracion.update({
-        where: { id: consultorioOriginal.id },
-        data: { firma_doctor_default: firmaTitularMock }
-      })
-    }
-
-    // 2. Crear o actualizar un Profesional con firma_default reconocible 'FIRMA_PROF_X'
     const firmaProfMock = 'data:image/png;base64,FIRMA_PROF_X'
-    const profesionalTest = await prisma.profesional.upsert({
-      where: { id: 9999 },
-      update: {
-        nombre_completo: 'Dr. Profesional Test Especial',
-        cedula_profesional: '99999999',
-        firma_default: firmaProfMock,
-        activo: true
-      },
-      create: {
+
+    // 1. Crear un consultorio de prueba aislado con firma_doctor_default del titular
+    consultorioTest = await prisma.configuracion.create({
+      data: {
+        nombre_consultorio: 'Consultorio Test Prof Isolated',
+        nombre_profesional: 'Dra. Titular Isolated',
+        firma_doctor_default: firmaTitularMock
+      }
+    })
+
+    // 2. Crear un Profesional aislado vinculado a ese consultorio de prueba
+    profesionalTest = await prisma.profesional.create({
+      data: {
         id: 9999,
-        consultorio_id: consultorioOriginal.id,
+        consultorio_id: consultorioTest.id,
         nombre_completo: 'Dr. Profesional Test Especial',
         cedula_profesional: '99999999',
         firma_default: firmaProfMock,
@@ -62,7 +49,7 @@ test('Verificación de fallback de firma por profesional_default sobre titular_d
     }
 
     // 4. Probar resolución directa con resolverFirmaDoctor
-    const resolucion = await resolverFirmaDoctor(certificadoSinFirmaDoctor, consultorioOriginal)
+    const resolucion = await resolverFirmaDoctor(certificadoSinFirmaDoctor, consultorioTest)
     
     assert.equal(
       resolucion.firmaDoctorFinal,
@@ -76,17 +63,16 @@ test('Verificación de fallback de firma por profesional_default sobre titular_d
     )
 
     // 5. Generar PDF de certificado para confirmar que se procesa sin errores
-    const pdfBuffer = await generarCertificadoPDF(certificadoSinFirmaDoctor, consultorioOriginal.id)
+    const pdfBuffer = await generarCertificadoPDF(certificadoSinFirmaDoctor, consultorioTest.id)
     assert.ok(pdfBuffer instanceof Uint8Array, 'Debe generar el PDF correctamente como Uint8Array/Buffer')
     assert.ok(pdfBuffer.length > 1000, 'El PDF generado debe tener un tamaño razonable')
   } finally {
-    // Limpieza estricta post-test para no dejar basura en BD real
-    if (consultorioOriginal) {
-      await prisma.configuracion.update({
-        where: { id: consultorioOriginal.id },
-        data: { firma_doctor_default: firmaOriginal }
-      }).catch(() => {})
+    // Limpieza estricta post-test
+    if (profesionalTest) {
+      await prisma.profesional.deleteMany({ where: { id: profesionalTest.id } }).catch(() => {})
     }
-    await prisma.profesional.deleteMany({ where: { id: 9999 } }).catch(() => {})
+    if (consultorioTest) {
+      await prisma.configuracion.deleteMany({ where: { id: consultorioTest.id } }).catch(() => {})
+    }
   }
 })

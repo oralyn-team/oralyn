@@ -2,6 +2,9 @@ function matchesWhere(row, where = {}) {
   if (!where) return true;
   return Object.entries(where).every(([key, expected]) => {
     if (expected === undefined) return true;
+    if (key === 'activo' && row.activo === undefined) {
+      return expected === true;
+    }
     
     // Match OR clauses
     if (key === 'OR' && Array.isArray(expected)) {
