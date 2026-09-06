@@ -72,6 +72,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
   const [loadingCie10, setLoadingCie10] = useState(false);
   const [cotizacionesPendientes, setCotizacionesPendientes] = useState([]);
   const [loadingCotizaciones, setLoadingCotizaciones] = useState(false);
+  const [profesionales, setProfesionales] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -87,6 +88,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
         if (isMounted) setLoadingCie10(false);
       });
     return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function calcDoctorDefault() {
@@ -115,9 +117,33 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
           codigo_cie10: citaEditar.codigo_cie10 ?? citaEditar.codigoCie10 ?? '',
           valor_cobrado: citaEditar.valor_cobrado ?? citaEditar.valorCobrado ?? '',
           estado: citaEditar.estado || 'Pendiente',
+          profesional_id: citaEditar.profesional_id ?? citaEditar.profesionalId ?? '',
         }
       : { ...VACIO, fecha: getFechaHoy(), doctor: calcDoctorDefault(), codigo_cie10: 'Z012' }
   ));
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getProfesionales()
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setProfesionales(data);
+          const activos = data.filter((p) => p.activo !== false);
+          if (activos.length === 1) {
+            setForm((prev) => ({
+              ...prev,
+              profesional_id: prev.profesional_id || activos[0].id,
+              doctor: prev.doctor || activos[0].nombre_completo,
+            }));
+          }
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const profesionalesActivos = profesionales.filter((p) => p.activo !== false);
   const [errs, setErrs] = useState({});
   const esEdicion = Boolean(citaEditar);
 
@@ -155,6 +181,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
         if (isMounted) setLoadingCotizaciones(false);
       });
     return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.pacienteId]);
 
   useEffect(() => {
@@ -164,12 +191,20 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
         setForm((prev) => ({ ...prev, doctor: def }));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuariosConsultorio, configuracion]);
 
   function handleChange(e) {
     const { name, value } = e.target;
 
-    if (name === 'pacienteId') {
+    if (name === 'profesional_id') {
+      const sel = profesionales.find((p) => String(p.id) === String(value));
+      setForm((prev) => ({
+        ...prev,
+        profesional_id: value,
+        doctor: sel ? sel.nombre_completo : prev.doctor,
+      }));
+    } else if (name === 'pacienteId') {
       const pac = pacientes.find(
         (p) => String(p.id) === value
       );
@@ -293,6 +328,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
       valor_cobrado: form.valor_cobrado !== '' && form.valor_cobrado !== null ? Number(form.valor_cobrado) : null,
 
       doctor: form.doctor,
+      profesional_id: form.profesional_id ? Number(form.profesional_id) : null,
 
       estado: form.estado,
 
@@ -513,6 +549,22 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
               })()}
             </Field>
           </div>
+
+          <Field label="Profesional que atiende">
+            <select
+              name="profesional_id"
+              value={form.profesional_id}
+              onChange={handleChange}
+              className={inputBase}
+            >
+              <option value="">Seleccionar profesional...</option>
+              {profesionalesActivos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre_completo} {p.cedula_profesional ? `(${p.cedula_profesional})` : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <Field label="Doctor">
             <input

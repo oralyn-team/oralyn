@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { ANTECEDENTES_MEDICOS, HABITOS_ORALES, ESTRUCTURAS_ESTOMATOLOGICAS, TIPOS_SANGRE, DIENTES_SUPERIORES, DIENTES_INFERIORES } from '../../data/historiasData';
+import { api } from '../../api';
 
 const TIPOS_AFILIACION = ['Contributivo', 'Subsidiado', 'Particular'];
 
@@ -79,6 +81,28 @@ function SeccionIdentificacion({ form, onChange, editable }) {
     return (e) => onChange({ ...form, [name]: e.target.value });
   }
 
+  const [profesionales, setProfesionales] = useState([]);
+  useEffect(() => {
+    let isMounted = true;
+    api.getProfesionales()
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setProfesionales(data);
+          const activos = data.filter((p) => p.activo !== false);
+          if (!form.profesional_id && activos.length === 1) {
+            onChange({ ...form, profesional_id: activos[0].id });
+          }
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const profesionalesActivos = profesionales.filter((p) => p.activo !== false);
+
+  const profesionalSeleccionado = profesionales.find((p) => String(p.id) === String(form.profesional_id));
+
   // Calcular edad a partir de fecha de nacimiento
   function calcularEdad(fechaNac) {
     if (!fechaNac) return '';
@@ -130,6 +154,25 @@ function SeccionIdentificacion({ form, onChange, editable }) {
 
       {/* Campos exclusivos de la historia */}
       <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2">
+          <Label text="Profesional tratante" />
+          {editable ? (
+            <select
+              value={form.profesional_id || ''}
+              onChange={field('profesional_id')}
+              className={`${inputBase} cursor-pointer`}
+            >
+              <option value="">Seleccionar profesional...</option>
+              {profesionalesActivos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre_completo} {p.cedula_profesional ? `(${p.cedula_profesional})` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-[12px] text-[#1a3a3a] px-2.5 py-1.5">{profesionalSeleccionado ? profesionalSeleccionado.nombre_completo : '—'}</p>
+          )}
+        </div>
         <div>
           <Label text="Departamento" />
           {editable
