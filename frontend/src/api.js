@@ -216,6 +216,7 @@ export const api = {
   // Configuración
   getConfiguracion: () => request('/configuracion'),
   actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
+  subirLogo: (data) => request('/configuracion/logo', { method: 'POST', body: JSON.stringify(data) }),
 
   // Catálogo de Procedimientos CUPS y CIE-10 (Backend Real)
   getCatalogoOficial: (params) => request(`/catalogo-cups${buildQuery(params)}`),
