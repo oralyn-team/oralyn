@@ -140,7 +140,7 @@ test('Auth Login: Inicia sesión correctamente con credenciales válidas, no ret
   })
 
   assert.equal(response.status, 200)
-  assert.ok(body.token, 'Debe retornar el token JWT en el body de respuesta')
+  assert.equal(body.token, undefined, 'El token JWT crudo no debe exponerse en el body de respuesta')
   assert.equal(body.usuario.email, 'doctor@oralyn.test')
   assert.equal(body.usuario.consultorio_id, 10)
 
