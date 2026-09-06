@@ -5,6 +5,7 @@ import { api } from '../api';
 
 import Sidebar from '../components/layout/Sidebar';
 import Topbar  from '../components/layout/Topbar';
+import ProfesionalesSeccion from '../components/configuracion/ProfesionalesSeccion';
 
 import {
   Settings,
@@ -986,6 +987,9 @@ function TabAjustesGenerales() {
           </div>
         </div>
       </form>
+
+      {/* Sección de Profesionales del Consultorio */}
+      <ProfesionalesSeccion mostrarToast={mostrarToast} />
 
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 shadow-soft-lg flex items-center gap-2 border border-white/10 animate-toast">

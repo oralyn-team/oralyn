@@ -355,7 +355,15 @@ export const api = {
   transferirPropiedad: (data) => request('/usuarios/transferir-propiedad', { method: 'POST', body: JSON.stringify(data) }),
 
   // Configuración / Facturación Test
-  probarConexionFactus: () => request('/configuracion/facturacion/test', { method: 'POST' })
+  probarConexionFactus: () => request('/configuracion/facturacion/test', { method: 'POST' }),
+
+  // Profesionales
+  getProfesionales: () => request('/profesionales'),
+  crearProfesional: (data) => request('/profesionales', { method: 'POST', body: JSON.stringify(data) }),
+  actualizarFirmaProfesional: (id, firma_default) =>
+    request(`/profesionales/${id}/firma-default`, { method: 'PUT', body: JSON.stringify({ firma_default }) }),
+  actualizarProfesional: (id, data) =>
+    request(`/profesionales/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 }
 
 
