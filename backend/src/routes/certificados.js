@@ -11,7 +11,7 @@ router.use(verificarToken)
 router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN
 
 router.post('/', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async (req, res) => {
-  const { paciente_id, cita_id, tipo_cita_texto, fecha_expedicion, ciudad } = req.body
+  const { paciente_id, cita_id, tipo_cita_texto, fecha_expedicion, ciudad, profesional_id } = req.body
 
   if (!paciente_id || !tipo_cita_texto || !fecha_expedicion) {
     return res.status(400).json({ error: 'Paciente, tipo de cita y fecha son obligatorios' })
@@ -33,7 +33,8 @@ router.post('/', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async (req,
         cita_id: cita_id || null,
         tipo_cita_texto,
         fecha_expedicion: new Date(fecha_expedicion),
-        ciudad: ciudad || 'Villavicencio'
+        ciudad: ciudad || 'Villavicencio',
+        profesional_id: profesional_id ? Number(profesional_id) : null
       }
     })
 
@@ -157,6 +158,7 @@ router.get("/:id/pdf", requirePermission(PERMISSIONS.CERTIFICADOS_READ), async (
       },
       include: {
         paciente: true,
+        profesional: true,
       },
     });
 

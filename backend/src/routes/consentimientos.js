@@ -11,7 +11,7 @@ router.use(verificarToken)
 router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de ver/modificar consentimientos
 
 router.post('/', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (req, res) => {
-  const { paciente_id, tipo, ciudad, campos_especificos, nombre_paciente_declarado, cc_paciente_declarado, firma_paciente, cc_profesional, firma_doctor } = req.body
+  const { paciente_id, tipo, ciudad, campos_especificos, nombre_paciente_declarado, cc_paciente_declarado, firma_paciente, cc_profesional, firma_doctor, profesional_id } = req.body
 
   if (!paciente_id || !tipo) {
     return res.status(400).json({ error: 'Paciente y tipo de consentimiento son obligatorios' })
@@ -39,7 +39,8 @@ router.post('/', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (r
         cc_paciente_declarado,
         firma_paciente,
         cc_profesional,
-        firma_doctor
+        firma_doctor,
+        profesional_id: profesional_id ? Number(profesional_id) : null
       }
     })
 
@@ -93,7 +94,7 @@ router.get('/:id', requirePermission(PERMISSIONS.CONSENTIMIENTOS_READ), async (r
 
 router.patch('/:id/firmas', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (req, res) => {
   const id = parseInt(req.params.id)
-  const { firma_paciente, nombre_paciente_declarado, cc_paciente_declarado, firma_doctor, cc_profesional } = req.body
+  const { firma_paciente, nombre_paciente_declarado, cc_paciente_declarado, firma_doctor, cc_profesional, profesional_id } = req.body
 
   try {
     const existe = await prisma.consentimiento.findFirst({
@@ -103,7 +104,7 @@ router.patch('/:id/firmas', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE
 
     const consentimiento = await prisma.consentimiento.update({
       where: { id },
-      data: { firma_paciente, nombre_paciente_declarado, cc_paciente_declarado, firma_doctor, cc_profesional, pdf_generado_en: new Date() }
+      data: { firma_paciente, nombre_paciente_declarado, cc_paciente_declarado, firma_doctor, cc_profesional, profesional_id: profesional_id ? Number(profesional_id) : undefined, pdf_generado_en: new Date() }
     })
 
     await registrarAuditoria({
@@ -206,6 +207,7 @@ router.get("/:id/pdf", requirePermission(PERMISSIONS.CONSENTIMIENTOS_READ), asyn
       },
       include: {
         paciente: true,
+        profesional: true,
       },
     });
 
