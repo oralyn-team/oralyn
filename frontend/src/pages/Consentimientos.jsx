@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   BadgeCheck,
   CalendarDays,
@@ -183,9 +183,6 @@ function Campo({ label, children }) {
   );
 }
 
-const inputClass =
-  'w-full px-3 py-2 border border-teal-border rounded-lg text-[12px] text-[#1a3a3a] bg-white outline-none focus:border-teal transition-colors';
-
 export default function Consentimientos() {
   const { pacientes, loading, error } = useApp();
 
@@ -199,6 +196,19 @@ export default function Consentimientos() {
   const [mensaje, setMensaje] = useState(null);
   const [errorDocs, setErrorDocs] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profesionales, setProfesionales] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getProfesionales()
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) setProfesionales(data);
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  const profesionalesActivos = profesionales.filter((p) => p.activo !== false);
 
   const pacienteSeleccionado = useMemo(
     () => pacientes.find((p) => p.id === Number(pacienteId)) || null,
@@ -231,6 +241,7 @@ export default function Consentimientos() {
     nombre_paciente_declarado: '',
     cc_paciente_declarado: '',
     cc_profesional: '',
+    profesional_id: '',
   });
 
   const [certificadoForm, setCertificadoForm] = useState({
@@ -270,10 +281,14 @@ export default function Consentimientos() {
     setConsentimientos([]);
     setCertificados([]);
 
+    const pDef = profesionalesActivos.length === 1 ? profesionalesActivos[0] : null;
+
     setConsentimientoForm((prev) => ({
       ...prev,
       nombre_paciente_declarado: nombreCompleto(paciente),
       cc_paciente_declarado: paciente.numero_documento || '',
+      profesional_id: pDef ? pDef.id : prev.profesional_id,
+      cc_profesional: pDef ? (pDef.cedula_profesional || prev.cc_profesional) : prev.cc_profesional,
     }));
 
     cargarDocumentos(paciente.id);
@@ -298,6 +313,7 @@ export default function Consentimientos() {
     try {
       await api.crearConsentimiento({
         paciente_id: Number(pacienteId),
+        profesional_id: consentimientoForm.profesional_id ? Number(consentimientoForm.profesional_id) : null,
         tipo: consentimientoForm.tipo,
         ciudad: consentimientoForm.ciudad || 'Villavicencio',
 
@@ -642,7 +658,7 @@ export default function Consentimientos() {
                             </div>
                             <button
                               type="button"
-                              onClick={firmaPaciente.limpiar}
+                              onClick={() => firmaPaciente.limpiar()}
                               className="mt-1.5 text-[11px] text-status-red dark:text-red-400 hover:underline cursor-pointer"
                             >
                               Limpiar firma
@@ -659,7 +675,7 @@ export default function Consentimientos() {
                             </div>
                             <button
                               type="button"
-                              onClick={firmaDoctor.limpiar}
+                              onClick={() => firmaDoctor.limpiar()}
                               className="mt-1.5 text-[11px] text-status-red dark:text-red-400 hover:underline cursor-pointer"
                             >
                               Limpiar firma
@@ -667,6 +683,29 @@ export default function Consentimientos() {
                           </Campo>
 
                         </div>
+
+                        <Campo label="Profesional que atiende">
+                          <select
+                            value={consentimientoForm.profesional_id}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const p = profesionales.find((item) => String(item.id) === String(val));
+                              setConsentimientoForm((prev) => ({
+                                ...prev,
+                                profesional_id: val,
+                                cc_profesional: p ? (p.cedula_profesional || prev.cc_profesional) : prev.cc_profesional,
+                              }));
+                            }}
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px] appearance-none"
+                          >
+                            <option value="">Seleccionar profesional...</option>
+                            {profesionalesActivos.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.nombre_completo} {p.cedula_profesional ? `(${p.cedula_profesional})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </Campo>
 
                         <Campo label="CC profesional">
                           <input

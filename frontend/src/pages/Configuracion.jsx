@@ -5,6 +5,7 @@ import { api } from '../api';
 
 import Sidebar from '../components/layout/Sidebar';
 import Topbar  from '../components/layout/Topbar';
+import ProfesionalesSeccion from '../components/configuracion/ProfesionalesSeccion';
 
 import {
   Settings,
@@ -36,7 +37,8 @@ import {
   CheckCircle2,
   CalendarDays,
   Globe,
-  Lock
+  Lock,
+  Upload
 } from 'lucide-react';
 
 // ── Categorías predefinidas (sirven como opciones en el modal) ─────────────────
@@ -785,6 +787,9 @@ function TabAjustesGenerales() {
   const [toast, setToast]     = useState(null);
   const [existeConfig, setExisteConfig] = useState(false);
 
+  const [logoUrl, setLogoUrl] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
   async function loadConfiguracion() {
     try {
       setLoading(true);
@@ -801,6 +806,7 @@ function TabAjustesGenerales() {
           ciudad:    data.ciudad    || 'Villavicencio',
           email:     data.email     || ''
         });
+        if (data.logo_url) setLogoUrl(data.logo_url);
         setExisteConfig(true);
       }
     } catch (err) {
@@ -816,6 +822,41 @@ function TabAjustesGenerales() {
   function mostrarToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
+  }
+
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      mostrarToast('Por favor selecciona un archivo de imagen válido.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      mostrarToast('La imagen debe pesar menos de 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result;
+      if (!base64) return;
+      setUploadingLogo(true);
+      try {
+        const updatedConfig = await api.subirLogo({ logo: base64 });
+        if (updatedConfig?.logo_url) {
+          setLogoUrl(updatedConfig.logo_url);
+          setConfiguracion((prev) => ({ ...prev, logo_url: updatedConfig.logo_url }));
+        }
+        mostrarToast('Logo subido y guardado exitosamente');
+      } catch (err) {
+        mostrarToast(err?.error || err?.message || 'Error al subir el logo');
+      } finally {
+        setUploadingLogo(false);
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   async function handleSubmit(e) {
@@ -943,6 +984,43 @@ function TabAjustesGenerales() {
                 </div>
               </div>
             </div>
+
+            {/* Logo del Consultorio */}
+            <div className="pt-2 border-t border-teal-soft dark:border-dark-border">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-2">
+                Logo del Consultorio
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl border border-teal-border dark:border-dark-border bg-slate-50 dark:bg-dark-input flex items-center justify-center overflow-hidden flex-shrink-0 relative group">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo consultorio" className="w-full h-full object-contain p-1" />
+                  ) : (
+                    <Building2 size={24} className="text-teal-muted dark:text-slate-500" />
+                  )}
+                  {uploadingLogo && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <Loader2 size={16} className="animate-spin text-white" />
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1.5 flex-1">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium text-primary dark:text-teal bg-teal-soft/80 dark:bg-slate-800 hover:bg-teal-soft dark:hover:bg-slate-700 rounded-lg border border-teal-border dark:border-dark-border transition-colors cursor-pointer touch-target">
+                    {uploadingLogo ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                    {uploadingLogo ? 'Subiendo...' : 'Cargar o cambiar logo'}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      disabled={uploadingLogo}
+                    />
+                  </label>
+                  <p className="text-[10px] text-teal-muted dark:text-slate-400">
+                    PNG, JPG, WEBP o SVG (máx. 5MB). Se utilizará en impresiones y documentos PDF.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Datos del Profesional */}
@@ -986,6 +1064,9 @@ function TabAjustesGenerales() {
           </div>
         </div>
       </form>
+
+      {/* Sección de Profesionales del Consultorio */}
+      <ProfesionalesSeccion mostrarToast={mostrarToast} />
 
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 shadow-soft-lg flex items-center gap-2 border border-white/10 animate-toast">
