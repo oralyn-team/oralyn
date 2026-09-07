@@ -46,9 +46,9 @@
   <img src="{{firma_doctor}}" alt="Firma" style="height:70px;display:block;margin-bottom:4px"/>
   {{/if}}
   <div class="firma-linea"></div>
-  <div class="firma-nombre"><strong>{{config.nombre_profesional}}</strong></div>
-<div class="firma-cargo">Odontólogo</div>
-<div class="firma-cargo">Reg. {{config.registro_profesional}}</div>
+  <div class="firma-nombre"><strong>{{#if profesional}}{{profesional.nombre_completo}}{{else}}{{config.nombre_profesional}}{{/if}}</strong></div>
+  <div class="firma-cargo">Odontólogo</div>
+  <div class="firma-cargo">{{#if profesional}}{{#if profesional.cedula_profesional}}Reg. {{profesional.cedula_profesional}}{{/if}}{{else}}Reg. {{config.registro_profesional}}{{/if}}</div>
 </div>
 
 </body>

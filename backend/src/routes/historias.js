@@ -51,6 +51,7 @@ router.post('/:pacienteId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_CREAT
     antecedentes,
     examen,
     odontograma,
+    profesional_id,
   } = req.body
 
   const trimmedMotivo = motivo_consulta ? String(motivo_consulta).trim() : ''
@@ -94,6 +95,7 @@ router.post('/:pacienteId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_CREAT
           tipo_sangre,
           rh,
           alergias,
+          profesional_id: profesional_id ? Number(profesional_id) : null,
         }
       })
 
@@ -294,6 +296,7 @@ router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async
           tipo_sangre:                datos.tipo_sangre     ?? null,
           rh:                         datos.rh              ?? null,
           alergias:                   datos.alergias        ?? null,
+          profesional_id:             datos.profesional_id !== undefined ? (datos.profesional_id ? Number(datos.profesional_id) : null) : undefined,
         }
       })
 
@@ -374,6 +377,7 @@ router.post('/:historiaId/evoluciones', requirePermission(PERMISSIONS.CLINICAL_R
     recomendaciones,
     proximo_control,
     observaciones,
+    profesional_id,
   } = req.body
 
   if (!procedimiento) {
@@ -404,6 +408,7 @@ router.post('/:historiaId/evoluciones', requirePermission(PERMISSIONS.CLINICAL_R
         recomendaciones: recomendaciones ?? null,
         proximo_control: proximo_control ? new Date(proximo_control) : null,
         observaciones:   observaciones   ?? null,
+        profesional_id:   profesional_id  ? Number(profesional_id) : null,
       }
     })
 
@@ -540,6 +545,7 @@ router.put('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSION
     fecha, doctor, motivo, diagnostico, procedimiento,
     piezas_tratadas, tratamiento, estado_clinico,
     recomendaciones, proximo_control, observaciones,
+    profesional_id,
   } = req.body
 
   if (isNaN(historiaId) || isNaN(evolucionId)) {
@@ -577,6 +583,7 @@ router.put('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSION
         recomendaciones: recomendaciones ?? null,
         proximo_control: proximo_control ? new Date(proximo_control) : null,
         observaciones:   observaciones   ?? null,
+        profesional_id:   profesional_id  !== undefined ? (profesional_id ? Number(profesional_id) : null) : undefined,
       }
     })
 
@@ -778,6 +785,7 @@ router.get('/:id/pdf', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ), asy
         examen: true,
         odontogramas: true,
         evoluciones: { orderBy: { fecha: 'desc' } },
+        profesional: true,
       }
     })
 
