@@ -104,7 +104,7 @@ router.post('/', requirePermission(PERMISSIONS.APPOINTMENTS_CREATE), async (req,
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_CITA',
       modulo: 'Citas',
@@ -231,7 +231,7 @@ router.patch('/:id/estado', requirePermission(PERMISSIONS.APPOINTMENTS_UPDATE), 
 
     const diferencias = calcularDiferencias({ estado: existe.estado }, { estado: cita.estado }, ['estado'])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CAMBIAR_ESTADO_CITA',
       modulo: 'Citas',
@@ -323,7 +323,7 @@ router.put('/:id', requirePermission(PERMISSIONS.APPOINTMENTS_UPDATE), async (re
 
     const diferencias = calcularDiferencias(existe, cita, ['fecha_hora', 'procedimiento', 'doctor', 'estado', 'valor_cobrado'])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_CITA',
       modulo: 'Citas',
@@ -350,7 +350,7 @@ router.delete('/:id', requirePermission(PERMISSIONS.APPOINTMENTS_CANCEL), async 
 
     await prisma.cita.update({ where: { id }, data: { estado: 'cancelada' } })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CANCELAR_CITA',
       modulo: 'Citas',

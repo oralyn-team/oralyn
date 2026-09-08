@@ -184,7 +184,7 @@ router.get('/:id/descargar', requirePermission(PERMISSIONS.RIPS_READ), async (re
     const fFinStr = gen.fecha_fin.toISOString().split('T')[0]
     const json = gen.json_generado || {}
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'DESCARGAR_RIPS',
       modulo: 'RIPS',
@@ -275,7 +275,7 @@ router.post('/generar', requirePermission(PERMISSIONS.RIPS_CREATE), async (req, 
     const fInicioStr = snapshot.fecha_inicio.toISOString().split('T')[0]
     const fFinStr = snapshot.fecha_fin.toISOString().split('T')[0]
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'GENERAR_RIPS',
       modulo: 'RIPS',
@@ -329,7 +329,7 @@ router.delete('/:id', requirePermission(PERMISSIONS.RIPS_CREATE), async (req, re
       where: { id }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ELIMINAR_RIPS',
       modulo: 'RIPS',

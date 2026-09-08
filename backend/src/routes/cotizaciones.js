@@ -208,7 +208,7 @@ router.post('/', requirePermission(PERMISSIONS.TREATMENTS_CREATE), async (req, r
       })
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_TRATAMIENTO',
       modulo: 'Tratamientos',
@@ -366,7 +366,7 @@ router.put('/:id', requirePermission(PERMISSIONS.TREATMENTS_UPDATE), async (req,
 
     const diferencias = calcularDiferencias(existe, cotizacion, ['estado', 'total', 'saldo', 'prioridad'])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_TRATAMIENTO',
       modulo: 'Tratamientos',
@@ -401,7 +401,7 @@ router.patch('/:id/estado', requirePermission(PERMISSIONS.TREATMENTS_UPDATE), as
 
     const diferencias = calcularDiferencias({ estado: existe.estado }, { estado: cotizacion.estado }, ['estado'])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CAMBIAR_ESTADO_TRATAMIENTO',
       modulo: 'Tratamientos',
@@ -432,7 +432,7 @@ router.delete('/:id', requirePermission(PERMISSIONS.TREATMENTS_DELETE), async (r
       await tx.cotizacion.delete({ where: { id } })
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ELIMINAR_TRATAMIENTO',
       modulo: 'Tratamientos',

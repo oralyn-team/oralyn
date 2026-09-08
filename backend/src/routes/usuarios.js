@@ -82,7 +82,7 @@ router.post('/', requirePermission(PERMISSIONS.USERS_CREATE), async (req, res) =
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_USUARIO',
       modulo: 'Usuarios',
@@ -158,7 +158,7 @@ router.post('/transferir-propiedad', requirePermission(PERMISSIONS.USERS_TRANSFE
       return { promocionado, degradado }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'TRANSFERIR_PROPIEDAD',
       modulo: 'Usuarios',
@@ -225,7 +225,7 @@ router.patch('/:id/status', requirePermission(PERMISSIONS.USERS_DISABLE), async 
       ['activo']
     )
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion,
       modulo: 'Usuarios',
@@ -294,7 +294,7 @@ router.patch('/:id/role', requirePermission(PERMISSIONS.USERS_UPDATE), async (re
       ['rol']
     )
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CAMBIAR_ROL_USUARIO',
       modulo: 'Usuarios',
