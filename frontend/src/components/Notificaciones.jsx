@@ -41,8 +41,23 @@ const LABEL_TIPO = {
  */
 export default function Notificaciones({ notificaciones }) {
   const [abierto, setAbierto]         = useState(false);
-  const [leidas, setLeidas]           = useState(new Set());
+  const [leidas, setLeidas]           = useState(() => {
+    try {
+      const guardado = localStorage.getItem('notificaciones_leidas');
+      return guardado ? new Set(JSON.parse(guardado)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const ref                           = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('notificaciones_leidas', JSON.stringify([...leidas]));
+    } catch {
+      // Ignorar errores de quota/incógnito en localStorage
+    }
+  }, [leidas]);
 
   const sinLeer = notificaciones.filter((n) => !leidas.has(n.id)).length;
 
