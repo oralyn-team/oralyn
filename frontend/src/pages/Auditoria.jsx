@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   ShieldCheck, Search, Filter, Calendar, RefreshCw, Eye, X,
-  CheckCircle2, XCircle, Building2, User, Activity, ArrowRight
+  CheckCircle2, XCircle, Building2, User, Activity, ArrowRight, Download
 } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/Appcontext';
@@ -15,6 +15,7 @@ export default function Auditoria() {
   const [logs, setLogs] = useState([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
   const [consultorios, setConsultorios] = useState([]);
 
@@ -70,6 +71,18 @@ export default function Auditoria() {
     cargarAuditoria();
   };
 
+  const handleExportar = async () => {
+    setExporting(true);
+    try {
+      await api.exportarAuditoriaCsv(filtros);
+    } catch (err) {
+      console.error('Error al exportar auditoría:', err);
+      setError(err.message || 'Error al exportar los registros a CSV');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleLimpiarFiltros = () => {
     setFiltros({
       consultorio_id: '',
@@ -106,19 +119,30 @@ export default function Auditoria() {
                   : 'Trazabilidad e historial inmutable de acciones en su consultorio'}
               </p>
             </div>
-            <button
-              onClick={cargarAuditoria}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Actualizar</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportar}
+                disabled={exporting || loading}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+                title="Exportar registros filtrados a CSV"
+              >
+                <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : ''}`} />
+                <span>{exporting ? 'Exportando...' : 'Exportar CSV'}</span>
+              </button>
+              <button
+                onClick={cargarAuditoria}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>Actualizar</span>
+              </button>
+            </div>
           </div>
 
           {/* Barra de Filtros */}
           <form onSubmit={handleBuscarSubmit} className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-soft border border-slate-200/80 dark:border-slate-800 mb-6 flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
               {/* Buscador textual */}
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
@@ -146,6 +170,28 @@ export default function Auditoria() {
                   </select>
                 </div>
               )}
+
+              {/* Filtro Módulo */}
+              <div>
+                <input
+                  type="text"
+                  placeholder="Módulo (ej. Citas)..."
+                  value={filtros.modulo}
+                  onChange={e => setFiltros(prev => ({ ...prev, modulo: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+                />
+              </div>
+
+              {/* Filtro Acción */}
+              <div>
+                <input
+                  type="text"
+                  placeholder="Acción (ej. CREAR)..."
+                  value={filtros.accion}
+                  onChange={e => setFiltros(prev => ({ ...prev, accion: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium focus:ring-2 focus:ring-primary/20 outline-none"
+                />
+              </div>
 
               {/* Filtro Rol */}
               <div>

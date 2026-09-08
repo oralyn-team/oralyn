@@ -342,6 +342,40 @@ export const api = {
 
   // Auditoría
   getAuditoria: (params) => request(`/auditoria${buildQuery(params)}`),
+  exportarAuditoriaCsv: async (params) => {
+    const url = `${BASE_URL}/auditoria/exportar${buildQuery(params)}`;
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        onUnauthorized?.();
+      }
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Error al exportar los registros de auditoría');
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `auditoria-${new Date().toISOString().split('T')[0]}.csv`;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  },
 
   // Superadministración Plataforma
   getConsultorios: () => request('/admin/consultorios'),
