@@ -19,9 +19,7 @@ import FinancialPanel from './FinancialPanel';
 const BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-function getToken() {
-  return localStorage.getItem('token');
-}
+
 
 // ─── Estilos compartidos ──────────────────────────────────────────────────────
 
@@ -260,7 +258,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
 
     try {
       const res = await fetch(`${BASE_URL}/cotizaciones/${tratamientoEditar.id}/pdf`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+        credentials: 'include',
       });
 
       if (!res.ok) {
