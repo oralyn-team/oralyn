@@ -874,9 +874,9 @@ function TabAjustesGenerales() {
       } else {
         const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/configuracion`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify(form)
         });
@@ -922,21 +922,21 @@ function TabAjustesGenerales() {
   }
 
   return (
-    <>
+    <div className="space-y-6 sm:space-y-8">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 
           {/* Datos del Consultorio */}
-          <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4">
-            <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
-              <Building2 size={15} className="text-teal" /> Datos del Consultorio
+          <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 sm:p-6 shadow-soft-sm space-y-4">
+            <h3 className="text-[14px] font-bold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2.5 flex items-center gap-2">
+              <Building2 size={16} className="text-teal" /> Datos del Consultorio
             </h3>
 
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Nombre del Consultorio *</label>
               <input type="text" required value={form.nombre_consultorio}
                 onChange={e => setForm({...form, nombre_consultorio: e.target.value})}
-                className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Ej: Oralyn Dental" />
+                className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Ej: Oralyn Dental" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -944,13 +944,13 @@ function TabAjustesGenerales() {
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">NIT / Identificación</label>
                 <input type="text" value={form.nit}
                   onChange={e => setForm({...form, nit: e.target.value})}
-                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="NIT o Cédula Jurídica" />
+                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="NIT o Cédula Jurídica" />
               </div>
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Ciudad</label>
                 <input type="text" value={form.ciudad}
                   onChange={e => setForm({...form, ciudad: e.target.value})}
-                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Villavicencio" />
+                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Villavicencio" />
               </div>
             </div>
 
@@ -960,7 +960,7 @@ function TabAjustesGenerales() {
                 <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400" />
                 <input type="text" value={form.direccion}
                   onChange={e => setForm({...form, direccion: e.target.value})}
-                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Calle 15 # 24-30" />
+                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Calle 15 # 24-30" />
               </div>
             </div>
 
@@ -971,7 +971,7 @@ function TabAjustesGenerales() {
                   <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400" />
                   <input type="tel" value={form.telefono}
                     onChange={e => setForm({...form, telefono: e.target.value})}
-                    className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="+57 320 123 4567" />
+                    className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="+57 320 123 4567" />
                 </div>
               </div>
               <div>
@@ -980,7 +980,7 @@ function TabAjustesGenerales() {
                   <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400" />
                   <input type="email" value={form.email}
                     onChange={e => setForm({...form, email: e.target.value})}
-                    className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="contacto@oralyn.com" />
+                    className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="contacto@oralyn.com" />
                 </div>
               </div>
             </div>
@@ -991,7 +991,7 @@ function TabAjustesGenerales() {
                 Logo del Consultorio
               </label>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl border border-teal-border dark:border-dark-border bg-slate-50 dark:bg-dark-input flex items-center justify-center overflow-hidden flex-shrink-0 relative group">
+                <div className="w-16 h-16 rounded-2xl border border-teal-border dark:border-dark-border bg-slate-50 dark:bg-dark-input flex items-center justify-center overflow-hidden flex-shrink-0 relative group shadow-2xs">
                   {logoUrl ? (
                     <img src={logoUrl} alt="Logo consultorio" className="w-full h-full object-contain p-1" />
                   ) : (
@@ -1004,7 +1004,7 @@ function TabAjustesGenerales() {
                   )}
                 </div>
                 <div className="space-y-1.5 flex-1">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium text-primary dark:text-teal bg-teal-soft/80 dark:bg-slate-800 hover:bg-teal-soft dark:hover:bg-slate-700 rounded-lg border border-teal-border dark:border-dark-border transition-colors cursor-pointer touch-target">
+                  <label className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[11.5px] font-semibold text-primary dark:text-teal bg-teal-soft/80 dark:bg-slate-800 hover:bg-teal-soft dark:hover:bg-slate-700 rounded-xl border border-teal-border dark:border-dark-border transition-colors cursor-pointer touch-target">
                     {uploadingLogo ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
                     {uploadingLogo ? 'Subiendo...' : 'Cargar o cambiar logo'}
                     <input
@@ -1015,7 +1015,7 @@ function TabAjustesGenerales() {
                       disabled={uploadingLogo}
                     />
                   </label>
-                  <p className="text-[10px] text-teal-muted dark:text-slate-400">
+                  <p className="text-[10px] text-teal-muted dark:text-slate-400 leading-normal">
                     PNG, JPG, WEBP o SVG (máx. 5MB). Se utilizará en impresiones y documentos PDF.
                   </p>
                 </div>
@@ -1023,18 +1023,18 @@ function TabAjustesGenerales() {
             </div>
           </div>
 
-          {/* Datos del Profesional */}
-          <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4 flex flex-col justify-between">
+          {/* Datos del Profesional Responsable */}
+          <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 sm:p-6 shadow-soft-sm space-y-4 flex flex-col justify-between">
             <div className="space-y-4">
-              <h3 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
-                <UserRound size={15} className="text-teal" /> Datos del Profesional Responsable
+              <h3 className="text-[14px] font-bold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2.5 flex items-center gap-2">
+                <UserRound size={16} className="text-teal" /> Datos del Profesional Responsable
               </h3>
 
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-teal-muted dark:text-slate-400 mb-1">Nombre Completo del Profesional *</label>
                 <input type="text" required value={form.nombre_profesional}
                   onChange={e => setForm({...form, nombre_profesional: e.target.value})}
-                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Ej: Dra. Diana Murillo" />
+                  className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Ej: Dra. Diana Murillo" />
               </div>
 
               <div>
@@ -1043,9 +1043,9 @@ function TabAjustesGenerales() {
                   <FileText size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400" />
                   <input type="text" value={form.registro_profesional}
                     onChange={e => setForm({...form, registro_profesional: e.target.value})}
-                    className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Ej: Reg. Odontología 12345" />
+                    className="w-full text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal font-sans transition-colors min-h-[40px]" placeholder="Ej: Reg. Odontología 12345" />
                 </div>
-                <p className="text-[10px] text-teal-muted dark:text-slate-400 mt-1.5 leading-relaxed">
+                <p className="text-[10.5px] text-teal-muted dark:text-slate-400 mt-2 leading-relaxed">
                   Esta información se imprimirá en los consentimientos informados firmados y certificados de asistencia emitidos.
                 </p>
               </div>
@@ -1055,7 +1055,7 @@ function TabAjustesGenerales() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-75 touch-target cursor-pointer shadow-soft-sm"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 text-[12px] text-white font-semibold bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-75 touch-target cursor-pointer shadow-soft-sm"
               >
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                 {saving ? 'Guardando...' : 'Guardar Configuración'}
@@ -1073,7 +1073,7 @@ function TabAjustesGenerales() {
           <Check size={14} className="text-teal" /> {toast}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
