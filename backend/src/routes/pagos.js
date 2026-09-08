@@ -105,7 +105,7 @@ router.post('/', requirePermission(PERMISSIONS.PAYMENTS_CREATE), async (req, res
       return nuevoPago
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'REGISTRAR_PAGO',
       modulo: 'Pagos',

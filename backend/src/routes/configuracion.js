@@ -83,7 +83,7 @@ router.post('/', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_CONFIGURACION',
       modulo: 'Configuración',
@@ -156,7 +156,7 @@ router.put('/', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res)
 
     const diferencias = calcularDiferencias(configPrevia, config, camposPermitidos)
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_CONFIGURACION',
       modulo: 'Configuración',
@@ -204,7 +204,7 @@ router.put('/firma-doctor-default', requirePermission(PERMISSIONS.SETTINGS_UPDAT
       ['firma_doctor_default', 'firma_doctor_actualizada_en']
     )
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_FIRMA_DOCTOR_DEFAULT',
       modulo: 'Configuración',
@@ -239,7 +239,7 @@ router.post('/facturacion/test', requirePermission(PERMISSIONS.SETTINGS_UPDATE),
       })
     }
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'TEST_CONEXION_FACTUS',
       modulo: 'Configuración',
@@ -321,7 +321,7 @@ router.post('/logo', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req,
       data: { logo_url: logoUrl }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_LOGO_CONSULTORIO',
       modulo: 'Configuración',

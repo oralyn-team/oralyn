@@ -236,7 +236,7 @@ router.post('/', requirePermission(PERMISSIONS.INVOICES_CREATE), async (req, res
         data: { estado: 'rechazada', errores: errorFactus.detalle || { mensaje: errorFactus.message } },
       })
 
-      await registrarAuditoria({
+      registrarAuditoria({
         req,
         accion: 'FACTURA_RECHAZADA_FACTUS',
         modulo: 'Facturación',
@@ -271,7 +271,7 @@ router.post('/', requirePermission(PERMISSIONS.INVOICES_CREATE), async (req, res
       include: { paciente: true, consultorio: true },
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'EMITIR_FACTURA_ELECTRONICA',
       modulo: 'Facturación',
@@ -319,7 +319,7 @@ router.post('/:id/reintentar', requirePermission(PERMISSIONS.INVOICES_CREATE), a
       include: { paciente: true, consultorio: true },
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'REINTENTAR_FACTURA_ELECTRONICA',
       modulo: 'Facturación',
@@ -425,7 +425,7 @@ router.post('/:id/notas-credito', requirePermission(PERMISSIONS.INVOICES_UPDATE)
       include: { paciente: true, consultorio: true },
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_NOTA_CREDITO_FACTURA',
       modulo: 'Facturación',

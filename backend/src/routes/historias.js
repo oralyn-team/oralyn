@@ -142,7 +142,7 @@ router.post('/:pacienteId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_CREAT
       return h
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_HISTORIA_CLINICA',
       modulo: 'Historia Clínica',
@@ -231,7 +231,7 @@ router.get('/detalle/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ),
       return res.status(403).json({ error: 'No autorizado' })
     }
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CONSULTAR_HISTORIA_CLINICA',
       modulo: 'Historia Clínica',
@@ -345,7 +345,7 @@ router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async
       'motivo_consulta', 'diagnostico', 'tratamiento_realizado', 'observaciones', 'recomendaciones'
     ])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_HISTORIA_CLINICA',
       modulo: 'Historia Clínica',
@@ -412,7 +412,7 @@ router.post('/:historiaId/evoluciones', requirePermission(PERMISSIONS.CLINICAL_R
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_EVOLUCION',
       modulo: 'Historia Clínica',
@@ -518,7 +518,7 @@ router.put('/:historiaId/odontograma/:tipo', requirePermission(PERMISSIONS.ODONT
       observaciones,
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_ODONTOGRAMA',
       modulo: 'Odontograma',
@@ -587,7 +587,7 @@ router.put('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSION
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_EVOLUCION',
       modulo: 'Historia Clínica',
@@ -634,7 +634,7 @@ router.delete('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISS
 
     await prisma.hojaEvolucion.delete({ where: { id: evolucionId } })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ELIMINAR_EVOLUCION',
       modulo: 'Historia Clínica',
@@ -713,7 +713,7 @@ router.post('/:historiaId/adjuntos', requirePermission(PERMISSIONS.ATTACHMENTS_C
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'AGREGAR_ADJUNTO',
       modulo: 'Adjuntos',
@@ -757,7 +757,7 @@ router.delete('/:historiaId/adjuntos/:adjuntoId', requirePermission(PERMISSIONS.
 
     await prisma.hcAdjunto.delete({ where: { id: adjuntoId } })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ELIMINAR_ADJUNTO',
       modulo: 'Adjuntos',

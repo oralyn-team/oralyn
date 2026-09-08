@@ -107,7 +107,7 @@ router.post('/', requirePermission(PERMISSIONS.PATIENTS_CREATE), async (req, res
       return nuevoPaciente
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_PACIENTE',
       modulo: 'Pacientes',
@@ -341,7 +341,7 @@ router.put('/:id', requirePermission(PERMISSIONS.PATIENTS_UPDATE), async (req, r
       'nombres', 'primer_apellido', 'segundo_apellido', 'telefono', 'correo', 'direccion_residencia'
     ])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_PACIENTE',
       modulo: 'Pacientes',
@@ -379,7 +379,7 @@ router.delete('/:id', requirePermission(PERMISSIONS.PATIENTS_DELETE), async (req
       data: { activo: false }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ELIMINAR_PACIENTE',
       modulo: 'Pacientes',

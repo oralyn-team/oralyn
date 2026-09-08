@@ -38,7 +38,7 @@ router.post('/', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async (req,
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_CERTIFICADO',
       modulo: 'Certificados',
@@ -100,7 +100,7 @@ router.patch('/:id/anular', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), 
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ANULAR_CERTIFICADO',
       modulo: 'Certificados',
@@ -131,7 +131,7 @@ router.delete('/:id', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async 
 
     await prisma.certificadoDental.delete({ where: { id } })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ELIMINAR_CERTIFICADO',
       modulo: 'Certificados',

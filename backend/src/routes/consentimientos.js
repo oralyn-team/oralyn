@@ -44,7 +44,7 @@ router.post('/', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), async (r
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_CONSENTIMIENTO',
       modulo: 'Consentimientos',
@@ -107,7 +107,7 @@ router.patch('/:id/firmas', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE
       data: { firma_paciente, nombre_paciente_declarado, cc_paciente_declarado, firma_doctor, cc_profesional, profesional_id: profesional_id ? Number(profesional_id) : undefined, pdf_generado_en: new Date() }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'FIRMAR_CONSENTIMIENTO',
       modulo: 'Consentimientos',
@@ -148,7 +148,7 @@ router.patch('/:id/anular', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ANULAR_CONSENTIMIENTO',
       modulo: 'Consentimientos',
@@ -179,7 +179,7 @@ router.delete('/:id', requirePermission(PERMISSIONS.CONSENTIMIENTOS_CREATE), asy
 
     await prisma.consentimiento.delete({ where: { id } })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ELIMINAR_CONSENTIMIENTO',
       modulo: 'Consentimientos',

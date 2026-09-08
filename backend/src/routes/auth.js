@@ -55,7 +55,7 @@ router.post('/registro', async (req, res) => {
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       usuario_id: usuario.id,
       usuario_nombre: usuario.nombre,
@@ -95,7 +95,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const usuario = await prisma.usuario.findUnique({ where: { email } })
 
     if (!usuario) {
-      await registrarAuditoria({
+      registrarAuditoria({
         req,
         accion: 'LOGIN_FALLIDO',
         modulo: 'Autenticación',
@@ -106,7 +106,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     if (usuario.activo === false) {
-      await registrarAuditoria({
+      registrarAuditoria({
         req,
         usuario_id: usuario.id,
         usuario_nombre: usuario.nombre,
@@ -122,7 +122,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const passwordValida = await bcrypt.compare(password, usuario.password_hash)
     if (!passwordValida) {
-      await registrarAuditoria({
+      registrarAuditoria({
         req,
         usuario_id: usuario.id,
         usuario_nombre: usuario.nombre,
@@ -156,7 +156,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       maxAge: 8 * 60 * 60 * 1000 // 8 horas
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       usuario_id: usuario.id,
       usuario_nombre: usuario.nombre,
@@ -185,7 +185,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 // POST /api/auth/logout
 router.post('/logout', verificarToken, async (req, res) => {
   if (req.usuario) {
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'LOGOUT',
       modulo: 'Autenticación',
@@ -225,7 +225,7 @@ router.post('/change-password', verificarToken, async (req, res) => {
 
     const passwordValida = await bcrypt.compare(currentPassword, usuario.password_hash)
     if (!passwordValida) {
-      await registrarAuditoria({
+      registrarAuditoria({
         req,
         accion: 'CAMBIO_PASSWORD_FALLIDO',
         modulo: 'Autenticación',
@@ -245,7 +245,7 @@ router.post('/change-password', verificarToken, async (req, res) => {
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CAMBIO_PASSWORD_EXITOSO',
       modulo: 'Autenticación',

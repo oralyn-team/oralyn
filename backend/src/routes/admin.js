@@ -64,7 +64,7 @@ router.post('/consultorio', async (req, res) => {
       return { consultorio, usuario }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_CONSULTORIO',
       modulo: 'Superadmin',
@@ -128,7 +128,7 @@ router.patch('/consultorios/:id/status', async (req, res) => {
       data: { activo }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: activo ? 'ACTIVAR_CONSULTORIO' : 'DESACTIVAR_CONSULTORIO',
       modulo: 'Superadmin',

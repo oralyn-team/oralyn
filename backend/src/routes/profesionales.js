@@ -64,7 +64,7 @@ router.post('/', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res
       }
     })
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'CREAR_PROFESIONAL',
       modulo: 'Profesionales',
@@ -111,7 +111,7 @@ router.put('/:id/firma-default', requirePermission(PERMISSIONS.SETTINGS_UPDATE),
 
     const diferencias = calcularDiferencias(previo, actualizado, ['firma_default'])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_FIRMA_PROFESIONAL',
       modulo: 'Profesionales',
@@ -171,7 +171,7 @@ router.put('/:id', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, r
 
     const diferencias = calcularDiferencias(previo, actualizado, ['nombre_completo', 'cedula_profesional', 'activo'])
 
-    await registrarAuditoria({
+    registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_PROFESIONAL',
       modulo: 'Profesionales',
