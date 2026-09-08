@@ -123,7 +123,7 @@ router.post('/', requirePermission(PERMISSIONS.PATIENTS_CREATE), async (req, res
 })
 
 function mapPacienteSummary(p, ahora = new Date()) {
-  const citasPasadas = (p.citas || []).filter(c => new Date(c.fecha_hora) <= ahora)
+  const citasPasadas = (p.citas || []).filter(c => new Date(c.fecha_hora) <= ahora && c.estado === 'asistio')
   const citasFuturas = (p.citas || []).filter(c => new Date(c.fecha_hora) > ahora && c.estado === 'pendiente')
 
   const tieneCitasPasadas = citasPasadas.length > 0
