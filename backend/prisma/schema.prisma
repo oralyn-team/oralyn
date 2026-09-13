@@ -56,19 +56,19 @@ enum TipoItem {
 // ─── CONFIGURACIÓN DEL CONSULTORIO ──────────────────────────
 
 model Configuracion {
-  id                   Int      @id @default(autoincrement())
-  nombre_consultorio   String
-  nombre_profesional   String
-  registro_profesional String?
-  nit                  String?
-  direccion            String?
-  telefono             String?
-  ciudad               String   @default("Villavicencio")
-  email                String?
+  id                          Int       @id @default(autoincrement())
+  nombre_consultorio          String
+  nombre_profesional          String
+  registro_profesional        String?
+  nit                         String?
+  direccion                   String?
+  telefono                    String?
+  ciudad                      String    @default("Villavicencio")
+  email                       String?
   logo_url                    String?
   firma_doctor_default        String?   @db.Text
   firma_doctor_actualizada_en DateTime?
-  creado_en                   DateTime @default(now())
+  creado_en                   DateTime  @default(now())
 
   usuarios        Usuario[]
   pacientes       Paciente[]
@@ -77,6 +77,7 @@ model Configuracion {
   pagos           Pago[]
   consentimientos Consentimiento[]
   certificados    CertificadoDental[]
+  insumos         Insumo[]
 }
 
 // ─── USUARIOS ───────────────────────────────────────────────
@@ -95,16 +96,16 @@ model Usuario {
 // ─── PACIENTES ──────────────────────────────────────────────
 
 model Paciente {
-  id                   Int           @id @default(autoincrement())
-  consultorio_id       Int
-  consultorio          Configuracion @relation(fields: [consultorio_id], references: [id])
+  id             Int           @id @default(autoincrement())
+  consultorio_id Int
+  consultorio    Configuracion @relation(fields: [consultorio_id], references: [id])
 
-  primer_apellido      String
-  segundo_apellido     String?
-  nombres              String
+  primer_apellido  String
+  segundo_apellido String?
+  nombres          String
 
-  tipo_documento       TipoDocumento
-  numero_documento     String
+  tipo_documento   TipoDocumento
+  numero_documento String
 
   fecha_nacimiento     DateTime
   sexo                 Sexo
@@ -338,8 +339,8 @@ model Cotizacion {
   creado_en        DateTime             @default(now())
   actualizado_en   DateTime             @default(now()) @updatedAt
 
-  procedimientos   ProcedimientoCotizacion[]
-  pagos            Pago[]
+  procedimientos ProcedimientoCotizacion[]
+  pagos          Pago[]
 
   @@index([consultorio_id])
   @@index([paciente_id])
@@ -370,19 +371,19 @@ model ProcedimientoCotizacion {
 
 // ─── PAGOS ──────────────────────────────────────────────────
 model Pago {
-  id            Int         @id @default(autoincrement())
+  id             Int           @id @default(autoincrement())
   consultorio_id Int
-  consultorio   Configuracion @relation(fields: [consultorio_id], references: [id])
-  paciente_id   Int
-  paciente      Paciente    @relation(fields: [paciente_id], references: [id])
-  cotizacion_id Int?
-  cotizacion    Cotizacion? @relation(fields: [cotizacion_id], references: [id])
-  fecha         DateTime    @default(now())
-  monto         Decimal     @db.Decimal(10, 2)
-  metodo_pago   MetodoPago
-  referencia    String?
-  concepto      String?
-  creado_en     DateTime    @default(now())
+  consultorio    Configuracion @relation(fields: [consultorio_id], references: [id])
+  paciente_id    Int
+  paciente       Paciente      @relation(fields: [paciente_id], references: [id])
+  cotizacion_id  Int?
+  cotizacion     Cotizacion?   @relation(fields: [cotizacion_id], references: [id])
+  fecha          DateTime      @default(now())
+  monto          Decimal       @db.Decimal(10, 2)
+  metodo_pago    MetodoPago
+  referencia     String?
+  concepto       String?
+  creado_en      DateTime      @default(now())
 
   @@index([consultorio_id])
   @@index([paciente_id])
@@ -392,26 +393,28 @@ model Pago {
 // ─── CITAS ──────────────────────────────────────────────────
 
 model Cita {
-  id                 Int           @id @default(autoincrement())
+  id                 Int                 @id @default(autoincrement())
   consultorio_id     Int
-  consultorio        Configuracion @relation(fields: [consultorio_id], references: [id])
+  consultorio        Configuracion       @relation(fields: [consultorio_id], references: [id])
   paciente_id        Int
-  paciente           Paciente      @relation(fields: [paciente_id], references: [id])
+  paciente           Paciente            @relation(fields: [paciente_id], references: [id])
   fecha_hora         DateTime
   doctor             String?
   procedimiento      String
   codigo_cups        String?
   codigo_cie10       String?
-  valor_cobrado      Decimal?      @db.Decimal(10, 2)
-  estado             EstadoCita    @default(pendiente)
+  valor_cobrado      Decimal?            @db.Decimal(10, 2)
+  estado             EstadoCita          @default(pendiente)
   observaciones      String?
   causas_no_atencion String?
-  creado_en          DateTime      @default(now())
+  creado_en          DateTime            @default(now())
   certificados       CertificadoDental[]
 
   @@index([consultorio_id])
   @@index([paciente_id])
 }
+
+// ─── CONSENTIMIENTOS ────────────────────────────────────────
 
 model Consentimiento {
   id                        Int                @id @default(autoincrement())
@@ -465,4 +468,43 @@ model RecomendacionPostQx {
   historia    HistoriaClinica? @relation(fields: [historia_id], references: [id])
   fecha       DateTime
   creado_en   DateTime         @default(now())
+}
+
+// ─── SEMAFORIZACIÓN DE INSUMOS ──────────────────────────────
+
+model Insumo {
+  id                String             @id @default(cuid())
+  consultorio_id    Int
+  nombre            String
+  categoria         String?
+  unidad_medida     String
+  lote              String?
+  registro_invima   String?
+  fabricante        String?
+  proveedor         String?
+  cantidad_actual   Decimal
+  stock_minimo      Decimal
+  fecha_vencimiento DateTime?
+  fecha_apertura    DateTime?
+  ubicacion         String?
+  activo            Boolean            @default(true)
+  creado_en         DateTime           @default(now())
+  actualizado_en    DateTime           @updatedAt
+  configuracion     Configuracion      @relation(fields: [consultorio_id], references: [id])
+  movimientos       MovimientoInsumo[]
+
+  @@index([consultorio_id])
+}
+
+model MovimientoInsumo {
+  id         String   @id @default(cuid())
+  insumo_id  String
+  tipo       String
+  cantidad   Decimal
+  motivo     String?
+  usuario_id String?
+  fecha      DateTime @default(now())
+  insumo     Insumo   @relation(fields: [insumo_id], references: [id])
+
+  @@index([insumo_id])
 }
