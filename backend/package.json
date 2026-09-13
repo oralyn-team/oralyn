@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "node --test \"test/**/*.test.js\"",
-    "test:unit": "node --test \"test/unit/*.test.js\"",
-    "test:integration": "node --test \"test/integration/*.test.js\"",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\" \"tests/**/*.test.js\"",
+    "test:unit": "node --test \"test/unit/*.test.js\" \"tests/unit/*.test.js\"",
+    "test:integration": "node --test \"test/integration/*.test.js\" \"tests/integration/*.test.js\"",
     "seed": "node prisma/seed.js"
   },
   "prisma": {
