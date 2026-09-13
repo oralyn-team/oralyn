@@ -14,6 +14,7 @@ const pdfRoutes = require('./routes/pdf')
 const certificadosRoutes = require('./routes/certificados')
 const configuracionRoutes = require('./routes/configuracion')
 const adminRoutes = require('./routes/admin')
+const insumosRoutes = require('./routes/insumos')
 const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
@@ -46,6 +47,7 @@ app.use('/api/pdf', pdfRoutes)
 app.use('/api/certificados', certificadosRoutes)
 app.use('/api/configuracion', configuracionRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/insumos', insumosRoutes)
 
 app.get('/', (req, res) => {
   res.json({ mensaje: 'Oralyn API funcionando' })
