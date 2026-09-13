@@ -2,6 +2,7 @@ const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 const { calcularSemaforoInsumo } = require('../utils/semaforo')
+const { esNumeroValido } = require('../utils/validacion')
 
 const router = express.Router()
 
@@ -57,10 +58,8 @@ router.post('/', async (req, res) => {
   if (
     !nombre ||
     !unidad_medida ||
-    cantidad_actual === undefined ||
-    stock_minimo === undefined ||
-    isNaN(Number(cantidad_actual)) ||
-    isNaN(Number(stock_minimo))
+    !esNumeroValido(cantidad_actual) ||
+    !esNumeroValido(stock_minimo)
   ) {
     return res.status(400).json({ error: 'Faltan campos obligatorios o los valores numéricos son inválidos' })
   }
@@ -144,6 +143,12 @@ router.put('/:id', async (req, res) => {
   const { id } = req.params
   const datos = { ...req.body }
 
+  if (datos.cantidad_actual !== undefined) {
+    return res.status(400).json({
+      error: 'No se puede modificar cantidad_actual directamente. Use POST /insumos/:id/movimiento para registrar cambios de inventario.'
+    })
+  }
+
   try {
     const existe = await prisma.insumo.findFirst({
       where: {
@@ -161,10 +166,10 @@ router.put('/:id', async (req, res) => {
     delete datos.creado_en
     delete datos.actualizado_en
     delete datos.movimientos
-    delete datos.cantidad_actual // Opción A: los cambios de cantidad deben ir obligatoriamente por /movimiento
+    delete datos.cantidad_actual
 
     if (datos.stock_minimo !== undefined) {
-      if (isNaN(Number(datos.stock_minimo)) || Number(datos.stock_minimo) < 0) {
+      if (!esNumeroValido(datos.stock_minimo)) {
         return res.status(400).json({ error: 'El valor de stock_minimo debe ser un número válido' })
       }
       datos.stock_minimo = Number(datos.stock_minimo)
@@ -190,7 +195,7 @@ router.post('/:id/movimiento', async (req, res) => {
   const { id } = req.params
   const { tipo, cantidad, motivo, usuario_id } = req.body
 
-  if (!tipo || cantidad === undefined || isNaN(Number(cantidad)) || Number(cantidad) < 0) {
+  if (!tipo || !esNumeroValido(cantidad)) {
     return res.status(400).json({ error: 'Tipo y cantidad válida son requeridos' })
   }
 

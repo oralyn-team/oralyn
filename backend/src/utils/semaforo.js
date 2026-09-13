@@ -1,5 +1,7 @@
 /**
  * Utilidades para cálculo de semaforización de insumos (Vencimiento y Stock)
+ * Nota de extensibilidad: Los umbrales (3/6 meses para vencimiento, 1.5x para stock) se mantienen centralizados aquí como defaults globales.
+ * En el futuro pueden parametrizarse según la configuración de cada consultorio.
  */
 
 function calcularSemaforoVencimiento(fechaVencimiento, fechaReferencia = new Date()) {
