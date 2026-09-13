@@ -482,8 +482,8 @@ model Insumo {
   registro_invima   String?
   fabricante        String?
   proveedor         String?
-  cantidad_actual   Decimal
-  stock_minimo      Decimal
+  cantidad_actual   Decimal            @db.Decimal(10, 2)
+  stock_minimo      Decimal            @db.Decimal(10, 2)
   fecha_vencimiento DateTime?
   fecha_apertura    DateTime?
   ubicacion         String?
@@ -494,17 +494,19 @@ model Insumo {
   movimientos       MovimientoInsumo[]
 
   @@index([consultorio_id])
+  @@map("insumos")
 }
 
 model MovimientoInsumo {
   id         String   @id @default(cuid())
   insumo_id  String
   tipo       String
-  cantidad   Decimal
+  cantidad   Decimal  @db.Decimal(10, 2)
   motivo     String?
   usuario_id String?
   fecha      DateTime @default(now())
   insumo     Insumo   @relation(fields: [insumo_id], references: [id])
 
   @@index([insumo_id])
+  @@map("movimientos_insumo")
 }
