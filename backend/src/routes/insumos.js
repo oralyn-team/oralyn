@@ -161,9 +161,15 @@ router.put('/:id', async (req, res) => {
     delete datos.creado_en
     delete datos.actualizado_en
     delete datos.movimientos
+    delete datos.cantidad_actual // Opción A: los cambios de cantidad deben ir obligatoriamente por /movimiento
 
-    if (datos.cantidad_actual !== undefined) datos.cantidad_actual = Number(datos.cantidad_actual)
-    if (datos.stock_minimo !== undefined) datos.stock_minimo = Number(datos.stock_minimo)
+    if (datos.stock_minimo !== undefined) {
+      if (isNaN(Number(datos.stock_minimo)) || Number(datos.stock_minimo) < 0) {
+        return res.status(400).json({ error: 'El valor de stock_minimo debe ser un número válido' })
+      }
+      datos.stock_minimo = Number(datos.stock_minimo)
+    }
+
     if (datos.fecha_vencimiento) datos.fecha_vencimiento = new Date(datos.fecha_vencimiento)
     if (datos.fecha_apertura) datos.fecha_apertura = new Date(datos.fecha_apertura)
 
