@@ -175,4 +175,9 @@ export const api = {
   // Configuración
   getConfiguracion: () => request('/configuracion'),
   actualizarConfiguracion: (data) => request('/configuracion', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Insumos
+  getInsumos:        ()     => request('/insumos'),
+  getInsumosAlertas: ()     => request('/insumos/alertas'),
+  getInsumo:         (id)   => request(`/insumos/${id}`),
 }

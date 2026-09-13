@@ -10,6 +10,7 @@ import Historias from './pages/Historias'
 import Citas from './pages/Citas'
 import Consentimientos from './pages/Consentimientos'
 import Configuracion from './pages/Configuracion'
+import Insumos from './pages/Insumos'
 
 import './index.css'
 
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/historias" element={<PrivateRoute><Historias /></PrivateRoute>} />
           <Route path="/citas" element={<PrivateRoute><Citas /></PrivateRoute>} />
           <Route path="/consentimientos" element={<PrivateRoute><Consentimientos /></PrivateRoute>} />
+          <Route path="/insumos" element={<PrivateRoute><Insumos /></PrivateRoute>} />
           <Route path="/configuracion" element={<PrivateRoute><Configuracion /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>

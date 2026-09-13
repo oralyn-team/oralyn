@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays,
-  Stethoscope, ClipboardList, Receipt, Settings,
+  Stethoscope, ClipboardList, Package, Settings,
 } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { icon: CalendarDays,    label: 'Citas',           path: '/citas'         },
   { icon: Stethoscope,     label: 'Consentimientos',   path: '/consentimientos'  },
   { icon: ClipboardList,   label: 'Historias',       path: '/historias'     },
+  { icon: Package,         label: 'Insumos',         path: '/insumos'       },
   { icon: Settings,        label: 'Ajustes',         path: '/configuracion' },
 ];
 
