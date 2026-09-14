@@ -182,4 +182,5 @@ export const api = {
   getInsumo:         (id)   => request(`/insumos/${id}`),
   crearInsumo:       (data) => request('/insumos', { method: 'POST', body: JSON.stringify(data) }),
   actualizarInsumo:  (id, data) => request(`/insumos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  registrarMovimientoInsumo: (id, data) => request(`/insumos/${id}/movimiento`, { method: 'POST', body: JSON.stringify(data) }),
 }

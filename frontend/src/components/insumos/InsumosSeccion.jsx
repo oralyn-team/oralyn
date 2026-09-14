@@ -3,6 +3,7 @@ import { api } from '../../api';
 import StatCard from '../StatCard';
 import SearchBar from '../SearchBar';
 import InsumoFormModal from './InsumoFormModal';
+import MovimientoModal from './MovimientoModal';
 import {
   Package,
   AlertTriangle,
@@ -12,7 +13,8 @@ import {
   Loader2,
   RefreshCw,
   Calendar,
-  Edit
+  Edit,
+  ArrowUpDown
 } from 'lucide-react';
 
 function BadgeSemaforo({ eje, color }) {
@@ -75,6 +77,9 @@ export default function InsumosSeccion() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [insumoEditar, setInsumoEditar] = useState(null);
 
+  const [movimientoModalAbierto, setMovimientoModalAbierto] = useState(false);
+  const [insumoMovimiento, setInsumoMovimiento] = useState(null);
+
   async function cargarInsumos() {
     try {
       setLoading(true);
@@ -106,6 +111,11 @@ export default function InsumosSeccion() {
   function handleEditarInsumo(item) {
     setInsumoEditar(item);
     setModalAbierto(true);
+  }
+
+  function handleRegistrarMovimiento(item) {
+    setInsumoMovimiento(item);
+    setMovimientoModalAbierto(true);
   }
 
   function handleSuccessForm(msg) {
@@ -289,15 +299,25 @@ export default function InsumosSeccion() {
                         <BadgeSemaforo eje="Stock" color={item.color_stock} />
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleEditarInsumo(item)}
-                        className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                        title="Editar insumo"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleRegistrarMovimiento(item)}
+                          className="p-1.5 text-slate-500 hover:text-teal hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Registrar movimiento"
+                        >
+                          <ArrowUpDown className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEditarInsumo(item)}
+                          className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Editar insumo"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -322,7 +342,7 @@ export default function InsumosSeccion() {
                       {item.categoria || 'General'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <div className="text-right">
                       <div className="text-xs font-bold text-primary">
                         {item.cantidad_actual} {item.unidad_medida}
@@ -331,6 +351,14 @@ export default function InsumosSeccion() {
                         Min: {item.stock_minimo} {item.unidad_medida}
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRegistrarMovimiento(item)}
+                      className="p-1.5 text-slate-500 hover:text-teal hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border border-slate-200 shrink-0"
+                      title="Registrar movimiento"
+                    >
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleEditarInsumo(item)}
@@ -363,6 +391,15 @@ export default function InsumosSeccion() {
         <InsumoFormModal
           insumoEditar={insumoEditar}
           onClose={() => setModalAbierto(false)}
+          onSuccess={handleSuccessForm}
+        />
+      )}
+
+      {/* Modal Registrar Movimiento */}
+      {movimientoModalAbierto && (
+        <MovimientoModal
+          insumo={insumoMovimiento}
+          onClose={() => setMovimientoModalAbierto(false)}
           onSuccess={handleSuccessForm}
         />
       )}
