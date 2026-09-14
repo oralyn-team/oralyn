@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api';
 import StatCard from '../StatCard';
 import SearchBar from '../SearchBar';
+import InsumoFormModal from './InsumoFormModal';
 import {
   Package,
   AlertTriangle,
@@ -10,7 +11,8 @@ import {
   Plus,
   Loader2,
   RefreshCw,
-  Calendar
+  Calendar,
+  Edit
 } from 'lucide-react';
 
 function BadgeSemaforo({ eje, color }) {
@@ -70,6 +72,9 @@ export default function InsumosSeccion() {
   const [filtroEstado, setFiltroEstado] = useState('Todos');
   const [toast, setToast] = useState(null);
 
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [insumoEditar, setInsumoEditar] = useState(null);
+
   async function cargarInsumos() {
     try {
       setLoading(true);
@@ -94,7 +99,18 @@ export default function InsumosSeccion() {
   }
 
   function handleNuevoInsumo() {
-    mostrarToast('Próximamente: Formulario de alta de insumos (siguiente sprint)');
+    setInsumoEditar(null);
+    setModalAbierto(true);
+  }
+
+  function handleEditarInsumo(item) {
+    setInsumoEditar(item);
+    setModalAbierto(true);
+  }
+
+  function handleSuccessForm(msg) {
+    mostrarToast(msg);
+    cargarInsumos();
   }
 
   // Filtrado de insumos
@@ -231,12 +247,13 @@ export default function InsumosSeccion() {
                 <th className="px-4 py-3">Stock Mínimo</th>
                 <th className="px-4 py-3">Vencimiento</th>
                 <th className="px-5 py-3 text-center">Estado (Vencimiento / Stock)</th>
+                <th className="px-4 py-3 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-teal-soft text-slate-700 font-sans">
               {insumosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
                     No se encontraron insumos que coincidan con la búsqueda o filtro seleccionado.
                   </td>
                 </tr>
@@ -272,6 +289,16 @@ export default function InsumosSeccion() {
                         <BadgeSemaforo eje="Stock" color={item.color_stock} />
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleEditarInsumo(item)}
+                        className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                        title="Editar insumo"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -289,19 +316,29 @@ export default function InsumosSeccion() {
             insumosFiltrados.map((item) => (
               <div key={item.id} className="p-4 space-y-2.5 hover:bg-slate-50 transition-colors">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="flex-1">
                     <h3 className="text-xs font-semibold text-slate-900">{item.nombre}</h3>
                     <span className="inline-block mt-0.5 px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded font-medium">
                       {item.categoria || 'General'}
                     </span>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs font-bold text-primary">
-                      {item.cantidad_actual} {item.unidad_medida}
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-primary">
+                        {item.cantidad_actual} {item.unidad_medida}
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        Min: {item.stock_minimo} {item.unidad_medida}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-slate-500">
-                      Min: {item.stock_minimo} {item.unidad_medida}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleEditarInsumo(item)}
+                      className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border border-slate-200 shrink-0"
+                      title="Editar insumo"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
@@ -320,6 +357,15 @@ export default function InsumosSeccion() {
           )}
         </div>
       </div>
+
+      {/* Modal Formulario Insumo */}
+      {modalAbierto && (
+        <InsumoFormModal
+          insumoEditar={insumoEditar}
+          onClose={() => setModalAbierto(false)}
+          onSuccess={handleSuccessForm}
+        />
+      )}
 
       {/* Toast Notificación */}
       {toast && (

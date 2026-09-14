@@ -180,4 +180,6 @@ export const api = {
   getInsumos:        ()     => request('/insumos'),
   getInsumosAlertas: ()     => request('/insumos/alertas'),
   getInsumo:         (id)   => request(`/insumos/${id}`),
+  crearInsumo:       (data) => request('/insumos', { method: 'POST', body: JSON.stringify(data) }),
+  actualizarInsumo:  (id, data) => request(`/insumos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 }
