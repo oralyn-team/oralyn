@@ -9,6 +9,7 @@ import Topbar        from '../components/layout/Topbar';
 import StatCard      from '../components/StatCard';
 import PacienteForm  from '../components/PacienteForm';
 import CitaForm       from '../components/citas/CitaForm';
+import AlertasInsumosWidget from '../components/insumos/AlertasInsumosWidget';
 
 import { 
   Users, 
@@ -381,6 +382,9 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+
+              {/* Insumos Alertas Widget */}
+              <AlertasInsumosWidget />
 
               {/* Status Breakdown Panel */}
               <div className="bg-white border border-teal-border rounded-xl p-5 shadow-sm flex-1">
