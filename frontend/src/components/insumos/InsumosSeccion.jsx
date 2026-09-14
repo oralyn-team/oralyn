@@ -4,6 +4,7 @@ import StatCard from '../StatCard';
 import SearchBar from '../SearchBar';
 import InsumoFormModal from './InsumoFormModal';
 import MovimientoModal from './MovimientoModal';
+import InsumoDetalleModal from './InsumoDetalleModal';
 import {
   Package,
   AlertTriangle,
@@ -14,10 +15,11 @@ import {
   RefreshCw,
   Calendar,
   Edit,
-  ArrowUpDown
+  ArrowUpDown,
+  Eye
 } from 'lucide-react';
 
-function BadgeSemaforo({ eje, color }) {
+export function BadgeSemaforo({ eje, color }) {
   const config = {
     verde: {
       bg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
@@ -80,6 +82,9 @@ export default function InsumosSeccion() {
   const [movimientoModalAbierto, setMovimientoModalAbierto] = useState(false);
   const [insumoMovimiento, setInsumoMovimiento] = useState(null);
 
+  const [detalleModalAbierto, setDetalleModalAbierto] = useState(false);
+  const [insumoDetalleId, setInsumoDetalleId] = useState(null);
+
   async function cargarInsumos() {
     try {
       setLoading(true);
@@ -118,8 +123,13 @@ export default function InsumosSeccion() {
     setMovimientoModalAbierto(true);
   }
 
+  function handleVerDetalle(item) {
+    setInsumoDetalleId(item.id);
+    setDetalleModalAbierto(true);
+  }
+
   function handleSuccessForm(msg) {
-    mostrarToast(msg);
+    if (msg) mostrarToast(msg);
     cargarInsumos();
   }
 
@@ -271,7 +281,13 @@ export default function InsumosSeccion() {
                 insumosFiltrados.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-5 py-3">
-                      <div className="font-medium text-slate-900">{item.nombre}</div>
+                      <button
+                        type="button"
+                        onClick={() => handleVerDetalle(item)}
+                        className="font-medium text-slate-900 hover:text-primary hover:underline text-left cursor-pointer"
+                      >
+                        {item.nombre}
+                      </button>
                       {item.ubicacion && (
                         <div className="text-[10px] text-slate-500">Ubicación: {item.ubicacion}</div>
                       )}
@@ -301,6 +317,14 @@ export default function InsumosSeccion() {
                     </td>
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleVerDetalle(item)}
+                          className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Ver detalle e histórico"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleRegistrarMovimiento(item)}
@@ -337,10 +361,18 @@ export default function InsumosSeccion() {
               <div key={item.id} className="p-4 space-y-2.5 hover:bg-slate-50 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
-                    <h3 className="text-xs font-semibold text-slate-900">{item.nombre}</h3>
-                    <span className="inline-block mt-0.5 px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded font-medium">
-                      {item.categoria || 'General'}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleVerDetalle(item)}
+                      className="text-xs font-semibold text-slate-900 hover:text-primary hover:underline text-left cursor-pointer"
+                    >
+                      {item.nombre}
+                    </button>
+                    <div>
+                      <span className="inline-block mt-0.5 px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded font-medium">
+                        {item.categoria || 'General'}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="text-right">
@@ -351,6 +383,14 @@ export default function InsumosSeccion() {
                         Min: {item.stock_minimo} {item.unidad_medida}
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleVerDetalle(item)}
+                      className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border border-slate-200 shrink-0"
+                      title="Ver detalle"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleRegistrarMovimiento(item)}
@@ -401,6 +441,15 @@ export default function InsumosSeccion() {
           insumo={insumoMovimiento}
           onClose={() => setMovimientoModalAbierto(false)}
           onSuccess={handleSuccessForm}
+        />
+      )}
+
+      {/* Modal Detalle Insumo */}
+      {detalleModalAbierto && (
+        <InsumoDetalleModal
+          insumoId={insumoDetalleId}
+          onClose={() => setDetalleModalAbierto(false)}
+          onRefreshList={handleSuccessForm}
         />
       )}
 
