@@ -2,51 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api';
 import InsumoFormModal from './InsumoFormModal';
 import MovimientoModal from './MovimientoModal';
-import { BadgeSemaforo } from './InsumosSeccion';
-import {
-  X,
-  Package,
-  Calendar,
-  Tag,
-  MapPin,
-  Building2,
-  Truck,
-  FileCheck,
-  History,
-  Edit,
-  ArrowUpDown,
-  Loader2,
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react';
-
-function formatearFecha(fechaStr) {
-  if (!fechaStr) return 'Sin especificar';
-  try {
-    const f = new Date(fechaStr);
-    if (isNaN(f.getTime())) return 'Sin especificar';
-    return f.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return 'Sin especificar';
-  }
-}
-
-function formatearFechaHora(fechaStr) {
-  if (!fechaStr) return '—';
-  try {
-    const f = new Date(fechaStr);
-    if (isNaN(f.getTime())) return '—';
-    return f.toLocaleString('es-CO', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return '—';
-  }
-}
+import BadgeSemaforo from './BadgeSemaforo';
+import { formatearFecha, formatearFechaHora } from './utils';
 
 function BadgeMovimiento({ tipo }) {
   const t = (tipo || '').toLowerCase();
@@ -249,16 +206,16 @@ export default function InsumoDetalleModal({ insumoId, onClose, onRefreshList })
                   <div>
                     <span className="block text-[10px] text-slate-400 uppercase font-medium">Fecha de vencimiento</span>
                     <span className="font-medium text-slate-800 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-slate-400" />
-                      {formatearFecha(insumo.fecha_vencimiento)}
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      {formatearFecha(insumo.fecha_vencimiento, 'Sin especificar')}
                     </span>
                   </div>
 
                   <div>
                     <span className="block text-[10px] text-slate-400 uppercase font-medium">Fecha de apertura</span>
                     <span className="font-medium text-slate-800 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-slate-400" />
-                      {formatearFecha(insumo.fecha_apertura)}
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      {formatearFecha(insumo.fecha_apertura, 'Sin especificar')}
                     </span>
                   </div>
                 </div>

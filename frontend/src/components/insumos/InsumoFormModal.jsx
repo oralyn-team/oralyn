@@ -17,9 +17,7 @@ const ESTADO_INICIAL = {
   ubicacion: '',
 };
 
-function esNumeroValido(valor) {
-  return valor !== undefined && valor !== '' && !isNaN(Number(valor)) && Number(valor) >= 0;
-}
+import { esNumeroValido } from './utils';
 
 function Field({
   name,

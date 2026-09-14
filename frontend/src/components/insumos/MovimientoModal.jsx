@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { api } from '../../api';
 import { X, ArrowUpDown, AlertCircle, Loader2, Info } from 'lucide-react';
 
-function esNumeroValido(valor) {
-  return valor !== undefined && valor !== '' && !isNaN(Number(valor)) && Number(valor) >= 0;
-}
+import { esNumeroValido } from './utils';
 
 export default function MovimientoModal({ insumo, onClose, onSuccess }) {
   const [tipo, setTipo] = useState('entrada');
