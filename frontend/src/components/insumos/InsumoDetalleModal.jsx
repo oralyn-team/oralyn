@@ -4,6 +4,22 @@ import InsumoFormModal from './InsumoFormModal';
 import MovimientoModal from './MovimientoModal';
 import BadgeSemaforo from './BadgeSemaforo';
 import { formatearFecha, formatearFechaHora } from './utils';
+import {
+  X,
+  Package,
+  Calendar,
+  Tag,
+  MapPin,
+  Building2,
+  Truck,
+  FileCheck,
+  History,
+  Edit,
+  ArrowUpDown,
+  Loader2,
+  AlertCircle,
+  RefreshCw
+} from 'lucide-react';
 
 function BadgeMovimiento({ tipo }) {
   const t = (tipo || '').toLowerCase();
