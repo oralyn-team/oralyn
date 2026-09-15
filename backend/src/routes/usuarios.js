@@ -310,4 +310,88 @@ router.patch('/:id/role', requirePermission(PERMISSIONS.USERS_UPDATE), async (re
   }
 })
 
+// PATCH /api/usuarios/:id/email — Cambiar correo electrónico de usuario del consultorio
+router.patch('/:id/email', requirePermission(PERMISSIONS.USERS_UPDATE), async (req, res) => {
+  const { id } = req.params
+  let { email } = req.body
+
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'El correo electrónico es requerido' })
+  }
+
+  email = email.trim().toLowerCase()
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'El formato del correo electrónico no es válido' })
+  }
+
+  try {
+    const targetId = Number(id)
+    if (isNaN(targetId)) {
+      return res.status(400).json({ error: 'ID de usuario no válido' })
+    }
+
+    const usuarioObjetivo = await prisma.usuario.findUnique({
+      where: { id: targetId }
+    })
+
+    if (!usuarioObjetivo) {
+      return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+
+    // Aislamiento por consultorio (salvo que sea SUPERADMIN)
+    if (req.usuario.rol !== ROLES.SUPERADMIN && usuarioObjetivo.consultorio_id !== req.usuario.consultorio_id) {
+      return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+
+    // Verificar unicidad del nuevo correo si se está modificando
+    if (usuarioObjetivo.email.toLowerCase() !== email) {
+      const existeEmail = await prisma.usuario.findUnique({
+        where: { email }
+      })
+
+      if (existeEmail && existeEmail.id !== usuarioObjetivo.id) {
+        return res.status(400).json({ error: 'El correo electrónico ya está registrado por otro usuario' })
+      }
+    }
+
+    const usuarioActualizado = await prisma.usuario.update({
+      where: { id: usuarioObjetivo.id },
+      data: {
+        email,
+        token_version: usuarioObjetivo.token_version + 1
+      },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        registro: true,
+        rol: true,
+        activo: true
+      }
+    })
+
+    const diferencias = calcularDiferencias(
+      { email: usuarioObjetivo.email },
+      { email: usuarioActualizado.email },
+      ['email']
+    )
+
+    registrarAuditoria({
+      req,
+      accion: 'CAMBIAR_EMAIL_USUARIO',
+      modulo: 'Usuarios',
+      recurso_id: usuarioActualizado.id,
+      detalles: `Correo electrónico del usuario ${usuarioObjetivo.email} cambiado a ${usuarioActualizado.email}`,
+      metadata: { cambios: diferencias }
+    })
+
+    res.json(usuarioActualizado)
+  } catch (error) {
+    console.error('Error al cambiar correo electrónico del usuario:', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
 module.exports = router

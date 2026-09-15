@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../api'
 import { useApp } from '../context/Appcontext'
 
@@ -99,6 +99,12 @@ export default function Login() {
                 </svg>
               </button>
             </div>
+          </div>
+
+          <div className="flex justify-end mb-4">
+            <Link to="/forgot-password" className="text-[12px] text-primary hover:underline font-medium">
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
 
           {sesionExpirada && (

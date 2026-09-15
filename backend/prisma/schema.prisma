@@ -214,18 +214,32 @@ model RipsGeneracion {
 // ─── USUARIOS ───────────────────────────────────────────────
 
 model Usuario {
-  id             Int            @id @default(autoincrement())
-  consultorio_id Int?
-  consultorio    Configuracion? @relation(fields: [consultorio_id], references: [id], onDelete: SetNull)
-  email          String         @unique
-  password_hash  String
-  nombre         String
-  registro       String?
-  rol            Rol            @default(DUENO)
-  activo         Boolean        @default(true)
-  creado_en      DateTime       @default(now())
-  token_version  Int            @default(0)
-  auditorias     Auditoria[]
+  id                  Int                  @id @default(autoincrement())
+  consultorio_id      Int?
+  consultorio         Configuracion?       @relation(fields: [consultorio_id], references: [id], onDelete: SetNull)
+  email               String               @unique
+  password_hash       String
+  nombre              String
+  registro            String?
+  rol                 Rol                  @default(DUENO)
+  activo              Boolean              @default(true)
+  creado_en           DateTime             @default(now())
+  token_version       Int                  @default(0)
+  auditorias          Auditoria[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id         Int       @id @default(autoincrement())
+  usuario_id Int
+  usuario    Usuario   @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  token_hash String    @unique
+  expira_en  DateTime
+  usado_en   DateTime?
+  creado_en  DateTime  @default(now())
+
+  @@index([usuario_id])
+  @@map("password_reset_tokens")
 }
 
 // ─── AUDITORÍA INMUTABLE ────────────────────────────────────

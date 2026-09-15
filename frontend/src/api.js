@@ -145,6 +145,8 @@ export const api = {
   logout: () => request('/auth/logout', { method: 'POST' }),
   getMe: () => request('/auth/me'),
   cambiarPassword: (data) => request('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
+  forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token, newPassword) => request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
   getUsuarios: () => request('/usuarios'),
 
   // Pacientes
@@ -386,6 +388,7 @@ export const api = {
   // Usuarios del consultorio
   crearUsuarioConsultorio: (data) => request('/usuarios', { method: 'POST', body: JSON.stringify(data) }),
   cambiarRolUsuario: (id, rol) => request(`/usuarios/${id}/role`, { method: 'PATCH', body: JSON.stringify({ rol }) }),
+  cambiarEmailUsuario: (id, email) => request(`/usuarios/${id}/email`, { method: 'PATCH', body: JSON.stringify({ email }) }),
   toggleStatusUsuario: (id, activo) => request(`/usuarios/${id}/status`, { method: 'PATCH', body: JSON.stringify({ activo }) }),
   transferirPropiedad: (data) => request('/usuarios/transferir-propiedad', { method: 'POST', body: JSON.stringify(data) }),
 
