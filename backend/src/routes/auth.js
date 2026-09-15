@@ -1,10 +1,12 @@
 const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const crypto = require('crypto')
 const { rateLimit } = require('express-rate-limit')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
 const { registrarAuditoria } = require('../services/audit.service')
+const { enviarCorreoRecuperacion } = require('../services/email.service')
 
 const router = express.Router()
 
@@ -14,6 +16,14 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en unos minutos.' }
+})
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // 5 intentos por IP en la ventana
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes de recuperación. Intenta de nuevo en unos minutos.' }
 })
 
 // POST /api/auth/registro
@@ -262,6 +272,120 @@ router.post('/change-password', verificarToken, async (req, res) => {
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// POST /api/auth/forgot-password — Solicitud de recuperación de contraseña
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+  const { email } = req.body
+
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'El correo electrónico es obligatorio' })
+  }
+
+  const respuestaGenerica = {
+    mensaje: 'Si el correo existe en nuestro sistema, recibirás un enlace de recuperación.'
+  }
+
+  try {
+    const usuario = await prisma.usuario.findUnique({
+      where: { email: email.trim().toLowerCase() }
+    })
+
+    if (usuario && usuario.activo !== false) {
+      const tokenPlano = crypto.randomBytes(32).toString('hex')
+      const tokenHash = crypto.createHash('sha256').update(tokenPlano).digest('hex')
+
+      await prisma.passwordResetToken.create({
+        data: {
+          usuario_id: usuario.id,
+          token_hash: tokenHash,
+          expira_en: new Date(Date.now() + 30 * 60 * 1000) // 30 minutos
+        }
+      })
+
+      const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '')
+      const linkRecuperacion = `${frontendUrl}/reset-password?token=${tokenPlano}`
+
+      await enviarCorreoRecuperacion(usuario.email, usuario.nombre, linkRecuperacion)
+
+      registrarAuditoria({
+        req,
+        usuario_id: usuario.id,
+        usuario_nombre: usuario.nombre,
+        usuario_rol: usuario.rol,
+        consultorio_id: usuario.consultorio_id,
+        accion: 'SOLICITUD_RECUPERACION_PASSWORD',
+        modulo: 'Autenticación',
+        detalles: `Solicitud de recuperación de contraseña para ${usuario.email}`
+      })
+    }
+  } catch (error) {
+    console.error('Error en forgot-password:', error)
+  }
+
+  res.json(respuestaGenerica)
+})
+
+// POST /api/auth/reset-password — Restablecer contraseña con token
+router.post('/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token y nueva contraseña son obligatorios' })
+  }
+
+  if (typeof newPassword !== 'string' || newPassword.length < 8) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' })
+  }
+
+  try {
+    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex')
+
+    const registro = await prisma.passwordResetToken.findUnique({
+      where: { token_hash: tokenHash },
+      include: { usuario: true }
+    })
+
+    if (!registro || registro.usado_en || registro.expira_en < new Date()) {
+      return res.status(400).json({ error: 'El enlace de recuperación es inválido o expiró' })
+    }
+
+    if (!registro.usuario || registro.usuario.activo === false) {
+      return res.status(400).json({ error: 'La cuenta asociada está desactivada' })
+    }
+
+    const password_hash = await bcrypt.hash(newPassword, 10)
+
+    await prisma.$transaction([
+      prisma.usuario.update({
+        where: { id: registro.usuario_id },
+        data: {
+          password_hash,
+          token_version: { increment: 1 }
+        }
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: registro.id },
+        data: { usado_en: new Date() }
+      })
+    ])
+
+    registrarAuditoria({
+      req,
+      usuario_id: registro.usuario.id,
+      usuario_nombre: registro.usuario.nombre,
+      usuario_rol: registro.usuario.rol,
+      consultorio_id: registro.usuario.consultorio_id,
+      accion: 'RESET_PASSWORD_EXITOSO',
+      modulo: 'Autenticación',
+      detalles: `Contraseña restablecida exitosamente para usuario ${registro.usuario.email}`
+    })
+
+    res.json({ mensaje: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' })
+  } catch (error) {
+    console.error('Error en reset-password:', error)
+    res.status(500).json({ error: 'Error interno del servidor al restablecer contraseña' })
   }
 })
 
