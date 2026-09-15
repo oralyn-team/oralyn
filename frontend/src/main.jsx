@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/Appcontext'
 import Login from './pages/login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Pacientes from './pages/Pacientes'
 import Historias from './pages/Historias'
@@ -55,6 +57,8 @@ createRoot(document.getElementById('root')).render(
       <AppProvider>
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           <Route path="/" element={<PrivateRoute><DefaultRedirect /></PrivateRoute>} />
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Pacientes /></PrivateRoute>} />
