@@ -389,6 +389,7 @@ export const api = {
   crearUsuarioConsultorio: (data) => request('/usuarios', { method: 'POST', body: JSON.stringify(data) }),
   cambiarRolUsuario: (id, rol) => request(`/usuarios/${id}/role`, { method: 'PATCH', body: JSON.stringify({ rol }) }),
   cambiarEmailUsuario: (id, email) => request(`/usuarios/${id}/email`, { method: 'PATCH', body: JSON.stringify({ email }) }),
+  actualizarEmailUsuario: (id, email) => request(`/usuarios/${id}/email`, { method: 'PATCH', body: JSON.stringify({ email }) }),
   toggleStatusUsuario: (id, activo) => request(`/usuarios/${id}/status`, { method: 'PATCH', body: JSON.stringify({ activo }) }),
   transferirPropiedad: (data) => request('/usuarios/transferir-propiedad', { method: 'POST', body: JSON.stringify(data) }),
 

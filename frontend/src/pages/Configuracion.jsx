@@ -1316,6 +1316,7 @@ function TabUsuarios() {
   const [usuarioEditarEmail, setUsuarioEditarEmail] = useState(null);
   const [nuevoEmail, setNuevoEmail] = useState('');
   const [editandoEmail, setEditandoEmail] = useState(false);
+  const [errorEditEmail, setErrorEditEmail] = useState(null);
 
   const [form, setForm] = useState({
     email: '',
@@ -1389,25 +1390,27 @@ function TabUsuarios() {
   const handleAbrirEditEmail = (u) => {
     setUsuarioEditarEmail(u);
     setNuevoEmail(u.email || '');
+    setErrorEditEmail(null);
     setModalEditEmailOpen(true);
   };
 
   const handleGuardarEditEmail = async (e) => {
     e.preventDefault();
     if (!nuevoEmail.trim()) {
-      alert('El correo electrónico es requerido');
+      setErrorEditEmail('El correo electrónico es requerido');
       return;
     }
     setEditandoEmail(true);
+    setErrorEditEmail(null);
     try {
-      await api.cambiarEmailUsuario(usuarioEditarEmail.id, nuevoEmail);
+      await api.actualizarEmailUsuario(usuarioEditarEmail.id, nuevoEmail);
       setModalEditEmailOpen(false);
       setUsuarioEditarEmail(null);
       setNuevoEmail('');
       mostrarToast('Correo electrónico actualizado exitosamente');
       await cargarUsuarios();
     } catch (err) {
-      alert(err.error || 'Error al actualizar correo electrónico');
+      setErrorEditEmail(err.error || 'Error al actualizar correo electrónico');
     } finally {
       setEditandoEmail(false);
     }
@@ -1619,23 +1622,44 @@ function TabUsuarios() {
             </div>
             <form onSubmit={handleGuardarEditEmail} className="py-4 space-y-4 text-xs">
               <div>
-                <p className="text-[12px] text-teal-muted dark:text-slate-400 mb-3">
-                  Modificar el correo de <strong className="text-slate-800 dark:text-slate-200">{usuarioEditarEmail.nombre}</strong>. Este correo es su credencial de acceso al sistema.
-                </p>
-                <label className="block font-semibold mb-1">Nuevo Correo Electrónico *</label>
+                <label className="block font-semibold mb-1 text-slate-500 dark:text-slate-400">
+                  Correo Electrónico Actual (Referencia)
+                </label>
+                <input
+                  type="email"
+                  readOnly
+                  value={usuarioEditarEmail.email || ''}
+                  className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed text-xs font-mono select-all"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1 text-slate-800 dark:text-slate-200">
+                  Nuevo Correo Electrónico *
+                </label>
                 <input
                   type="email"
                   required
                   value={nuevoEmail}
-                  onChange={e => setNuevoEmail(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none text-xs"
+                  onChange={e => {
+                    if (errorEditEmail) setErrorEditEmail(null)
+                    setNuevoEmail(e.target.value)
+                  }}
+                  className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none text-xs focus:ring-1 focus:ring-primary dark:focus:ring-teal"
                   placeholder="nuevo.correo@consultorio.com"
                 />
               </div>
 
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-[11px] text-amber-800 dark:text-amber-300">
-                ⚠️ Al cambiar el correo, se cerrará cualquier sesión activa del usuario para obligarlo a iniciar sesión con su nuevo correo.
+              {/* Advertencia explícita requerida */}
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-[11.5px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                Esto cambiará el correo con el que <strong>{usuarioEditarEmail.nombre}</strong> inicia sesión. Avísale antes de guardar — su sesión actual se cerrará y deberá volver a entrar con el correo nuevo.
               </div>
+
+              {errorEditEmail && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl text-[12px] text-red-600 dark:text-red-400">
+                  {errorEditEmail}
+                </div>
+              )}
 
               <div className="pt-2 flex justify-end gap-2">
                 <button
@@ -1651,7 +1675,7 @@ function TabUsuarios() {
                   className="px-4 py-2 bg-primary dark:bg-teal dark:text-slate-900 text-white rounded-xl font-semibold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   {editandoEmail ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  {editandoEmail ? 'Guardando...' : 'Guardar Nuevo Correo'}
+                  {editandoEmail ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </form>
