@@ -323,7 +323,7 @@ router.patch('/:id/email', requirePermission(PERMISSIONS.USERS_UPDATE), async (r
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email)) {
-    return res.status(400).json({ error: 'El formato del correo electrónico no es válido' })
+    return res.status(400).json({ error: 'Correo electrónico inválido' })
   }
 
   try {
@@ -352,7 +352,7 @@ router.patch('/:id/email', requirePermission(PERMISSIONS.USERS_UPDATE), async (r
       })
 
       if (existeEmail && existeEmail.id !== usuarioObjetivo.id) {
-        return res.status(400).json({ error: 'El correo electrónico ya está registrado por otro usuario' })
+        return res.status(409).json({ error: 'Ese correo ya está en uso por otra cuenta' })
       }
     }
 
@@ -360,7 +360,7 @@ router.patch('/:id/email', requirePermission(PERMISSIONS.USERS_UPDATE), async (r
       where: { id: usuarioObjetivo.id },
       data: {
         email,
-        token_version: usuarioObjetivo.token_version + 1
+        token_version: { increment: 1 }
       },
       select: {
         id: true,
@@ -380,17 +380,17 @@ router.patch('/:id/email', requirePermission(PERMISSIONS.USERS_UPDATE), async (r
 
     registrarAuditoria({
       req,
-      accion: 'CAMBIAR_EMAIL_USUARIO',
-      modulo: 'Usuarios',
+      accion: 'CAMBIO_EMAIL_USUARIO',
+      modulo: 'Gestión de Usuarios',
       recurso_id: usuarioActualizado.id,
-      detalles: `Correo electrónico del usuario ${usuarioObjetivo.email} cambiado a ${usuarioActualizado.email}`,
+      detalles: `Correo de usuario ${targetId} actualizado a ${email}`,
       metadata: { cambios: diferencias }
     })
 
     res.json(usuarioActualizado)
   } catch (error) {
-    console.error('Error al cambiar correo electrónico del usuario:', error)
-    res.status(500).json({ error: 'Error interno del servidor' })
+    console.error('Error actualizando correo de usuario:', error)
+    res.status(500).json({ error: 'Error actualizando el correo' })
   }
 })
 
