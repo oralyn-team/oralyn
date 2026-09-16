@@ -1694,6 +1694,172 @@ function TabUsuarios() {
 
 // ── Página Principal ──────────────────────────────────────────────────────────
 
+// ── Tab: Mi Perfil y Seguridad (Para todos los usuarios del consultorio) ─────────
+
+function TabMiPerfil() {
+  const { usuario } = useApp();
+  const [formPass, setFormPass] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [savingPass, setSavingPass] = useState(false);
+  const [errorPass, setErrorPass] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const mostrarToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleCambiarPassword = async (e) => {
+    e.preventDefault();
+    setErrorPass(null);
+
+    if (formPass.newPassword.length < 8) {
+      setErrorPass('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (formPass.newPassword !== formPass.confirmPassword) {
+      setErrorPass('Las contraseñas nuevas no coinciden');
+      return;
+    }
+
+    setSavingPass(true);
+    try {
+      await api.cambiarPassword({
+        currentPassword: formPass.currentPassword,
+        newPassword: formPass.newPassword
+      });
+      mostrarToast('Tu contraseña ha sido actualizada correctamente');
+      setFormPass({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      setErrorPass(err?.error || 'Error al cambiar la contraseña. Verifica tu contraseña actual.');
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
+  const rolFormateado = {
+    DUENO: 'Dueño / Administrador del Consultorio',
+    ASISTENTE_ODONTOLOGO: 'Asistente / Odontólogo',
+    RECEPCIONISTA: 'Recepcionista',
+    SUPERADMIN: 'Superadministrador'
+  }[usuario?.rol] || usuario?.rol || 'Usuario';
+
+  return (
+    <div className="space-y-4">
+      {/* Header Info */}
+      <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary dark:text-teal flex items-center justify-center flex-shrink-0">
+          <UserRound size={20} />
+        </div>
+        <div>
+          <h3 className="text-[13.5px] font-bold text-primary dark:text-dark-text">Mi Perfil y Seguridad</h3>
+          <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
+            Administre la información de su cuenta y actualice su contraseña de acceso al sistema.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Datos de la cuenta */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4 flex flex-col justify-between">
+          <div className="space-y-4">
+            <h4 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+              <UserRound size={15} className="text-teal" /> Información de mi Cuenta
+            </h4>
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="text-teal-muted dark:text-slate-400 block font-medium">Nombre Completo</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{usuario?.nombre || '—'}</span>
+              </div>
+              <div>
+                <span className="text-teal-muted dark:text-slate-400 block font-medium">Correo Electrónico (Usuario de acceso)</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">{usuario?.email || '—'}</span>
+              </div>
+              <div>
+                <span className="text-teal-muted dark:text-slate-400 block font-medium">Rol Asignado</span>
+                <span className="font-semibold text-primary dark:text-teal font-sans">{rolFormateado}</span>
+              </div>
+              {usuario?.registro && (
+                <div>
+                  <span className="text-teal-muted dark:text-slate-400 block font-medium">Registro / Cédula Profesional</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">{usuario.registro}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Cambiar Contraseña */}
+        <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm space-y-4">
+          <h4 className="text-[13px] font-semibold text-primary dark:text-dark-text border-b border-teal-soft dark:border-dark-border pb-2 flex items-center gap-1.5">
+            <Lock size={15} className="text-teal" /> Cambiar mi Contraseña
+          </h4>
+
+          <form onSubmit={handleCambiarPassword} className="space-y-3 text-xs">
+            <div>
+              <label className="block font-semibold mb-1">Contraseña Actual *</label>
+              <input
+                type="password"
+                required
+                value={formPass.currentPassword}
+                onChange={e => setFormPass({ ...formPass, currentPassword: e.target.value })}
+                className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal"
+                placeholder="Ingresa tu contraseña actual"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">Nueva Contraseña *</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={formPass.newPassword}
+                onChange={e => setFormPass({ ...formPass, newPassword: e.target.value })}
+                className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal"
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">Confirmar Nueva Contraseña *</label>
+              <input
+                type="password"
+                required
+                value={formPass.confirmPassword}
+                onChange={e => setFormPass({ ...formPass, confirmPassword: e.target.value })}
+                className="w-full px-3 py-2 border border-teal-border dark:border-dark-border rounded-xl bg-white dark:bg-dark-input text-primary dark:text-dark-text outline-none focus:ring-1 focus:ring-primary dark:focus:ring-teal"
+                placeholder="Repite la nueva contraseña"
+              />
+            </div>
+
+            {errorPass && (
+              <p className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {errorPass}
+              </p>
+            )}
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={savingPass}
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary dark:bg-teal dark:text-slate-900 text-white rounded-xl font-semibold text-xs disabled:opacity-50 cursor-pointer shadow-soft-sm"
+              >
+                {savingPass ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                {savingPass ? 'Actualizando...' : 'Actualizar Contraseña'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary dark:bg-slate-800 text-white text-[12px] px-4 py-2.5 rounded-full whitespace-nowrap z-50 shadow-soft-lg flex items-center gap-2 border border-white/10 animate-toast">
+          <Check size={14} className="text-teal" /> {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Tab: Perfil y Seguridad del Superadministrador ──────────────────────────
 
 function TabPerfilSuperadmin() {
@@ -1856,6 +2022,7 @@ function TabPerfilSuperadmin() {
 
 const ALL_TABS = [
   { id: 'superadmin_perfil', label: 'Perfil y Seguridad Superadmin', icon: ShieldCheck, roles: ['SUPERADMIN'] },
+  { id: 'perfil',            label: 'Mi Perfil y Seguridad',        icon: UserRound,   roles: ['DUENO', 'ASISTENTE_ODONTOLOGO', 'RECEPCIONISTA'] },
   { id: 'general',           label: 'Ajustes Generales',           icon: Settings,    roles: ['DUENO'] },
   { id: 'catalogo',          label: 'Catálogo CUPS',                icon: Stethoscope, roles: ['DUENO', 'ASISTENTE_ODONTOLOGO', 'RECEPCIONISTA'] },
   { id: 'facturacion',       label: 'Facturación Electrónica',      icon: Receipt,     roles: ['DUENO'] },
@@ -1873,7 +2040,7 @@ export default function Configuracion() {
 
   const [tabActivo, setTabActivo] = useState(() => {
     if (usuario?.rol === 'SUPERADMIN') return 'superadmin_perfil';
-    return 'general';
+    return 'perfil';
   });
 
   useEffect(() => {
@@ -1897,7 +2064,7 @@ export default function Configuracion() {
                 {usuario?.rol === 'SUPERADMIN' ? (
                   <><Settings size={18} className="text-teal" /> Configuración de Plataforma Oralyn</>
                 ) : (usuario?.rol === 'ASISTENTE_ODONTOLOGO' || usuario?.rol === 'RECEPCIONISTA') ? (
-                  <><Stethoscope size={18} className="text-teal" /> Catálogo de Procedimientos CUPS</>
+                  <><UserRound size={18} className="text-teal" /> Configuración y Mi Perfil</>
                 ) : (
                   <><Settings size={18} className="text-teal" /> Ajustes del Consultorio</>
                 )}
@@ -1906,8 +2073,8 @@ export default function Configuracion() {
                 {usuario?.rol === 'SUPERADMIN'
                   ? 'Gestione el perfil de la cuenta técnica, seguridad y accesos directos a la administración global.'
                   : (usuario?.rol === 'ASISTENTE_ODONTOLOGO' || usuario?.rol === 'RECEPCIONISTA')
-                  ? 'Consulte el listado de códigos oficiales CUPS y precios parametrizados para la atención clínica y facturación.'
-                  : 'Administra la configuración general, equipo de trabajo, catálogo CUPS y facturación electrónica.'}
+                  ? 'Consulte su perfil, actualice su contraseña de acceso y consulte el catálogo oficial de procedimientos CUPS.'
+                  : 'Administra su perfil personal, configuración general del consultorio, equipo de trabajo, catálogo CUPS y facturación electrónica.'}
               </p>
             </div>
           </div>
@@ -1940,6 +2107,7 @@ export default function Configuracion() {
 
           {/* Contenido del tab activo */}
           {tabActivo === 'superadmin_perfil' && <TabPerfilSuperadmin />}
+          {tabActivo === 'perfil'            && <TabMiPerfil />}
           {tabActivo === 'general'           && <TabAjustesGenerales />}
           {tabActivo === 'catalogo'          && <TabCatalogoCUPS />}
           {tabActivo === 'facturacion'       && <TabFacturacionElectronica />}
