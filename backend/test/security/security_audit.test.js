@@ -213,3 +213,17 @@ test('SEC-018: La auditoría carece de permisos de modificación (UPDATE/DELETE)
   assert.equal(hasPermission(ROLES.DUENO, PERMISSIONS.AUDIT_READ), true)
   assert.equal(hasPermission(ROLES.SUPERADMIN, PERMISSIONS.AUDIT_READ_GLOBAL), true)
 })
+
+// SEC-019: Control de Permisos para Módulo de Insumos (RECEPCIONISTA)
+test('SEC-019: RECEPCIONISTA no posee INSUMOS_READ ni INSUMOS_MANAGE', () => {
+  assert.equal(hasPermission(ROLES.RECEPCIONISTA, PERMISSIONS.INSUMOS_READ), false)
+  assert.equal(hasPermission(ROLES.RECEPCIONISTA, PERMISSIONS.INSUMOS_MANAGE), false)
+})
+
+// SEC-020: Control de Permisos para Módulo de Insumos (ASISTENTE y DUEÑO)
+test('SEC-020: ASISTENTE_ODONTOLOGO y DUEÑO poseen INSUMOS_READ e INSUMOS_MANAGE', () => {
+  assert.equal(hasPermission(ROLES.DUENO, PERMISSIONS.INSUMOS_READ), true)
+  assert.equal(hasPermission(ROLES.DUENO, PERMISSIONS.INSUMOS_MANAGE), true)
+  assert.equal(hasPermission(ROLES.ASISTENTE_ODONTOLOGO, PERMISSIONS.INSUMOS_READ), true)
+  assert.equal(hasPermission(ROLES.ASISTENTE_ODONTOLOGO, PERMISSIONS.INSUMOS_MANAGE), true)
+})

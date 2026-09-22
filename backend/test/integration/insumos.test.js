@@ -26,8 +26,8 @@ function createInsumosMock() {
       { id: 99, nombre_consultorio: 'Consultorio B', nombre_profesional: 'Dr. B' }
     ],
     usuario: [
-      { id: 1, consultorio_id: 10, email: 'doctorA@oralyn.test', password_hash: 'hash', nombre: 'Dra. A' },
-      { id: 2, consultorio_id: 99, email: 'doctorB@oralyn.test', password_hash: 'hash', nombre: 'Dr. B' }
+      { id: 1, consultorio_id: 10, email: 'doctorA@oralyn.test', password_hash: 'hash', nombre: 'Dra. A', rol: 'DUENO' },
+      { id: 2, consultorio_id: 99, email: 'doctorB@oralyn.test', password_hash: 'hash', nombre: 'Dr. B', rol: 'DUENO' }
     ],
     insumo: [
       {

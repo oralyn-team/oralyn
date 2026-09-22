@@ -1,6 +1,8 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { requirePermission } = require('../middlewares/rbac')
+const { PERMISSIONS } = require('../lib/permissions')
 const { calcularSemaforoInsumo } = require('../utils/semaforo')
 const { esNumeroValido } = require('../utils/validacion')
 
@@ -10,7 +12,7 @@ const router = express.Router()
 router.use(verificarToken)
 
 // GET /api/insumos/alertas — listar insumos en estado de alerta (amarillo o rojo en cualquier eje)
-router.get('/alertas', async (req, res) => {
+router.get('/alertas', requirePermission(PERMISSIONS.INSUMOS_READ), async (req, res) => {
   try {
     const insumos = await prisma.insumo.findMany({
       where: {
@@ -38,7 +40,7 @@ router.get('/alertas', async (req, res) => {
 })
 
 // POST /api/insumos — crear insumo
-router.post('/', async (req, res) => {
+router.post('/', requirePermission(PERMISSIONS.INSUMOS_MANAGE), async (req, res) => {
   const {
     nombre,
     categoria,
@@ -92,7 +94,7 @@ router.post('/', async (req, res) => {
 })
 
 // GET /api/insumos — listar todos los insumos activos del consultorio
-router.get('/', async (req, res) => {
+router.get('/', requirePermission(PERMISSIONS.INSUMOS_READ), async (req, res) => {
   try {
     const insumos = await prisma.insumo.findMany({
       where: {
@@ -111,7 +113,7 @@ router.get('/', async (req, res) => {
 })
 
 // GET /api/insumos/:id — detalle de insumo con movimientos
-router.get('/:id', async (req, res) => {
+router.get('/:id', requirePermission(PERMISSIONS.INSUMOS_READ), async (req, res) => {
   const { id } = req.params
 
   try {
@@ -139,7 +141,7 @@ router.get('/:id', async (req, res) => {
 })
 
 // PUT /api/insumos/:id — editar insumo
-router.put('/:id', async (req, res) => {
+router.put('/:id', requirePermission(PERMISSIONS.INSUMOS_MANAGE), async (req, res) => {
   const { id } = req.params
   const datos = { ...req.body }
 
@@ -191,7 +193,7 @@ router.put('/:id', async (req, res) => {
 })
 
 // POST /api/insumos/:id/movimiento — registrar movimiento (transaccional)
-router.post('/:id/movimiento', async (req, res) => {
+router.post('/:id/movimiento', requirePermission(PERMISSIONS.INSUMOS_MANAGE), async (req, res) => {
   const { id } = req.params
   const { tipo, cantidad, motivo, usuario_id } = req.body
 
@@ -269,7 +271,7 @@ router.post('/:id/movimiento', async (req, res) => {
 })
 
 // DELETE /api/insumos/:id — eliminación lógica (activo = false)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requirePermission(PERMISSIONS.INSUMOS_MANAGE), async (req, res) => {
   const { id } = req.params
 
   try {
