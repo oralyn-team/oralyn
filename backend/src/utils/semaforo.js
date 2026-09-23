@@ -1,6 +1,6 @@
 /**
  * Utilidades para cálculo de semaforización de insumos (Vencimiento y Stock)
- * Nota de extensibilidad: Los umbrales (3/6 meses para vencimiento, 1.5x para stock) se mantienen centralizados aquí como defaults globales.
+ * Nota de extensibilidad: Los umbrales (1/3 meses para vencimiento, 1.5x para stock) se mantienen centralizados aquí como defaults globales.
  * En el futuro pueden parametrizarse según la configuración de cada consultorio.
  */
 
@@ -11,15 +11,15 @@ function calcularSemaforoVencimiento(fechaVencimiento, fechaReferencia = new Dat
 
   const ref = new Date(fechaReferencia)
 
+  const limite1Mes = new Date(ref)
+  limite1Mes.setMonth(limite1Mes.getMonth() + 1)
+
   const limite3Meses = new Date(ref)
   limite3Meses.setMonth(limite3Meses.getMonth() + 3)
 
-  const limite6Meses = new Date(ref)
-  limite6Meses.setMonth(limite6Meses.getMonth() + 6)
-
-  if (fechaVenc <= limite3Meses) {
+  if (fechaVenc <= limite1Mes) {
     return 'rojo'
-  } else if (fechaVenc <= limite6Meses) {
+  } else if (fechaVenc <= limite3Meses) {
     return 'amarillo'
   } else {
     return 'verde'
@@ -27,6 +27,7 @@ function calcularSemaforoVencimiento(fechaVencimiento, fechaReferencia = new Dat
 }
 
 function calcularSemaforoStock(cantidadActual, stockMinimo) {
+  if (cantidadActual === null || cantidadActual === undefined || stockMinimo === null || stockMinimo === undefined) return 'gris'
   const cant = Number(cantidadActual)
   const min = Number(stockMinimo)
 
