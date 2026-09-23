@@ -9,6 +9,7 @@ import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Pacientes from './pages/Pacientes'
 import Historias from './pages/Historias'
+import Insumos from './pages/Insumos'
 import Citas from './pages/Citas'
 import Consentimientos from './pages/Consentimientos'
 import Configuracion from './pages/Configuracion'
@@ -63,6 +64,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Pacientes /></PrivateRoute>} />
           <Route path="/historias" element={<PrivateRoute><Historias /></PrivateRoute>} />
+          <Route path="/insumos" element={<PrivateRoute><Insumos /></PrivateRoute>} />
           <Route path="/citas" element={<PrivateRoute><Citas /></PrivateRoute>} />
           <Route path="/consentimientos" element={<PrivateRoute><Consentimientos /></PrivateRoute>} />
           <Route path="/rips" element={<PrivateRoute><Rips /></PrivateRoute>} />

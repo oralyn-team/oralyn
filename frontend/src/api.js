@@ -402,7 +402,16 @@ export const api = {
   actualizarFirmaProfesional: (id, firma_default) =>
     request(`/profesionales/${id}/firma-default`, { method: 'PUT', body: JSON.stringify({ firma_default }) }),
   actualizarProfesional: (id, data) =>
-    request(`/profesionales/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+    request(`/profesionales/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Insumos
+  getInsumos:        ()     => request('/insumos'),
+  getInsumosAlertas: ()     => request('/insumos/alertas'),
+  getInsumo:         (id)   => request(`/insumos/${id}`),
+  crearInsumo:       (data) => request('/insumos', { method: 'POST', body: JSON.stringify(data) }),
+  actualizarInsumo:  (id, data) => request(`/insumos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  registrarMovimientoInsumo: (id, data) => request(`/insumos/${id}/movimiento`, { method: 'POST', body: JSON.stringify(data) }),
+  eliminarInsumo:    (id)   => request(`/insumos/${id}`, { method: 'DELETE' })
 }
 
 
