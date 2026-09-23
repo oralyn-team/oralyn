@@ -10,6 +10,7 @@ import Topbar        from '../components/layout/Topbar';
 import StatCard      from '../components/StatCard';
 import PacienteForm  from '../components/PacienteForm';
 import CitaForm       from '../components/citas/CitaForm';
+import AlertasInsumosWidget from '../components/insumos/AlertasInsumosWidget';
 
 import { 
   Users, 
@@ -390,6 +391,11 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+
+              {/* Alertas de Insumos */}
+              {hasPermission(usuario, PERMISSIONS.INSUMOS_READ) && (
+                <AlertasInsumosWidget />
+              )}
 
               {/* Status Breakdown Panel */}
               <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-5 shadow-soft-sm flex-1">

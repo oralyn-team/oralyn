@@ -112,6 +112,7 @@ model Configuracion {
   facturas                   Factura[]
   auditorias                 Auditoria[]
   profesionales              Profesional[]
+  insumos                    Insumo[]
 }
 
 // ─── PROFESIONALES ──────────────────────────────────────────
@@ -742,4 +743,44 @@ model Administrador {
   activo        Boolean   @default(true)
   creado_en     DateTime  @default(now())
   ultimo_login  DateTime?
+}
+model Insumo {
+  id                String             @id @default(cuid())
+  consultorio_id    Int
+  nombre            String
+  categoria         String?
+  unidad_medida     String
+  lote              String?
+  registro_invima   String?
+  fabricante        String?
+  proveedor         String?
+  cantidad_actual   Decimal            @db.Decimal(10, 2)
+  stock_minimo      Decimal            @db.Decimal(10, 2)
+  fecha_vencimiento DateTime?
+  fecha_apertura    DateTime?
+  ubicacion         String?
+  activo            Boolean            @default(true)
+  creado_en         DateTime           @default(now())
+  actualizado_en    DateTime           @updatedAt
+
+  configuracion     Configuracion      @relation(fields: [consultorio_id], references: [id])
+  movimientos       MovimientoInsumo[]
+
+  @@index([consultorio_id])
+  @@map("insumos")
+}
+
+model MovimientoInsumo {
+  id         String   @id @default(cuid())
+  insumo_id  String
+  tipo       String
+  cantidad   Decimal  @db.Decimal(10, 2)
+  motivo     String?
+  usuario_id String?
+  fecha      DateTime @default(now())
+
+  insumo     Insumo   @relation(fields: [insumo_id], references: [id])
+
+  @@index([insumo_id])
+  @@map("movimientos_insumo")
 }

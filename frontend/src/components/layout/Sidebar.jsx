@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CalendarDays,
   Stethoscope, ClipboardList, Settings, LogOut, FileBarChart, Receipt,
-  Sun, Moon, X, ShieldCheck, Building2
+  Sun, Moon, X, ShieldCheck, Building2, Package
 } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
 import { ROLES, PERMISSIONS, ROLE_LABELS, hasPermission } from '../../utils/rbac';
@@ -14,6 +14,7 @@ const ALL_NAV_ITEMS = [
   { icon: CalendarDays,    label: 'Citas',            path: '/citas',            permission: PERMISSIONS.APPOINTMENTS_READ },
   { icon: Stethoscope,     label: 'Consentimientos',  path: '/consentimientos',  permission: PERMISSIONS.CONSENTIMIENTOS_READ },
   { icon: ClipboardList,   label: 'Historias',        path: '/historias',        permission: PERMISSIONS.CLINICAL_RECORDS_READ },
+  { icon: Package,         label: 'Insumos',          path: '/insumos',          permission: PERMISSIONS.INSUMOS_READ },
   { icon: FileBarChart,    label: 'RIPS',             path: '/rips',             permission: PERMISSIONS.RIPS_READ },
   { icon: Receipt,         label: 'Facturación',      path: '/facturacion',      permission: PERMISSIONS.INVOICES_READ },
   { icon: ShieldCheck,     label: 'Auditoría',        path: '/auditoria',        permission: PERMISSIONS.AUDIT_READ },
