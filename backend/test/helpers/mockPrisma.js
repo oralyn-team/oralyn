@@ -204,6 +204,7 @@ function createUnifiedPrismaMock(initialData = {}) {
     recomendacionPostQx: [],
     profesional: [],
     auditoria: [],
+    procedimientoConsultorio: [],
     insumo: [],
     movimientoInsumo: [],
     ...normalizedData
@@ -271,7 +272,7 @@ function createUnifiedPrismaMock(initialData = {}) {
     'hcAntecedentes', 'hcExamenEstomatologico', 'hcOdontograma',
     'hojaEvolucion', 'hcAdjunto', 'cita', 'consentimiento',
     'certificadoDental', 'cotizacion', 'procedimientoCotizacion', 'pago',
-    'recomendacionPostQx', 'auditoria', 'insumo', 'movimientoInsumo'
+    'recomendacionPostQx', 'auditoria', 'procedimientoConsultorio', 'insumo', 'movimientoInsumo'
   ];
 
   modelNames.forEach(modelName => {
