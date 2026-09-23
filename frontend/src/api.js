@@ -188,8 +188,6 @@ export const api = {
   actualizarCotizacion:    (id, data)   => request(`/cotizaciones/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   cambiarEstadoCotizacion: (id, estado) => request(`/cotizaciones/${id}/estado`, { method: 'PATCH', body: JSON.stringify({ estado }) }),
   eliminarCotizacion:      (id)         => request(`/cotizaciones/${id}`, { method: 'DELETE' }),
-  verCotizacionPDF:        (id)         => verCotizacionPDF(id),
-  verRecomendacionesPDF:   ()           => verRecomendacionesPDF(),
 
   // Pagos
   getPagosPaciente: (pacienteId) => request(`/pagos/paciente/${pacienteId}`),
@@ -328,6 +326,8 @@ export const api = {
       throw new Error(err.error || 'Error al descargar XML de la factura');
     }
     const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = `factura_${id}.xml`;
     if (disposition && disposition.includes('filename=')) {
       const match = disposition.match(/filename="?([^";]+)"?/);
       if (match && match[1]) filename = match[1];
