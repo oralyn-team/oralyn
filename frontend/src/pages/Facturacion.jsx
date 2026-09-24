@@ -7,6 +7,7 @@ import {
   Plus,
   Eye,
   Download,
+  CodeXml,
   RotateCcw,
   FileDiff,
   CheckCircle,
@@ -138,6 +139,16 @@ export default function Facturacion() {
       showToast(`PDF de ${inv.number} descargado`);
     } catch {
       showToast('Error al descargar el PDF');
+    }
+  };
+
+  const handleDescargarXML = async (inv, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await invoiceService.downloadInvoiceXml(inv.id);
+      showToast(`XML de ${inv.number} descargado`);
+    } catch {
+      showToast('Error al descargar el XML');
     }
   };
 
@@ -512,6 +523,14 @@ export default function Facturacion() {
                                       title="Descargar PDF"
                                     >
                                       <Download size={12} /> PDF
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDescargarXML(inv, e)}
+                                      className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium text-primary dark:text-teal border border-teal-border dark:border-dark-border rounded-lg hover:bg-teal-soft dark:hover:bg-slate-800 transition-colors cursor-pointer touch-target"
+                                      title="Descargar XML"
+                                    >
+                                      <CodeXml size={12} /> XML
                                     </button>
                                     <button
                                       type="button"
