@@ -115,7 +115,14 @@ router.post('/', requirePermission(PERMISSIONS.PATIENTS_CREATE), async (req, res
       detalles: `Paciente ${paciente.nombres} ${paciente.primer_apellido} (${paciente.tipo_documento} ${paciente.numero_documento}) creado`
     })
 
-    res.status(201).json(paciente)
+    const pacienteRespuesta = mapPacienteSummary({
+      ...paciente,
+      citas: [],
+      cotizaciones: [],
+      pagos: []
+    })
+
+    res.status(201).json(pacienteRespuesta)
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })

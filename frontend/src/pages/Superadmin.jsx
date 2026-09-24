@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  Building2, Users, UserCheck, Plus, RefreshCw, X,
-  CheckCircle2, XCircle, Activity, Lock, ShieldAlert
+  Building2, Users, UserCheck, ShieldCheck, Plus, RefreshCw, X,
+  CheckCircle2, XCircle, Activity, Globe, Lock, ShieldAlert, AlertCircle
 } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/useApp';
@@ -220,7 +220,22 @@ export default function Superadmin() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {loading ? (
+                  {error ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+                        <p className="text-[14px] font-semibold text-slate-900 dark:text-white mb-1">Error al cargar datos</p>
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-4">{error}</p>
+                        <button
+                          type="button"
+                          onClick={cargarDatos}
+                          className="text-[12px] text-white font-medium px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors cursor-pointer"
+                        >
+                          Reintentar
+                        </button>
+                      </td>
+                    </tr>
+                  ) : loading ? (
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-slate-400">Cargando consultorios...</td>
                     </tr>

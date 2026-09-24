@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Search,
   Trash2,
+  AlertCircle,
 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
@@ -474,8 +475,19 @@ export default function Consentimientos() {
         <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
         <div className="flex flex-col flex-1 min-w-0">
           <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
-          <main className="flex-1 flex items-center justify-center p-6">
-            <p className="text-[13px] text-status-red dark:text-red-400">{error}</p>
+          <main className="flex-1 px-4 sm:px-6 py-5">
+            <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-6 text-center max-w-md mx-auto mt-12 shadow-soft-md">
+              <AlertCircle className="w-10 h-10 text-status-red dark:text-red-400 mx-auto mb-3" />
+              <h3 className="text-[14px] font-semibold text-primary dark:text-dark-text mb-1">Error de conexión</h3>
+              <p className="text-[12px] text-teal-muted dark:text-slate-400 mb-4">{error}</p>
+              <button 
+                type="button" 
+                onClick={recargarPacientes}
+                className="text-[12px] text-white font-medium px-4 py-2.5 bg-primary dark:bg-teal dark:text-slate-900 rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Reintentar
+              </button>
+            </div>
           </main>
         </div>
       </div>

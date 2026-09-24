@@ -19,7 +19,9 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
-  Check
+  XCircle,
+  Check,
+  Trash2
 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
@@ -163,6 +165,27 @@ export default function Facturacion() {
       cargarFacturas();
     } catch (err) {
       showToast(err.message || 'Error al generar Nota Crédito');
+    }
+  };
+
+  // Eliminar factura no validada (pendiente o rechazada)
+  const handleEliminarFactura = async (inv, e) => {
+    if (e) e.stopPropagation();
+    const numFactura = inv.number ? `#${inv.number}` : `ref. ${inv.id}`;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la factura ${numFactura}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      await invoiceService.deleteInvoice(inv.id);
+      showToast(`Factura ${numFactura} eliminada correctamente`);
+      if (selectedInvoice?.id === inv.id) {
+        setSelectedInvoice(null);
+      }
+      cargarFacturas();
+    } catch (err) {
+      console.error('Error eliminando factura:', err);
+      showToast(err.message || 'Error al eliminar la factura');
     }
   };
 
@@ -544,7 +567,7 @@ export default function Facturacion() {
                                   </>
                                 )}
 
-                                {/* Factura Anulada: Descargar PDF */}
+                                 {/* Factura Anulada: Descargar PDF */}
                                 {isAnulada && (
                                   <button
                                     type="button"
@@ -553,6 +576,18 @@ export default function Facturacion() {
                                     title="Descargar PDF"
                                   >
                                     <Download size={12} /> PDF
+                                  </button>
+                                )}
+
+                                {/* Factura No Validada (Pendiente o Rechazada): Eliminar */}
+                                {!isAceptada && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleEliminarFactura(inv, e)}
+                                    className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/60 rounded-lg transition-colors cursor-pointer touch-target"
+                                    title="Eliminar factura"
+                                  >
+                                    <Trash2 size={12} /> Eliminar
                                   </button>
                                 )}
                               </div>
