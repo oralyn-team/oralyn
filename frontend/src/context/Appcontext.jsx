@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { api, setUnauthorizedHandler } from '../api';
 import { calcTotales } from '../components/historias/tratamientos/helpers';
-
-const AppContext = createContext(null);
+import { AppContext } from './AppContextObject';
 
 function toDateInput(value) {
   return value ? String(value).split('T')[0] : '';
@@ -463,10 +462,4 @@ export function AppProvider({ children }) {
       ) : children}
     </AppContext.Provider>
   );
-}
-
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp debe usarse dentro de AppProvider');
-  return ctx;
 }

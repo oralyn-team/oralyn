@@ -4,7 +4,7 @@ import {
   CheckCircle2, XCircle, Activity, Download
 } from 'lucide-react';
 import { api } from '../api';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
 import { ROLES, ROLE_LABELS } from '../utils/rbac';

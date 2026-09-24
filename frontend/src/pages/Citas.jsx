@@ -10,7 +10,7 @@ import CitaCalendario from '../components/citas/CitaCalendario';
 import CitaForm       from '../components/citas/CitaForm';
 
 import { api } from '../api';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 
 const ESTADO_API_TO_UI = {
   pendiente: 'Pendiente',

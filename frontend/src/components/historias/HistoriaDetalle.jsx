@@ -9,7 +9,7 @@ import AdjuntosPanel     from './AdjuntosPanel';
 import FormularioClinico from './FormularioClinico';
 import { api }           from '../../api';
 import { antecedentesFormToDb } from '../../data/historiasData';
-import { useApp } from '../../context/Appcontext';
+import { useApp } from '../../context/useApp';
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import { api } from '../api';
 import { antecedentesDbToForm } from '../data/historiasData';
 import { hasPermission, PERMISSIONS } from '../utils/rbac';

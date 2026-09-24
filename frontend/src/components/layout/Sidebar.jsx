@@ -4,7 +4,7 @@ import {
   Stethoscope, ClipboardList, Settings, LogOut, FileBarChart, Receipt,
   Sun, Moon, X, ShieldCheck, Building2, Package
 } from 'lucide-react';
-import { useApp } from '../../context/Appcontext';
+import { useApp } from '../../context/useApp';
 import { ROLES, PERMISSIONS, ROLE_LABELS, hasPermission } from '../../utils/rbac';
 
 const ALL_NAV_ITEMS = [

@@ -14,7 +14,7 @@ import {
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
 import StatCard from '../components/StatCard';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import { api } from '../api';
 import { useSignaturePad } from '../hooks/useSignaturePad';
 

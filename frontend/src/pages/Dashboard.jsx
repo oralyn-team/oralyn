@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import { api } from '../api';
 import { hasPermission, PERMISSIONS } from '../utils/rbac';
 
