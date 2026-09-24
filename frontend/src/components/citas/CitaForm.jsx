@@ -1,6 +1,6 @@
 // src/components/citas/CitaForm.jsx
 import { useState, useEffect } from 'react';
-import { X, Save, Stethoscope, FileText, DollarSign } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { useApp } from '../../context/Appcontext';
 import { api } from '../../api';
 
@@ -71,7 +71,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
   const [catalogoCie10, setCatalogoCie10] = useState([]);
   const [loadingCie10, setLoadingCie10] = useState(false);
   const [cotizacionesPendientes, setCotizacionesPendientes] = useState([]);
-  const [loadingCotizaciones, setLoadingCotizaciones] = useState(false);
+  const [, setLoadingCotizaciones] = useState(false);
   const [profesionales, setProfesionales] = useState([]);
 
   useEffect(() => {

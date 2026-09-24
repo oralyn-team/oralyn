@@ -1,10 +1,9 @@
 // src/pages/Facturacion.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Receipt,
   Search,
   Filter,
-  CalendarDays,
   Plus,
   Eye,
   Download,
@@ -19,7 +18,6 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
-  XCircle,
   Check
 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
@@ -138,18 +136,8 @@ export default function Facturacion() {
     try {
       await invoiceService.downloadInvoicePdf(inv.id);
       showToast(`PDF de ${inv.number} descargado`);
-    } catch (err) {
+    } catch {
       showToast('Error al descargar el PDF');
-    }
-  };
-
-  const handleDescargarXML = async (inv, e) => {
-    if (e) e.stopPropagation();
-    try {
-      await invoiceService.downloadInvoiceXml(inv.id);
-      showToast(`XML de ${inv.number} descargado`);
-    } catch (err) {
-      showToast('Error al descargar el XML');
     }
   };
 

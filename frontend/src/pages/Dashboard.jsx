@@ -12,9 +12,8 @@ import PacienteForm  from '../components/PacienteForm';
 import CitaForm       from '../components/citas/CitaForm';
 import AlertasInsumosWidget from '../components/insumos/AlertasInsumosWidget';
 
-import { 
-  Users, 
-  CalendarDays, 
+import {
+  CalendarDays,
   AlertCircle, 
   TrendingUp, 
   Clock, 

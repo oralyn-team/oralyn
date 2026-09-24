@@ -7,7 +7,6 @@ import {
   ChevronRight,
   CheckCircle2,
   Loader2,
-  Package,
   RefreshCw
 } from 'lucide-react';
 

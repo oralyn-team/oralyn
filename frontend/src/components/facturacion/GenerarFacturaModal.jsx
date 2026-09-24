@@ -1,5 +1,5 @@
 // src/components/facturacion/GenerarFacturaModal.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Receipt,
   User,
@@ -85,7 +85,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
   });
 
   const [metodoPago, setMetodoPago] = useState(data?.metodoPago || data?.pagoMetodo || 'efectivo');
-  const [observaciones, setObservaciones] = useState(data?.observacion || '');
+  const [observaciones] = useState(data?.observacion || '');
 
   // Cargar cotizaciones y pagos cuando cambie el paciente seleccionado
   useEffect(() => {

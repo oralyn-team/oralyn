@@ -26,32 +26,15 @@ import {
   Trash2,
   Search,
   X,
-  ToggleLeft,
-  ToggleRight,
   ChevronDown,
   Tag,
   DollarSign,
-  Hash,
   Receipt,
   ShieldCheck,
-  CheckCircle2,
-  CalendarDays,
   Globe,
   Lock,
   Upload
 } from 'lucide-react';
-
-// ── Categorías predefinidas (sirven como opciones en el modal) ─────────────────
-const CATEGORIAS = [
-  'Preventivo',
-  'Restaurador',
-  'Endodoncia',
-  'Cirugía',
-  'Estético',
-  'Ortodoncia',
-  'Prótesis',
-  'Periodoncia',
-];
 
 // ── Colores por categoría ──────────────────────────────────────────────────────
 const CAT_COLORS = {
@@ -75,10 +58,6 @@ function fmt(n) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
 }
 
-// ── Estilos reutilizables ──────────────────────────────────────────────────────
-const inputCls = 'w-full text-[12px] text-primary bg-white border border-teal-border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/40 font-sans';
-const labelCls = 'block text-[11px] font-medium text-teal-muted mb-1';
-
 // ── Subcomponentes ─────────────────────────────────────────────────────────────
 
 function Toggle({ checked, onChange }) {
@@ -101,10 +80,6 @@ function Toggle({ checked, onChange }) {
     </button>
   );
 }
-
-// ── Modal de Procedimiento (Crear / Editar) ───────────────────────────────────
-
-const PROC_VACIO = { codigo: '', nombre: '', categoria: CATEGORIAS[0], valorBase: '', activo: true };
 
 // ── Modal de Procedimiento (Crear / Editar) ───────────────────────────────────
 
@@ -768,7 +743,7 @@ function TabCatalogoCUPS() {
 // ── Tab: Ajustes Generales ────────────────────────────────────────────────────
 
 function TabAjustesGenerales() {
-  const { pacientes, setConfiguracion } = useApp();
+  const { setConfiguracion } = useApp();
 
   const [form, setForm] = useState({
     nombre_consultorio: '',

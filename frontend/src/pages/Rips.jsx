@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   FileText,
   Search,
@@ -27,7 +27,7 @@ import { useApp } from '../context/Appcontext';
 import { api } from '../api';
 
 export default function Rips() {
-  const { pacientes, configuracion, usuariosConsultorio = [] } = useApp();
+  const { configuracion, usuariosConsultorio = [] } = useApp();
   const doctorDefault = configuracion?.nombre_profesional || (usuariosConsultorio.length === 1 ? usuariosConsultorio[0].nombre : '');
 
   const [loading, setLoading] = useState(true);

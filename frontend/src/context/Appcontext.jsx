@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { api, setUnauthorizedHandler } from '../api';
-import { tokenExpirado } from '../utils/jwt';
 import { calcTotales } from '../components/historias/tratamientos/helpers';
 
 const AppContext = createContext(null);

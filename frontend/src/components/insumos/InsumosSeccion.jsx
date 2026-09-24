@@ -7,7 +7,6 @@ import MovimientoModal from './MovimientoModal';
 import InsumoDetalleModal from './InsumoDetalleModal';
 import {
   Package,
-  AlertTriangle,
   CheckCircle2,
   XCircle,
   Plus,

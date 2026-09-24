@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  ShieldCheck, Search, Filter, Calendar, RefreshCw, Eye, X,
-  CheckCircle2, XCircle, Building2, User, Activity, ArrowRight, Download
+  ShieldCheck, Search, RefreshCw, Eye, X,
+  CheckCircle2, XCircle, Activity, Download
 } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/Appcontext';
