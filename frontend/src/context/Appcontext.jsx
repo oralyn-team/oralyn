@@ -1,9 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { api, setUnauthorizedHandler } from '../api';
-import { tokenExpirado } from '../utils/jwt';
 import { calcTotales } from '../components/historias/tratamientos/helpers';
-
-const AppContext = createContext(null);
+import { AppContext } from './AppContextObject';
 
 function toDateInput(value) {
   return value ? String(value).split('T')[0] : '';
@@ -198,6 +196,7 @@ export function AppProvider({ children }) {
 
   // ── Carga inicial de pacientes ────────────────────────────────────────────
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     if (!usuario || usuario.rol === 'SUPERADMIN') { setLoadingPacientes(false); return; }
     setLoadingPacientes(true);
     setError(null);
@@ -233,6 +232,7 @@ export function AppProvider({ children }) {
   // ── Carga inicial del catálogo de procedimientos CUPS ─────────────────────
   useEffect(() => {
     if (!usuario || usuario.rol === 'SUPERADMIN') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     setLoadingProcedimientos(true);
     api.getProcedimientos()
       .then(setProcedimientosCatalog)
@@ -464,10 +464,4 @@ export function AppProvider({ children }) {
       ) : children}
     </AppContext.Provider>
   );
-}
-
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp debe usarse dentro de AppProvider');
-  return ctx;
 }

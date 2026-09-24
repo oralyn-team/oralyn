@@ -1,6 +1,7 @@
 // src/components/historias/OdontogramaModal.jsx
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Save, RotateCcw, Info, Link2 } from 'lucide-react';
+import { APARATOLOGIA, APARATOLOGIA_LABELS, TIPOS_ELASTICO, COLOR_ELASTICO } from './odontogramaConstants';
 
 // ── Constantes ────────────────────────────────────────────────────────────
 const ESTADOS = {
@@ -31,18 +32,6 @@ const TIPOS_ODONTOGRAMA = [
   { value: 'ortodoncia', label: 'Ortodoncia' },
 ];
 
-// Aparatología seleccionable por diente (multi-selección, no excluyente)
-export const APARATOLOGIA = [
-  { key: 'bracket',      label: 'Bracket' },
-  { key: 'banda',        label: 'Banda' },
-  { key: 'tubo',         label: 'Tubo' },
-  { key: 'boton',        label: 'Botón' },
-  { key: 'miniImplante', label: 'Mini implante' },
-  { key: 'ligadura',     label: 'Ligadura' },
-  { key: 'retenedor',    label: 'Retenedor' },
-];
-export const APARATOLOGIA_LABELS = Object.fromEntries(APARATOLOGIA.map((a) => [a.key, a.label]));
-
 // Tipos de arco de ortodoncia por arcada
 const TIPOS_ARCO = [
   'Redondo NiTi .012',
@@ -54,24 +43,6 @@ const TIPOS_ARCO = [
   'Rectangular Acero',
   'TMA',
 ];
-
-// Configuraciones de elásticos intermaxilares (diente → diente)
-export const TIPOS_ELASTICO = [
-  { key: 'clase-i',   label: 'Clase I' },
-  { key: 'clase-ii',  label: 'Clase II' },
-  { key: 'clase-iii', label: 'Clase III' },
-  { key: 'cruzado',   label: 'Cruzado' },
-  { key: 'vertical',  label: 'Vertical' },
-  { key: 'triangulo', label: 'Triángulo' },
-];
-export const COLOR_ELASTICO = {
-  'clase-i':   '#0EA5A5',
-  'clase-ii':  '#D97706',
-  'clase-iii': '#DC2626',
-  cruzado:     '#7C3AED',
-  vertical:    '#2563EB',
-  triangulo:   '#DB2777',
-};
 
 const ODONTOGRAMA_CONFIGS = {
   'general-adulto': {
@@ -195,16 +166,14 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, elasticoRol
   const esCanino   = [3].includes(numero % 10) || [13, 23, 33, 43].includes(numero);
   const esIncisivo = [1, 2].includes(numero % 10);
 
-  function Simbolo() {
-    if (!est || datos.estado === 'sano') return null;
-    if (datos.estado === 'ausente')      return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 12 : 16} fill={est.color} fontWeight="bold">×</text>;
-    if (datos.estado === 'caries')       return <circle cx={w/2} cy={h/2} r={pequeño ? 4 : 5} fill={est.color} opacity={0.85} />;
-    if (datos.estado === 'restauracion') return <rect x={w/2-4} y={h/2-4} width={8} height={8} rx={1.5} fill={est.color} opacity={0.85} />;
-    if (datos.estado === 'endodoncia')   return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 11} fill={est.color} fontWeight="bold">▼</text>;
-    if (datos.estado === 'corona')       return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 12} fill={est.color}>♛</text>;
-    if (datos.estado === 'implante')     return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 8 : 10} fill={est.color}>⬡</text>;
-    return null;
-  }
+  const simbolo = (!est || datos.estado === 'sano') ? null
+    : datos.estado === 'ausente'      ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 12 : 16} fill={est.color} fontWeight="bold">×</text>
+    : datos.estado === 'caries'       ? <circle cx={w/2} cy={h/2} r={pequeño ? 4 : 5} fill={est.color} opacity={0.85} />
+    : datos.estado === 'restauracion' ? <rect x={w/2-4} y={h/2-4} width={8} height={8} rx={1.5} fill={est.color} opacity={0.85} />
+    : datos.estado === 'endodoncia'   ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 11} fill={est.color} fontWeight="bold">▼</text>
+    : datos.estado === 'corona'       ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 12} fill={est.color}>♛</text>
+    : datos.estado === 'implante'     ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 8 : 10} fill={est.color}>⬡</text>
+    : null;
 
   const tooltipAparatologia = tieneAparatologia
     ? ` — ${datos.aparatologia.map((k) => APARATOLOGIA_LABELS[k] || k).join(', ')}`
@@ -238,7 +207,7 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, elasticoRol
           <ellipse cx={w/2} cy={h/2} rx={(w-6)/2} ry={(h-8)/2}
             fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
         )}
-        <Simbolo />
+        {simbolo}
         {(seleccionado || multiSeleccionado || elasticoRol) && (
           <rect x={0} y={0} width={w} height={h} rx={6}
             fill="none" stroke={seleccionado ? '#0B4F5E' : elasticoRol ? colorElasticoRol : '#3ECFCF'}

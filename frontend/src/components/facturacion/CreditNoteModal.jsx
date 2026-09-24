@@ -1,13 +1,10 @@
 // src/components/facturacion/CreditNoteModal.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   FileDiff,
   AlertTriangle,
   X,
-  Loader2,
-  CheckCircle,
-  FileText,
-  DollarSign
+  Loader2
 } from 'lucide-react';
 
 const REASONS = [

@@ -1,7 +1,7 @@
 // src/components/historias/EvolucionForm.jsx
 import { useState, useEffect } from 'react';
 import { X, Save, Stethoscope, ClipboardList, Wrench, CalendarCheck, ChevronDown } from 'lucide-react';
-import { useApp } from '../../context/Appcontext';
+import { useApp } from '../../context/useApp';
 
 // ─── Constantes clínicas ──────────────────────────────────────────────────────
 

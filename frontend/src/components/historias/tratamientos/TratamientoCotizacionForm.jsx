@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useApp } from '../../../context/Appcontext';
+import { useApp } from '../../../context/useApp';
 import {
   X, Save, Plus, FileText, Stethoscope,
   Activity, CreditCard, Download, ChevronDown, AlertCircle, Receipt,
@@ -222,10 +222,10 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
       Object.keys(pe).length  > 0 ||
       Object.keys(pae).length > 0;
     if (hayErrores) {
-      setErrs((prev) => ({
+      setErrs({
         ...e,
         _global: 'No se pudo guardar: Hay campos requeridos incompletos o con error en procedimientos, información del tratamiento o pagos.'
-      }));
+      });
       if (bodyRef.current) {
         bodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }

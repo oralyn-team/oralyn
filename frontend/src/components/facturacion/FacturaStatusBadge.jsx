@@ -1,5 +1,4 @@
 // src/components/facturacion/FacturaStatusBadge.jsx
-import React from 'react';
 import {
   FileEdit,
   Clock,

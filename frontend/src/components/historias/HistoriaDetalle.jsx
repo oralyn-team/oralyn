@@ -1,14 +1,15 @@
 // src/components/historias/HistoriaDetalle.jsx
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet, BriefcaseMedical } from 'lucide-react';
-import OdontogramaModal, { TIPOS_ELASTICO, COLOR_ELASTICO } from './OdontogramaModal';
+import OdontogramaModal from './OdontogramaModal';
+import { TIPOS_ELASTICO, COLOR_ELASTICO } from './odontogramaConstants';
 import TratamientosCotizacionesForm from './tratamientos/TratamientoCotizacionForm';
 import EvolucionForm     from './EvolucionForm';
 import AdjuntosPanel     from './AdjuntosPanel';
 import FormularioClinico from './FormularioClinico';
 import { api }           from '../../api';
 import { antecedentesFormToDb } from '../../data/historiasData';
-import { useApp } from '../../context/Appcontext';
+import { useApp } from '../../context/useApp';
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {

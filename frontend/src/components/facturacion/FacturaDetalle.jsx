@@ -1,5 +1,5 @@
 // src/components/facturacion/FacturaDetalle.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Receipt,
   User,
@@ -77,7 +77,7 @@ export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, sho
     try {
       await invoiceService.downloadInvoicePdf(invoice.id);
       if (showToast) showToast('Representación gráfica PDF descargada');
-    } catch (err) {
+    } catch {
       if (showToast) showToast('Error descargando PDF');
     } finally {
       setDescargando(null);
@@ -89,7 +89,7 @@ export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, sho
     try {
       await invoiceService.downloadInvoiceXml(invoice.id);
       if (showToast) showToast('Archivo XML firmado descargado');
-    } catch (err) {
+    } catch {
       if (showToast) showToast('Error descargando XML');
     } finally {
       setDescargando(null);

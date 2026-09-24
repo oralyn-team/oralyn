@@ -70,7 +70,7 @@ async function abrirEditar() {
       data.fecha_nacimiento = data.fecha_nacimiento.split('T')[0];
     }
     setForm(data);
-  } catch (e) {
+  } catch {
     setError('Error al cargar los datos del paciente');
   } finally {
     setCargando(false);

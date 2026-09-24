@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import { api } from '../api';
 
 import Sidebar from '../components/layout/Sidebar';
@@ -26,32 +26,15 @@ import {
   Trash2,
   Search,
   X,
-  ToggleLeft,
-  ToggleRight,
   ChevronDown,
   Tag,
   DollarSign,
-  Hash,
   Receipt,
   ShieldCheck,
-  CheckCircle2,
-  CalendarDays,
   Globe,
   Lock,
   Upload
 } from 'lucide-react';
-
-// ── Categorías predefinidas (sirven como opciones en el modal) ─────────────────
-const CATEGORIAS = [
-  'Preventivo',
-  'Restaurador',
-  'Endodoncia',
-  'Cirugía',
-  'Estético',
-  'Ortodoncia',
-  'Prótesis',
-  'Periodoncia',
-];
 
 // ── Colores por categoría ──────────────────────────────────────────────────────
 const CAT_COLORS = {
@@ -74,10 +57,6 @@ function fmt(n) {
   if (!num) return '—';
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
 }
-
-// ── Estilos reutilizables ──────────────────────────────────────────────────────
-const inputCls = 'w-full text-[12px] text-primary bg-white border border-teal-border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/40 font-sans';
-const labelCls = 'block text-[11px] font-medium text-teal-muted mb-1';
 
 // ── Subcomponentes ─────────────────────────────────────────────────────────────
 
@@ -104,10 +83,6 @@ function Toggle({ checked, onChange }) {
 
 // ── Modal de Procedimiento (Crear / Editar) ───────────────────────────────────
 
-const PROC_VACIO = { codigo: '', nombre: '', categoria: CATEGORIAS[0], valorBase: '', activo: true };
-
-// ── Modal de Procedimiento (Crear / Editar) ───────────────────────────────────
-
 function ProcedimientoModal({ proc, onSave, onClose, saving }) {
   const [catalogoOficial, setCatalogoOficial] = useState([]);
   const [loadingOficial, setLoadingOficial] = useState(false);
@@ -129,6 +104,7 @@ function ProcedimientoModal({ proc, onSave, onClose, saving }) {
   useEffect(() => {
     if (!proc) {
       let isMounted = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
       setLoadingOficial(true);
       api.getCatalogoOficial().then((res) => {
         if (isMounted) {
@@ -768,7 +744,7 @@ function TabCatalogoCUPS() {
 // ── Tab: Ajustes Generales ────────────────────────────────────────────────────
 
 function TabAjustesGenerales() {
-  const { pacientes, setConfiguracion } = useApp();
+  const { setConfiguracion } = useApp();
 
   const [form, setForm] = useState({
     nombre_consultorio: '',
@@ -817,6 +793,7 @@ function TabAjustesGenerales() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
   useEffect(() => { loadConfiguracion(); }, []);
 
   function mostrarToast(msg) {
@@ -1339,6 +1316,7 @@ function TabUsuarios() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarUsuarios();
   }, []);
 

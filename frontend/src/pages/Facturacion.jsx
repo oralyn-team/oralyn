@@ -1,13 +1,13 @@
 // src/pages/Facturacion.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Receipt,
   Search,
   Filter,
-  CalendarDays,
   Plus,
   Eye,
   Download,
+  CodeXml,
   RotateCcw,
   FileDiff,
   CheckCircle,
@@ -99,6 +99,7 @@ export default function Facturacion() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarFacturas();
   }, [estadoFilter, fechaRango]);
 
@@ -139,7 +140,7 @@ export default function Facturacion() {
     try {
       await invoiceService.downloadInvoicePdf(inv.id);
       showToast(`PDF de ${inv.number} descargado`);
-    } catch (err) {
+    } catch {
       showToast('Error al descargar el PDF');
     }
   };
@@ -149,7 +150,7 @@ export default function Facturacion() {
     try {
       await invoiceService.downloadInvoiceXml(inv.id);
       showToast(`XML de ${inv.number} descargado`);
-    } catch (err) {
+    } catch {
       showToast('Error al descargar el XML');
     }
   };
@@ -546,6 +547,14 @@ export default function Facturacion() {
                                       title="Descargar PDF"
                                     >
                                       <Download size={12} /> PDF
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDescargarXML(inv, e)}
+                                      className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-medium text-primary dark:text-teal border border-teal-border dark:border-dark-border rounded-lg hover:bg-teal-soft dark:hover:bg-slate-800 transition-colors cursor-pointer touch-target"
+                                      title="Descargar XML"
+                                    >
+                                      <CodeXml size={12} /> XML
                                     </button>
                                     <button
                                       type="button"

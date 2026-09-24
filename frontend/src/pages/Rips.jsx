@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   FileText,
   Search,
@@ -23,11 +23,11 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import { api } from '../api';
 
 export default function Rips() {
-  const { pacientes, configuracion, usuariosConsultorio = [] } = useApp();
+  const { configuracion, usuariosConsultorio = [] } = useApp();
   const doctorDefault = configuracion?.nombre_profesional || (usuariosConsultorio.length === 1 ? usuariosConsultorio[0].nombre : '');
 
   const [loading, setLoading] = useState(true);
@@ -77,6 +77,7 @@ export default function Rips() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarGeneraciones();
   }, []);
 

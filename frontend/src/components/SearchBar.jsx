@@ -6,8 +6,9 @@ import{
  * @param {object} props
  * @param {string} props.busqueda  - Valor actual del input
  * @param {function} props.onBuscar - Callback al cambiar el input
+ * @param {string} [props.placeholder] - Texto del placeholder opcional
  */
-export default function SearchBar({ busqueda, onBuscar }) {
+export default function SearchBar({ busqueda, onBuscar, placeholder }) {
   return (
     <div className="relative flex-1">
       {/* Ícono lupa */}
@@ -20,7 +21,7 @@ export default function SearchBar({ busqueda, onBuscar }) {
         id="buscador"
         value={busqueda}
         onChange={(e) => onBuscar(e.target.value)}
-        placeholder="Buscar por nombre o cédula..."
+        placeholder={placeholder || "Buscar por nombre o cédula..."}
         className={[
           'w-full pl-8 pr-3 py-[7px]',
           'border border-teal-border dark:border-dark-border rounded-lg',

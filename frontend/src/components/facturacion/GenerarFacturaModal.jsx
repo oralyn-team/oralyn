@@ -1,5 +1,5 @@
 // src/components/facturacion/GenerarFacturaModal.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Receipt,
   User,
@@ -16,7 +16,7 @@ import {
   Settings
 } from 'lucide-react';
 import { invoiceService } from '../../services/invoiceService';
-import { useApp } from '../../context/Appcontext';
+import { useApp } from '../../context/useApp';
 import { api } from '../../api';
 
 function fmtCOP(val) {
@@ -85,12 +85,13 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
   });
 
   const [metodoPago, setMetodoPago] = useState(data?.metodoPago || data?.pagoMetodo || 'efectivo');
-  const [observaciones, setObservaciones] = useState(data?.observacion || '');
+  const [observaciones] = useState(data?.observacion || '');
 
   // Cargar cotizaciones y pagos cuando cambie el paciente seleccionado
   useEffect(() => {
     if (!selectedPacienteId) return;
     let cancel = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     setLoadingOrigen(true);
 
     Promise.all([

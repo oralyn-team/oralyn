@@ -249,6 +249,7 @@ export default function ProfesionalesSeccion({ mostrarToast }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarProfesionales();
   }, []);
 

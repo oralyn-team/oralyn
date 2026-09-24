@@ -1,7 +1,7 @@
 // src/components/citas/CitaForm.jsx
 import { useState, useEffect } from 'react';
-import { X, Save, Stethoscope, FileText, DollarSign } from 'lucide-react';
-import { useApp } from '../../context/Appcontext';
+import { X, Save } from 'lucide-react';
+import { useApp } from '../../context/useApp';
 import { api } from '../../api';
 
 import {
@@ -71,11 +71,12 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
   const [catalogoCie10, setCatalogoCie10] = useState([]);
   const [loadingCie10, setLoadingCie10] = useState(false);
   const [cotizacionesPendientes, setCotizacionesPendientes] = useState([]);
-  const [loadingCotizaciones, setLoadingCotizaciones] = useState(false);
+  const [, setLoadingCotizaciones] = useState(false);
   const [profesionales, setProfesionales] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     setLoadingCie10(true);
     api.getCatalogoCie10()
       .then((data) => {
@@ -149,6 +150,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
   useEffect(() => {
     if (!form.pacienteId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
       setCotizacionesPendientes([]);
       return;
     }

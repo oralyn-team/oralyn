@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Trash2, Copy, ChevronDown, ChevronUp, Percent, AlertCircle } from 'lucide-react';
 import { CUADRANTES, ESTADOS_PROC, TIPOS_APLICACION } from './constants';
 import { calcSubtotalProc, fmt, resumirAplicacion } from './helpers';
-import { useApp } from '../../../context/Appcontext';
+import { useApp } from '../../../context/useApp';
 
 // ─── Estilos base ─────────────────────────────────────────────────────────────
 

@@ -157,6 +157,11 @@ function resolveIncludes(modelName, row, include, db) {
       }
       copy.procedimientos = list;
     }
+    if (key === 'movimientos' && modelName === 'insumo') {
+      let list = db.movimientoInsumo.filter(m => m.insumo_id === row.id);
+      if (value.orderBy) list = sortList(list, value.orderBy);
+      copy.movimientos = list;
+    }
     if (key === '_count' && modelName === 'configuracion') {
       copy._count = {
         pacientes: db.paciente ? db.paciente.filter(p => p.consultorio_id === row.id).length : 0,
@@ -199,6 +204,9 @@ function createUnifiedPrismaMock(initialData = {}) {
     recomendacionPostQx: [],
     profesional: [],
     auditoria: [],
+    procedimientoConsultorio: [],
+    insumo: [],
+    movimientoInsumo: [],
     ...normalizedData
   };
 
@@ -264,7 +272,7 @@ function createUnifiedPrismaMock(initialData = {}) {
     'hcAntecedentes', 'hcExamenEstomatologico', 'hcOdontograma',
     'hojaEvolucion', 'hcAdjunto', 'cita', 'consentimiento',
     'certificadoDental', 'cotizacion', 'procedimientoCotizacion', 'pago',
-    'recomendacionPostQx', 'auditoria'
+    'recomendacionPostQx', 'auditoria', 'procedimientoConsultorio', 'insumo', 'movimientoInsumo'
   ];
 
   modelNames.forEach(modelName => {
@@ -299,7 +307,9 @@ function createUnifiedPrismaMock(initialData = {}) {
             throw err;
           }
         }
-        const nextId = db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1;
+        const nextId = (modelName === 'insumo' || modelName === 'movimientoInsumo')
+          ? `${modelName}_${db[modelName].length + 1}`
+          : (db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1);
         const item = { id: nextId };
         if (modelName === 'usuario') {
           item.token_version = 0;

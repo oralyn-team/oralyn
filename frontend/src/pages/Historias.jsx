@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import { api } from '../api';
 import { antecedentesDbToForm } from '../data/historiasData';
 import { hasPermission, PERMISSIONS } from '../utils/rbac';
@@ -176,6 +176,7 @@ export default function Historias() {
 
   const cargarHistorias = () => {
     if (!tienePermisoClinico) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
       setLoadingH(false);
       return;
     }

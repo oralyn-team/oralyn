@@ -3,7 +3,7 @@ import {
   CheckCircle2, XCircle, Building2, User, Activity, ArrowRight, Download, AlertCircle
 } from 'lucide-react';
 import { api } from '../api';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
 import { ROLES, ROLE_LABELS } from '../utils/rbac';
@@ -61,6 +61,7 @@ export default function Auditoria() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarAuditoria();
   }, [filtros.page, filtros.consultorio_id, filtros.rol, filtros.estado]);
 

@@ -15,7 +15,7 @@ import {
 import Sidebar from '../components/layout/Sidebar';
 import Topbar from '../components/layout/Topbar';
 import StatCard from '../components/StatCard';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 import { api } from '../api';
 import { useSignaturePad } from '../hooks/useSignaturePad';
 
@@ -219,6 +219,8 @@ export default function Consentimientos() {
   // Firmas: una para el paciente, otra para la doctora
   const firmaPaciente = useSignaturePad(pacienteId);
   const firmaDoctor = useSignaturePad(pacienteId);
+  const { canvasRef: canvasRefPaciente } = firmaPaciente;
+  const { canvasRef: canvasRefDoctor } = firmaDoctor;
 
   const pacientesFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -664,7 +666,7 @@ export default function Consentimientos() {
                           <Campo label="Firma paciente">
                             <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden bg-white">
                               <canvas
-                                ref={firmaPaciente.canvasRef}
+                                ref={canvasRefPaciente}
                                 className="w-full h-32 cursor-crosshair touch-none"
                               />
                             </div>
@@ -681,7 +683,7 @@ export default function Consentimientos() {
                           <Campo label="Firma doctor">
                             <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden bg-white">
                               <canvas
-                                ref={firmaDoctor.canvasRef}
+                                ref={canvasRefDoctor}
                                 className="w-full h-32 cursor-crosshair touch-none"
                               />
                             </div>

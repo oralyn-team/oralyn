@@ -1,6 +1,6 @@
 import { Menu, Sun, Moon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { useApp } from '../../context/Appcontext';
+import { useApp } from '../../context/useApp';
 import Notificaciones from '../Notificaciones';
 import { useNotificaciones } from '../../hooks/useNotificaciones';
 
