@@ -333,7 +333,17 @@ export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, sho
                   <div className="p-3 bg-white/70 dark:bg-slate-900/60 rounded-xl text-[11px] space-y-1 text-amber-950 dark:text-amber-200">
                     <p><strong>Código de rechazo:</strong> <span className="font-mono">{invoice.dianResponse?.codigoRechazo || 'ERR-VAL-001'}</span></p>
                     <p><strong>Mensaje técnico:</strong> {invoice.dianResponse?.mensajeRechazo || 'Detalle no disponible'}</p>
-                    <p><strong>Fecha del intento:</strong> {invoice.dianResponse?.fechaIntento || invoice.updatedAt}</p>
+                    {Array.isArray(invoice.dianResponse?.erroresDetalle) && invoice.dianResponse.erroresDetalle.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-amber-200/60 dark:border-amber-800/60">
+                        <strong className="block mb-1 text-[11px] text-amber-900 dark:text-amber-300 font-semibold">Detalle de errores por campo:</strong>
+                        <ul className="list-disc list-inside space-y-1 font-mono text-[10.5px]">
+                          {invoice.dianResponse.erroresDetalle.map((errItem, idx) => (
+                            <li key={idx} className="break-all">{errItem}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <p className="pt-1"><strong>Fecha del intento:</strong> {invoice.dianResponse?.fechaIntento || invoice.updatedAt}</p>
                   </div>
 
                   <div className="flex justify-end">

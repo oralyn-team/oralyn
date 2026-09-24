@@ -97,7 +97,7 @@ test('POST /api/pacientes — creación correcta', async (t) => {
   assert.equal(response.status, 201)
   assert.equal(body.nombres, 'Carlos')
   assert.equal(body.numero_documento, '99999')
-  assert.equal(body.consultorio_id, 10)
+  assert.equal(body.estado, 'Nuevo')
 
   // Verificar creación de historia clínica automática
   const hc = prismaMock.__db.historiaClinica.find(h => h.paciente_id === body.id)

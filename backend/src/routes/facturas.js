@@ -18,19 +18,80 @@ const ESTADO_A_ELECTRONIC_STATUS = {
   anulada: 'Anulada',
 }
 
+function extraerErroresFactus(errores) {
+  if (!errores) {
+    return { codigoRechazo: null, mensajeRechazo: null, erroresDetalle: [] }
+  }
+
+  if (typeof errores === 'string') {
+    return { codigoRechazo: 'ERR-VAL-001', mensajeRechazo: errores, erroresDetalle: [errores] }
+  }
+
+  if (typeof errores !== 'object') {
+    const str = String(errores)
+    return { codigoRechazo: 'ERR-VAL-001', mensajeRechazo: str, erroresDetalle: [str] }
+  }
+
+  let codigoRechazo = errores.code || errores.codigo || null
+  const detallesList = []
+
+  if (errores.errors) {
+    if (Array.isArray(errores.errors)) {
+      errores.errors.forEach((errItem) => {
+        if (typeof errItem === 'object' && errItem !== null) {
+          if (errItem.code && !codigoRechazo) codigoRechazo = errItem.code
+          if (errItem.message) detallesList.push(errItem.message)
+          else detallesList.push(JSON.stringify(errItem))
+        } else if (errItem) {
+          detallesList.push(String(errItem))
+        }
+      })
+    } else if (typeof errores.errors === 'object' && errores.errors !== null) {
+      Object.entries(errores.errors).forEach(([field, msgs]) => {
+        if (Array.isArray(msgs)) {
+          msgs.forEach((msg) => {
+            detallesList.push(`${field}: ${msg}`)
+          })
+        } else if (typeof msgs === 'object' && msgs !== null) {
+          detallesList.push(`${field}: ${JSON.stringify(msgs)}`)
+        } else if (msgs) {
+          detallesList.push(`${field}: ${msgs}`)
+        }
+      })
+    }
+  }
+
+  const topMessage = errores.message || errores.mensaje
+
+  if (detallesList.length > 0) {
+    const unido = detallesList.join(' | ')
+    return {
+      codigoRechazo: codigoRechazo || 'ERR-VAL-001',
+      mensajeRechazo: topMessage ? `${topMessage} — ${unido}` : unido,
+      erroresDetalle: detallesList,
+    }
+  }
+
+  if (topMessage) {
+    return {
+      codigoRechazo: codigoRechazo || 'ERR-VAL-001',
+      mensajeRechazo: String(topMessage),
+      erroresDetalle: [String(topMessage)],
+    }
+  }
+
+  const fallbackStr = JSON.stringify(errores)
+  return {
+    codigoRechazo: codigoRechazo || 'ERR-VAL-001',
+    mensajeRechazo: fallbackStr,
+    erroresDetalle: [fallbackStr],
+  }
+}
+
 function serializarFactura(factura, paciente, configuracion) {
   if (!factura) return null
 
-  let codigoRechazo = null
-  let mensajeRechazo = null
-  if (factura.errores) {
-    if (typeof factura.errores === 'object') {
-      codigoRechazo = factura.errores.code || factura.errores.codigo || (Array.isArray(factura.errores.errors) ? factura.errores.errors[0]?.code : null) || 'ERR-VAL-001'
-      mensajeRechazo = factura.errores.message || factura.errores.mensaje || (Array.isArray(factura.errores.errors) ? factura.errores.errors[0]?.message : null) || JSON.stringify(factura.errores)
-    } else {
-      mensajeRechazo = String(factura.errores)
-    }
-  }
+  const parsedErrores = extraerErroresFactus(factura.errores)
 
   const statusMapped = ESTADO_A_ELECTRONIC_STATUS[factura.estado] || 'Pendiente'
   const p = paciente || {}
@@ -70,9 +131,10 @@ function serializarFactura(factura, paciente, configuracion) {
     dianStatus: statusMapped,
     cufe: factura.cufe || null,
     dianResponse: {
-      mensaje: mensajeRechazo,
-      codigoRechazo: codigoRechazo || (factura.estado === 'rechazada' ? 'ERR-VAL-001' : null),
-      mensajeRechazo: mensajeRechazo || 'Detalle no disponible',
+      mensaje: parsedErrores.mensajeRechazo,
+      codigoRechazo: parsedErrores.codigoRechazo || (factura.estado === 'rechazada' ? 'ERR-VAL-001' : null),
+      mensajeRechazo: parsedErrores.mensajeRechazo || 'Detalle no disponible',
+      erroresDetalle: parsedErrores.erroresDetalle || [],
       fechaValidacion: factura.fecha_validacion ? new Date(factura.fecha_validacion).toISOString() : null,
       fechaIntento: factura.actualizado_en ? new Date(factura.actualizado_en).toISOString() : (factura.creado_en ? new Date(factura.creado_en).toISOString() : null),
     },
