@@ -76,6 +76,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
   useEffect(() => {
     let isMounted = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     setLoadingCie10(true);
     api.getCatalogoCie10()
       .then((data) => {
@@ -149,6 +150,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
   useEffect(() => {
     if (!form.pacienteId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
       setCotizacionesPendientes([]);
       return;
     }

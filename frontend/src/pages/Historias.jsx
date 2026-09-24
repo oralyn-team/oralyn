@@ -175,6 +175,7 @@ export default function Historias() {
 
   useEffect(() => {
     if (!tienePermisoClinico) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
       setLoadingH(false);
       return;
     }

@@ -91,6 +91,7 @@ export default function GenerarFacturaModal({ data, onClose, onFacturaCreada }) 
   useEffect(() => {
     if (!selectedPacienteId) return;
     let cancel = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     setLoadingOrigen(true);
 
     Promise.all([

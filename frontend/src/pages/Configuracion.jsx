@@ -104,6 +104,7 @@ function ProcedimientoModal({ proc, onSave, onClose, saving }) {
   useEffect(() => {
     if (!proc) {
       let isMounted = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
       setLoadingOficial(true);
       api.getCatalogoOficial().then((res) => {
         if (isMounted) {
@@ -792,6 +793,7 @@ function TabAjustesGenerales() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
   useEffect(() => { loadConfiguracion(); }, []);
 
   function mostrarToast(msg) {
@@ -1314,6 +1316,7 @@ function TabUsuarios() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarUsuarios();
   }, []);
 
