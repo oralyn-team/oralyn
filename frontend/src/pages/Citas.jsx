@@ -1,6 +1,5 @@
-// src/pages/Citas.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, List } from 'lucide-react';
+import { CalendarDays, List, AlertCircle } from 'lucide-react';
 
 import Sidebar        from '../components/layout/Sidebar';
 import Topbar         from '../components/layout/Topbar';
@@ -99,26 +98,48 @@ export default function Citas() {
   const pacientesRef = useRef(pacientes);
   useEffect(() => { pacientesRef.current = pacientes; }, [pacientes]);
 
-  useEffect(() => {
-    let activo = true;
-
-    async function cargarCitas() {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await api.getCitas();
-        if (activo) setCitas((data || []).map((cita) => normalizeCita(cita, pacientesRef.current)));
-      } catch (err) {
-        console.error('Error cargando citas:', err);
-        if (activo) setError(err.error || 'No se pudieron cargar las citas.');
-      } finally {
-        if (activo) setLoading(false);
-      }
+  const cargarCitas = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.getCitas();
+      setCitas((data || []).map((cita) => normalizeCita(cita, pacientesRef.current)));
+    } catch (err) {
+      console.error('Error cargando citas:', err);
+      setError(err.error || 'No se pudieron cargar las citas.');
+    } finally {
+      setLoading(false);
     }
+  };
 
+  useEffect(() => {
     cargarCitas();
-    return () => { activo = false; };
   }, []);
+
+  if (error && citas.length === 0) {
+    return (
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 px-4 sm:px-6 py-5">
+            <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-6 text-center max-w-md mx-auto mt-12 shadow-soft-md">
+              <AlertCircle className="w-10 h-10 text-status-red dark:text-red-400 mx-auto mb-3" />
+              <h3 className="text-[14px] font-semibold text-primary dark:text-dark-text mb-1">Error al cargar citas</h3>
+              <p className="text-[12px] text-teal-muted dark:text-slate-400 mb-4">{error}</p>
+              <button 
+                type="button" 
+                onClick={cargarCitas}
+                className="text-[12px] text-white font-medium px-4 py-2.5 bg-primary dark:bg-teal dark:text-slate-900 rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Reintentar
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   const toastTimerRef = useRef(null);
   function mostrarToast(msg, duracion = 2200) {

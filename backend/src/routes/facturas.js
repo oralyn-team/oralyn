@@ -396,6 +396,65 @@ router.post('/:id/reintentar', requirePermission(PERMISSIONS.INVOICES_CREATE), a
   }
 })
 
+// DELETE /api/facturas/:id — elimina una factura no validada (pendiente o rechazada)
+router.delete('/:id', requirePermission(PERMISSIONS.INVOICES_UPDATE), async (req, res) => {
+  try {
+    const facturaId = Number(req.params.id)
+    if (!facturaId || isNaN(facturaId)) return res.status(400).json({ error: 'ID de factura inválido' })
+
+    const factura = await prisma.factura.findFirst({
+      where: { id: facturaId, consultorio_id: Number(req.usuario?.consultorio_id) },
+    })
+
+    if (!factura) {
+      return res.status(404).json({ error: 'Factura no encontrada' })
+    }
+
+    if (factura.estado === 'validada') {
+      return res.status(400).json({
+        error: 'No se puede eliminar una factura ya validada ante la DIAN. Usa una nota crédito para anularla.',
+      })
+    }
+
+    let configuracion = null
+    try {
+      configuracion = await obtenerConfiguracion(req.usuario.consultorio_id)
+    } catch (errConfig) {
+      console.warn('Advertencia al obtener configuración para eliminación en Factus:', errConfig.message)
+    }
+
+    if (configuracion && factura.reference_code) {
+      try {
+        await facturaProvider.eliminarFacturaNoValidada(configuracion, factura.reference_code)
+      } catch (errorFactus) {
+        console.warn('Factus no pudo eliminar la factura (posiblemente no existía en su sistema):', errorFactus.message || errorFactus)
+      }
+    }
+
+    const refCode = factura.reference_code || `ID-${factura.id}`
+    const numFactura = factura.numero || refCode
+    const estadoAnterior = factura.estado
+
+    await prisma.factura.delete({
+      where: { id: factura.id },
+    })
+
+    registrarAuditoria({
+      req,
+      accion: 'ELIMINAR_FACTURA',
+      modulo: 'Facturación',
+      recurso_id: factura.id,
+      detalles: `Eliminada factura #${numFactura} (referencia: ${refCode}, estado previo: ${estadoAnterior})`,
+      metadata: { reference_code: refCode, numero: factura.numero, estado: estadoAnterior },
+    })
+
+    res.json({ success: true, message: 'Factura eliminada correctamente' })
+  } catch (error) {
+    console.error('Error eliminando factura:', error)
+    res.status(error.status || 500).json({ error: error.message || 'Error eliminando la factura' })
+  }
+})
+
 // GET /api/facturas/:id/pdf
 router.get('/:id/pdf', requirePermission(PERMISSIONS.INVOICES_READ), async (req, res) => {
   try {

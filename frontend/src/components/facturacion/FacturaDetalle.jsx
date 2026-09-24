@@ -14,7 +14,8 @@ import {
   X,
   Loader2,
   Calendar,
-  CreditCard
+  CreditCard,
+  Trash2
 } from 'lucide-react';
 import FacturaStatusBadge from './FacturaStatusBadge';
 import CreditNoteModal from './CreditNoteModal';
@@ -27,6 +28,7 @@ function fmtCOP(val) {
 
 export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, showToast }) {
   const [reintentando, setReintentando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const [descargando, setDescargando] = useState(null); // 'pdf' | 'xml'
   const [showCreditNoteModal, setShowCreditNoteModal] = useState(false);
 
@@ -35,6 +37,26 @@ export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, sho
   const isAceptada = invoice.electronicStatus === 'Aceptada' || invoice.electronicStatus === 'Validada';
   const isRechazada = invoice.electronicStatus === 'Rechazada';
   const isAnulada = invoice.electronicStatus === 'Anulada';
+
+  const handleEliminarFactura = async () => {
+    const numFactura = invoice.number ? `#${invoice.number}` : `ref. ${invoice.id}`;
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la factura ${numFactura}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    setEliminando(true);
+    try {
+      await invoiceService.deleteInvoice(invoice.id);
+      if (showToast) showToast('Factura eliminada correctamente');
+      onClose();
+      if (onInvoiceUpdated) onInvoiceUpdated(null);
+    } catch (err) {
+      console.error('Error eliminando factura:', err);
+      if (showToast) showToast(err.message || 'Error al eliminar la factura');
+    } finally {
+      setEliminando(false);
+    }
+  };
 
   const handleReintentar = async () => {
     setReintentando(true);
@@ -455,6 +477,19 @@ export default function FacturaDetalle({ invoice, onClose, onInvoiceUpdated, sho
                 >
                   {reintentando ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
                   Reintentar envío
+                </button>
+              )}
+
+              {/* Botón Eliminar factura (solo si no está Validada/Aceptada) */}
+              {!isAceptada && (
+                <button
+                  type="button"
+                  onClick={handleEliminarFactura}
+                  disabled={eliminando}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-[12px] text-status-red dark:text-red-400 font-medium bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/60 transition-colors cursor-pointer shadow-soft-sm touch-target disabled:opacity-50"
+                >
+                  {eliminando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                  Eliminar factura
                 </button>
               )}
             </div>
