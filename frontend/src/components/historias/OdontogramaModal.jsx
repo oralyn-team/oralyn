@@ -195,16 +195,14 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, elasticoRol
   const esCanino   = [3].includes(numero % 10) || [13, 23, 33, 43].includes(numero);
   const esIncisivo = [1, 2].includes(numero % 10);
 
-  function Simbolo() {
-    if (!est || datos.estado === 'sano') return null;
-    if (datos.estado === 'ausente')      return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 12 : 16} fill={est.color} fontWeight="bold">×</text>;
-    if (datos.estado === 'caries')       return <circle cx={w/2} cy={h/2} r={pequeño ? 4 : 5} fill={est.color} opacity={0.85} />;
-    if (datos.estado === 'restauracion') return <rect x={w/2-4} y={h/2-4} width={8} height={8} rx={1.5} fill={est.color} opacity={0.85} />;
-    if (datos.estado === 'endodoncia')   return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 11} fill={est.color} fontWeight="bold">▼</text>;
-    if (datos.estado === 'corona')       return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 12} fill={est.color}>♛</text>;
-    if (datos.estado === 'implante')     return <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 8 : 10} fill={est.color}>⬡</text>;
-    return null;
-  }
+  const simbolo = (!est || datos.estado === 'sano') ? null
+    : datos.estado === 'ausente'      ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 12 : 16} fill={est.color} fontWeight="bold">×</text>
+    : datos.estado === 'caries'       ? <circle cx={w/2} cy={h/2} r={pequeño ? 4 : 5} fill={est.color} opacity={0.85} />
+    : datos.estado === 'restauracion' ? <rect x={w/2-4} y={h/2-4} width={8} height={8} rx={1.5} fill={est.color} opacity={0.85} />
+    : datos.estado === 'endodoncia'   ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 11} fill={est.color} fontWeight="bold">▼</text>
+    : datos.estado === 'corona'       ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 9 : 12} fill={est.color}>♛</text>
+    : datos.estado === 'implante'     ? <text x={w/2} y={h/2+5} textAnchor="middle" fontSize={pequeño ? 8 : 10} fill={est.color}>⬡</text>
+    : null;
 
   const tooltipAparatologia = tieneAparatologia
     ? ` — ${datos.aparatologia.map((k) => APARATOLOGIA_LABELS[k] || k).join(', ')}`
@@ -238,7 +236,7 @@ function DienteSVG({ numero, datos, seleccionado, multiSeleccionado, elasticoRol
           <ellipse cx={w/2} cy={h/2} rx={(w-6)/2} ry={(h-8)/2}
             fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
         )}
-        <Simbolo />
+        {simbolo}
         {(seleccionado || multiSeleccionado || elasticoRol) && (
           <rect x={0} y={0} width={w} height={h} rx={6}
             fill="none" stroke={seleccionado ? '#0B4F5E' : elasticoRol ? colorElasticoRol : '#3ECFCF'}
