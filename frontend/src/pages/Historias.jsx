@@ -4,7 +4,7 @@ import { useApp } from '../context/Appcontext';
 import { api } from '../api';
 import { antecedentesDbToForm } from '../data/historiasData';
 import { hasPermission, PERMISSIONS } from '../utils/rbac';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, AlertCircle } from 'lucide-react';
 
 import Sidebar       from '../components/layout/Sidebar';
 import Topbar        from '../components/layout/Topbar';
@@ -169,11 +169,12 @@ export default function Historias() {
   const [historias, setHistorias]           = useState([]);
   const [historiaActiva, setHistoriaActiva] = useState(null);
   const [loadingH, setLoadingH]             = useState(true);
+  const [errorH, setErrorH]                 = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const tienePermisoClinico = hasPermission(usuario, PERMISSIONS.CLINICAL_RECORDS_READ);
 
-  useEffect(() => {
+  const cargarHistorias = () => {
     if (!tienePermisoClinico) {
       setLoadingH(false);
       return;
@@ -185,6 +186,7 @@ export default function Historias() {
     }
 
     setLoadingH(true);
+    setErrorH(null);
 
     Promise.all(
       pacientes.map((paciente) =>
@@ -211,8 +213,89 @@ export default function Historias() {
       )
     )
       .then((resultados) => setHistorias(resultados.flat()))
+      .catch((err) => {
+        console.error('Error cargando historias:', err);
+        setErrorH(err?.error || 'No se pudieron cargar las historias clínicas.');
+      })
       .finally(() => setLoadingH(false));
+  };
+
+  useEffect(() => {
+    cargarHistorias();
   }, [pacientes]);
+
+  useEffect(() => {
+    const params    = new URLSearchParams(window.location.search);
+    const pacienteId = Number(params.get('pacienteId'));
+    if (pacienteId && historias.length > 0) {
+      const encontrada = historias.find((h) => h.paciente_id === pacienteId);
+      if (encontrada) setHistoriaActiva(encontrada);
+    }
+  }, [historias]);
+
+  function handleActualizar(actualizada) {
+    actualizarHistoria(actualizada);
+    setHistoriaActiva(actualizada);
+    setHistorias((prev) => prev.map((h) => (h.id === actualizada.id ? actualizada : h)));
+  }
+
+  function handleVolver() {
+    setHistoriaActiva(null);
+    window.history.replaceState({}, '', '/historias');
+  }
+
+  const stats = buildStats(historias, pacientes);
+
+  if (!tienePermisoClinico) {
+    return (
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 px-4 sm:px-6 py-5">
+            <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-6 text-center max-w-md mx-auto mt-12 shadow-soft-md space-y-3">
+              <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto" />
+              <h3 className="text-sm font-bold text-primary dark:text-dark-text">Acceso Restringido por Rol</h3>
+              <p className="text-xs text-teal-muted dark:text-slate-400 leading-relaxed">
+                Tu usuario actual (<strong>{usuario?.nombre}</strong>) con rol <strong>{usuario?.rol}</strong> no posee autorización para consultar expedientes e historias médicas clínicas.
+              </p>
+              <button 
+                onClick={() => navigate('/pacientes')} 
+                className="px-4 py-2 bg-primary dark:bg-teal dark:text-slate-900 text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer mt-2"
+              >
+                Ir a Gestión de Pacientes
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorH) {
+    return (
+      <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+        <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+          <main className="flex-1 px-4 sm:px-6 py-5">
+            <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl p-6 text-center max-w-md mx-auto mt-12 shadow-soft-md">
+              <AlertCircle className="w-10 h-10 text-status-red dark:text-red-400 mx-auto mb-3" />
+              <h3 className="text-[14px] font-semibold text-primary dark:text-dark-text mb-1">Error al cargar historias</h3>
+              <p className="text-[12px] text-teal-muted dark:text-slate-400 mb-4">{errorH}</p>
+              <button 
+                type="button" 
+                onClick={cargarHistorias}
+                className="text-[12px] text-white font-medium px-4 py-2.5 bg-primary dark:bg-teal dark:text-slate-900 rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Reintentar
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const params    = new URLSearchParams(window.location.search);
