@@ -31,6 +31,7 @@ export default function Rips() {
   const doctorDefault = configuracion?.nombre_profesional || (usuariosConsultorio.length === 1 ? usuariosConsultorio[0].nombre : '');
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [data, setData] = useState([]);
   const [toast, setToast] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,6 +59,7 @@ export default function Rips() {
 
   const cargarGeneraciones = async (filters = {}) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.getRips({
         fecha_inicio: filters.fechaInicial ?? fechaInicial,
@@ -68,6 +70,7 @@ export default function Rips() {
       setData(Array.isArray(res) ? res : res.data || []);
     } catch (err) {
       console.error('Error al cargar RIPS:', err);
+      setError(err?.error || err?.message || 'No fue posible cargar los registros RIPS.');
     } finally {
       setLoading(false);
     }
@@ -332,7 +335,21 @@ export default function Rips() {
                   </tr>
                 </thead>
                 <tbody className="text-[12px] text-primary dark:text-dark-text divide-y divide-teal-soft dark:divide-dark-border">
-                  {loading ? (
+                  {error ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-teal-muted dark:text-slate-400">
+                        <AlertCircle size={36} className="text-status-red dark:text-red-400 mx-auto mb-2" />
+                        <p className="font-semibold text-[13.5px] text-primary dark:text-dark-text">{error}</p>
+                        <button
+                          type="button"
+                          onClick={() => cargarGeneraciones()}
+                          className="mt-3 px-4 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-xl hover:opacity-90 transition-opacity cursor-pointer shadow-soft-sm inline-flex items-center gap-1.5"
+                        >
+                          Reintentar
+                        </button>
+                      </td>
+                    </tr>
+                  ) : loading ? (
                     Array.from({ length: 4 }).map((_, idx) => (
                       <tr key={idx} className="bg-white dark:bg-dark-card">
                         <td className="px-4 py-3.5"><div className="h-3.5 bg-teal-soft dark:bg-slate-800 rounded w-48 animate-pulse"></div></td>

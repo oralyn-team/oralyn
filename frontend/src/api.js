@@ -288,6 +288,7 @@ export const api = {
   getFactura: (id) => request(`/facturas/${id}`),
   crearFactura: (data) => request('/facturas', { method: 'POST', body: JSON.stringify(data) }),
   reintentarFactura: (id) => request(`/facturas/${id}/reintentar`, { method: 'POST' }),
+  eliminarFactura: (id) => request(`/facturas/${id}`, { method: 'DELETE' }),
   crearNotaCreditoFactura: (id, data) => request(`/facturas/${id}/notas-credito`, { method: 'POST', body: JSON.stringify(data) }),
   descargarFacturaPdf: async (id) => {
     const response = await fetch(`${BASE_URL}/facturas/${id}/pdf`, {

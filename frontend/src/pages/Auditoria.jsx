@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 import {
-  ShieldCheck, Search, RefreshCw, Eye, X,
-  CheckCircle2, XCircle, Activity, Download
+  ShieldCheck, Search, Filter, Calendar, RefreshCw, Eye, X,
+  CheckCircle2, XCircle, Building2, User, Activity, ArrowRight, Download, AlertCircle
 } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/useApp';
@@ -259,8 +258,17 @@ export default function Auditoria() {
 
           {/* Error display */}
           {error && (
-            <div className="p-4 mb-6 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
-              {error}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center max-w-md mx-auto my-6 shadow-soft">
+              <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+              <h3 className="text-[14px] font-semibold text-slate-900 dark:text-white mb-1">Error de conexión</h3>
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-4">{error}</p>
+              <button
+                type="button"
+                onClick={cargarAuditoria}
+                className="text-[12px] text-white font-medium px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors cursor-pointer"
+              >
+                Reintentar
+              </button>
             </div>
           )}
 

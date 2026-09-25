@@ -71,6 +71,13 @@ export const invoiceService = {
   },
 
   /**
+   * Elimina una factura no validada (pendiente o rechazada)
+   */
+  async deleteInvoice(id) {
+    return api.eliminarFactura(id);
+  },
+
+  /**
    * Descarga la representación gráfica PDF de la factura desde Factus/Backend
    */
   async downloadInvoicePdf(id) {
