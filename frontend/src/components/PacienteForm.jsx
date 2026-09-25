@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { OPCIONES_SEXO, OPCIONES_TIPO_DOCUMENTO } from '../data/pacienteOpciones';
 
 const ESTADO_INICIAL = {
@@ -96,24 +96,10 @@ function SelectField({
 
 export default function PacienteForm({
   onAgregar,
-  onEditar,
-  pacienteEditar,
   onClose,
 }) {
   const [form, setForm] = useState(ESTADO_INICIAL);
   const [errs, setErrs] = useState({});
-
-  // Cargar datos cuando sea edición
-  useEffect(() => {
-    if (pacienteEditar) {
-      setForm({
-        ...ESTADO_INICIAL,
-        ...pacienteEditar,
-      });
-    } else {
-      setForm(ESTADO_INICIAL);
-    }
-  }, [pacienteEditar]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -186,12 +172,7 @@ export default function PacienteForm({
       municipio_ciudad: form.municipio_ciudad.trim(),
     };
 
-    if (pacienteEditar) {
-      payload.estado = form.estado;
-      onEditar(pacienteEditar.id, payload);
-    } else {
-      onAgregar(payload);
-    }
+    onAgregar(payload);
 
     setForm(ESTADO_INICIAL);
     setErrs({});
@@ -206,7 +187,7 @@ export default function PacienteForm({
         
         <div className="flex items-center justify-between px-5 py-4 bg-primary dark:bg-slate-900 text-white flex-shrink-0">
           <h2 className="text-[14px] font-semibold text-white">
-            {pacienteEditar ? 'Editar paciente' : '+ Nuevo paciente'}
+            + Nuevo paciente
           </h2>
 
           <button
@@ -361,7 +342,7 @@ export default function PacienteForm({
             onClick={handleSubmit}
             className="px-4 py-2 text-[12px] text-white font-medium bg-primary dark:bg-teal dark:text-slate-900 rounded-lg cursor-pointer hover:opacity-90 transition-opacity touch-target shadow-soft-sm"
           >
-            {pacienteEditar ? 'Actualizar paciente' : 'Guardar paciente'}
+            Guardar paciente
           </button>
         </div>
       </div>
