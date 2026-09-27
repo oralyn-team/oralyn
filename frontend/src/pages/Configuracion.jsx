@@ -1059,7 +1059,8 @@ function TabAjustesGenerales() {
 function TabFacturacionElectronica() {
   const { configuracion, setConfiguracion } = useApp();
 
-  const [form, setForm] = useState({
+  // configuracion ya está cargada al montar (ver la guarda loadingConfiguracion en Configuracion)
+  const [form, setForm] = useState(() => ({
     razon_social: configuracion?.razon_social || configuracion?.nombre_consultorio || '',
     nit_dv: configuracion?.nit_dv || '',
     municipio_code: configuracion?.municipio_code || '',
@@ -1067,26 +1068,11 @@ function TabFacturacionElectronica() {
     factus_client_secret: configuracion?.has_factus_secret ? '••••••••' : (configuracion?.factus_client_secret || ''),
     factus_username: configuracion?.factus_username || '',
     factus_password: configuracion?.has_factus_password ? '••••••••' : (configuracion?.factus_password || ''),
-    facturacion_habilitada: configuracion?.facturacion_habilitada || false,
-  });
+    facturacion_habilitada: Boolean(configuracion?.facturacion_habilitada),
+  }));
 
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
-
-  useEffect(() => {
-    if (configuracion) {
-      setForm({
-        razon_social: configuracion.razon_social || configuracion.nombre_consultorio || '',
-        nit_dv: configuracion.nit_dv || '',
-        municipio_code: configuracion.municipio_code || '',
-        factus_client_id: configuracion.factus_client_id || '',
-        factus_client_secret: configuracion.has_factus_secret ? '••••••••' : (configuracion.factus_client_secret || ''),
-        factus_username: configuracion.factus_username || '',
-        factus_password: configuracion.has_factus_password ? '••••••••' : (configuracion.factus_password || ''),
-        facturacion_habilitada: Boolean(configuracion.facturacion_habilitada),
-      });
-    }
-  }, [configuracion]);
 
   const mostrarToast = (msg) => {
     setToast(msg);
@@ -1112,7 +1098,13 @@ function TabFacturacionElectronica() {
     setSaving(true);
     try {
       await api.actualizarConfiguracion(form);
-      setConfiguracion((prev) => ({ ...prev, ...form }));
+      // Los secretos no se guardan en texto plano en el contexto: solo se marca que existen
+      const { factus_client_secret, factus_password, ...resto } = form;
+      setConfiguracion((prev) => ({
+        ...prev, ...resto,
+        has_factus_secret: prev.has_factus_secret || Boolean(factus_client_secret),
+        has_factus_password: prev.has_factus_password || Boolean(factus_password),
+      }));
       mostrarToast('Ajustes y credenciales de Facturación Electrónica guardados');
     } catch (err) {
       console.error('Error guardando credenciales Factus:', err);
@@ -2008,7 +2000,7 @@ const ALL_TABS = [
 ];
 
 export default function Configuracion() {
-  const { usuario } = useApp();
+  const { usuario, loadingConfiguracion } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const tabs = useMemo(() => {
@@ -2088,7 +2080,12 @@ export default function Configuracion() {
           {tabActivo === 'perfil'            && <TabMiPerfil />}
           {tabActivo === 'general'           && <TabAjustesGenerales />}
           {tabActivo === 'catalogo'          && <TabCatalogoCUPS />}
-          {tabActivo === 'facturacion'       && <TabFacturacionElectronica />}
+          {tabActivo === 'facturacion'       && (loadingConfiguracion ? (
+            <div className="bg-white border border-teal-border rounded-xl p-8 text-center">
+              <Loader2 className="w-6 h-6 text-primary animate-spin mx-auto mb-2" />
+              <p className="text-[12px] text-teal-muted">Cargando configuración...</p>
+            </div>
+          ) : <TabFacturacionElectronica />)}
           {tabActivo === 'usuarios'          && <TabUsuarios />}
 
         </main>
