@@ -121,7 +121,6 @@ export function AppProvider({ children }) {
   const [sesionExpirada, setSesionExpirada] = useState(false);
   const [darkMode, setDarkMode]       = useState(() => localStorage.getItem('theme') === 'dark');
   const [pacientes, setPacientes]     = useState([]);
-  const [historias, setHistorias]     = useState([]);
   const [configuracion, setConfiguracion] = useState(null);
   const [procedimientosCatalog, setProcedimientosCatalog] = useState([]);
   const [usuariosConsultorio, setUsuariosConsultorio] = useState([]);
@@ -198,7 +197,6 @@ export function AppProvider({ children }) {
     }
     setUsuario(null);
     setPacientes([]);
-    setHistorias([]);
     setConfiguracion(null);
     setCargandoConfiguracion(true);
     setProcedimientosCatalog([]);
@@ -283,48 +281,23 @@ export function AppProvider({ children }) {
   async function eliminarPaciente(id) {
     await api.eliminarPaciente(id);
     setPacientes((prev) => prev.filter((p) => p.id !== id));
-    setHistorias((prev) => prev.filter((h) => h.pacienteId !== id));
   }
 
   // ── Historias ─────────────────────────────────────────────────────────────
-  // Solo sincroniza el estado local. No hace PUT: cada acción de HistoriaDetalle ya persistió
-  // lo suyo con su propio endpoint, y este objeto viene en camelCase (el backend espera snake_case).
-  function actualizarHistoria(historiaActualizada) {
-    const { id } = historiaActualizada;
-    setHistorias((prev) =>
-      prev.map((h) => h.id === id ? historiaActualizada : h)
-    );
-  }
-
+  // La lista de historias vive en pages/Historias.jsx; aquí solo quedan las llamadas a la API.
   async function crearEvolucion(historiaId, datos) {
-    const nueva = normalizeEvolucion(
+    return normalizeEvolucion(
       await api.crearEvolucion(historiaId, evolucionToApi(datos))
     );
-    setHistorias((prev) => prev.map((h) =>
-      h.id === historiaId
-        ? { ...h, evoluciones: [...(h.evoluciones || []), nueva] }
-        : h
-    ));
-    return nueva;
   }
 
   async function eliminarEvolucion(historiaId, evolucionId) {
     await api.eliminarEvolucion(historiaId, evolucionId);
-    setHistorias((prev) => prev.map((h) =>
-      h.id === historiaId
-        ? { ...h, evoluciones: h.evoluciones.filter((e) => e.id !== evolucionId) }
-        : h
-    ));
   }
 
   async function actualizarOdontograma(historiaId, tipo, data) {
     await api.actualizarOdontograma(historiaId, tipo, data);
-    setHistorias((prev) => prev.map((h) =>
-      h.id === historiaId
-    ? { ...h, odontograma: { ...h.odontograma, [tipo]: data.dientes_json } }
-    : h
-  ));
-}
+  }
 
   // ── Cotizaciones / Tratamientos ───────────────────────────────────────────
   async function getCotizacionesPaciente(pacienteId) {
@@ -457,8 +430,7 @@ export function AppProvider({ children }) {
       agregarPaciente, eliminarPaciente, recargarPacientes,
 
       // Historias
-      historias, setHistorias,
-      actualizarHistoria, crearEvolucion, eliminarEvolucion, actualizarOdontograma,
+      crearEvolucion, eliminarEvolucion, actualizarOdontograma,
       // Cotizaciones
       getCotizacionesPaciente, guardarTratamiento, cambiarEstadoCotizacion, eliminarCotizacion,
       // Pagos
