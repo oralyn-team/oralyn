@@ -58,7 +58,7 @@ cerrar un modal, seleccionar un elemento activo según la URL, etc.) **no**
 están cubiertos por esta excepción y siguen apareciendo como errores a
 resolver.
 
-### Archivos y líneas con la excepción aplicada (19)
+### Archivos y líneas con la excepción aplicada (19 activas; #18 reemplazada por #20)
 
 | # | Archivo | Línea (al momento de aplicar la excepción) |
 |---|---|---|
@@ -79,8 +79,9 @@ resolver.
 | 15 | `src/context/Appcontext.jsx` | 200 (`setLoadingPacientes`) |
 | 16 | `src/context/Appcontext.jsx` | 236 (`setLoadingProcedimientos`) |
 | 17 | `src/pages/Configuracion.jsx` | 108 (`setLoadingOficial`) |
-| 18 | `src/pages/Historias.jsx` | 179 (`setLoadingH`) |
+| 18 | `src/pages/Historias.jsx` | ~~179 (`setLoadingH`)~~ — reemplazada por #20: la carga se movió a `cargarHistorias()` y el linter ahora marca la llamada dentro del efecto |
 | 19 | `src/pages/Citas.jsx` | 118 (`cargarCitas`) |
+| 20 | `src/pages/Historias.jsx` | 225 (`cargarHistorias`, disparado por cambio de `pacientes`) |
 
 Los 7 casos marcados como carga inline (12-18, excepto 6, 7, que ya usan una
 función nombrada) llaman al `setState` de "loading" directamente en el cuerpo
