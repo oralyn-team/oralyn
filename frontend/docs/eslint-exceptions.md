@@ -88,3 +88,47 @@ función nombrada) llaman al `setState` de "loading" directamente en el cuerpo
 del efecto en vez de a través de una función `cargarX()`/`fetchX()` separada,
 pero cumplen el mismo propósito (iniciar una carga de datos) y se tratan como
 la misma excepción.
+
+## `react-hooks/set-state-in-effect`: rellenar valor por defecto sin pisar la edición del usuario
+
+Patrón distinto del anterior: no inicia una carga de datos, sino que completa
+un campo editable del formulario con un valor por defecto que depende de datos
+del contexto (`usuariosConsultorio`, `configuracion`):
+
+```jsx
+useEffect(() => {
+  if (!esEdicion && !form.doctor) {
+    const def = calcularDefault();
+    if (def) setForm((prev) => ({ ...prev, doctor: def }));
+  }
+}, [usuariosConsultorio, configuracion]);
+```
+
+### Por qué es una excepción aceptada
+
+- **Cubre una carrera real:** el formulario puede montarse antes de que esos
+  datos del contexto terminen de cargar. El valor inicial de `useState` se
+  calcula en ese momento y no vuelve a calcularse, así que sin el efecto el
+  campo quedaría vacío aunque el dato llegue unos milisegundos después.
+- **Solo actúa si el campo sigue vacío:** la condición `!form.doctor` hace que
+  nunca sobrescriba lo que el usuario ya escribió o eligió.
+- **Solo en creación:** con `esEdicion` no hace nada, así que nunca altera un
+  registro existente.
+
+Límite conocido: si el usuario borra el campo a propósito y *después* llegan o
+cambian `usuariosConsultorio`/`configuracion`, el efecto lo vuelve a rellenar.
+En la práctica esos datos solo cambian al iniciar sesión o al guardar la
+configuración, que no ocurre con estos formularios abiertos.
+
+Se silencia línea por línea con:
+
+```js
+// eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: rellenar valor por defecto solo si el campo sigue vacío cuando llegan datos tarde (usuariosConsultorio/configuracion), sin pisar lo que el usuario haya escrito. Ver docs/eslint-exceptions.md
+```
+
+### Archivos y líneas con la excepción aplicada (2)
+
+| # | Archivo | Línea (al momento de aplicar la excepción) |
+|---|---|---|
+| 1 | `src/components/citas/CitaForm.jsx` | 194 (`doctor` desde `calcDoctorDefault()`) |
+| 2 | `src/components/historias/EvolucionForm.jsx` | 112 (`doctor` desde `configuracion.nombre_profesional`) |

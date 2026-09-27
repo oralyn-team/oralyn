@@ -108,6 +108,7 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
   // Respaldo: si configuracion llega después del montaje
   useEffect(() => {
     if (!esEdicion && !form.doctor && configuracion?.nombre_profesional) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: rellenar valor por defecto solo si el campo sigue vacío cuando llegan datos tarde (usuariosConsultorio/configuracion), sin pisar lo que el usuario haya escrito. Ver docs/eslint-exceptions.md
       setForm((prev) => ({ ...prev, doctor: configuracion.nombre_profesional }));
     }
   }, [configuracion]);
