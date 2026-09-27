@@ -1,3 +1,10 @@
+// Prisma real ignora los campos con valor `undefined` en un update ("no modificar"),
+// mientras que `null` sí se escribe. El mock debe comportarse igual para no ocultar ni
+// fabricar pérdidas de datos en actualizaciones parciales.
+function sinUndefined(data = {}) {
+  return Object.fromEntries(Object.entries(data).filter(([, val]) => val !== undefined));
+}
+
 function matchesWhere(row, where = {}) {
   if (!where) return true;
   return Object.entries(where).every(([key, expected]) => {
@@ -354,7 +361,7 @@ function createUnifiedPrismaMock(initialData = {}) {
         const current = db[modelName][idx];
         const updated = { ...current };
         
-        Object.entries(args.data).forEach(([key, val]) => {
+        Object.entries(sinUndefined(args.data)).forEach(([key, val]) => {
           if (val && typeof val === 'object' && 'create' in val) {
             const relatedModelName = getRelatedModelName(modelName, key);
             if (relatedModelName) {
@@ -400,7 +407,7 @@ function createUnifiedPrismaMock(initialData = {}) {
         const row = db[modelName].find(row => matchesWhere(row, args.where));
         if (row) {
           const idx = db[modelName].indexOf(row);
-          db[modelName][idx] = { ...row, ...args.update };
+          db[modelName][idx] = { ...row, ...sinUndefined(args.update) };
           return db[modelName][idx];
         } else {
           const nextId = db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1;

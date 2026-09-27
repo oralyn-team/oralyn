@@ -287,15 +287,10 @@ export function AppProvider({ children }) {
   }
 
   // ── Historias ─────────────────────────────────────────────────────────────
-  async function actualizarHistoria(historiaActualizada) {
+  // Solo sincroniza el estado local. No hace PUT: cada acción de HistoriaDetalle ya persistió
+  // lo suyo con su propio endpoint, y este objeto viene en camelCase (el backend espera snake_case).
+  function actualizarHistoria(historiaActualizada) {
     const { id } = historiaActualizada;
-    const datos = { ...historiaActualizada };
-    [
-      'id', 'evoluciones', 'adjuntos', 'pacienteNombre', 'cedula',
-      'tipoDocumento', 'fechaNacimiento', 'sexo', 'telefono',
-      'correo', 'municipioCiudad', 'pacienteId',
-    ].forEach((key) => delete datos[key]);
-    await api.actualizarHistoria(id, datos);
     setHistorias((prev) =>
       prev.map((h) => h.id === id ? historiaActualizada : h)
     );
