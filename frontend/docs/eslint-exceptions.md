@@ -58,7 +58,7 @@ cerrar un modal, seleccionar un elemento activo según la URL, etc.) **no**
 están cubiertos por esta excepción y siguen apareciendo como errores a
 resolver.
 
-### Archivos y líneas con la excepción aplicada (18)
+### Archivos y líneas con la excepción aplicada (19)
 
 | # | Archivo | Línea (al momento de aplicar la excepción) |
 |---|---|---|
@@ -80,6 +80,7 @@ resolver.
 | 16 | `src/context/Appcontext.jsx` | 236 (`setLoadingProcedimientos`) |
 | 17 | `src/pages/Configuracion.jsx` | 108 (`setLoadingOficial`) |
 | 18 | `src/pages/Historias.jsx` | 179 (`setLoadingH`) |
+| 19 | `src/pages/Citas.jsx` | 118 (`cargarCitas`) |
 
 Los 7 casos marcados como carga inline (12-18, excepto 6, 7, que ya usan una
 función nombrada) llaman al `setState` de "loading" directamente en el cuerpo
