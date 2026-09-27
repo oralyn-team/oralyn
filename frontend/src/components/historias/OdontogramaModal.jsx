@@ -520,7 +520,6 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
   const [lineasElasticos, setLineasElasticos]     = useState([]);
   const [overlaySize, setOverlaySize]             = useState({ width: 0, height: 0 });
 
-  const prevIsOpen = useRef(false);
   const dienteRefsMap = useRef({});
   const arcadasContainerRef = useRef(null);
   const scrollableRef = useRef(null);
@@ -529,26 +528,6 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
     if (el) dienteRefsMap.current[numero] = el;
     else delete dienteRefsMap.current[numero];
   }, []);
-
-  useEffect(() => {
-    if (isOpen && !prevIsOpen.current) {
-      setLocal({ ...odontogramas });
-    }
-    prevIsOpen.current = isOpen;
-  }, [isOpen, odontogramas]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setSelec(null);
-      setMultiSel([]);
-      setModoMulti(false);
-      setAparatologiaMasiva([]);
-      setModoElastico(false);
-      setElasticoOrigen(null);
-      setElasticoDestino(null);
-      setError(null);
-    }
-  }, [isOpen]);
 
   const handleClickDiente = useCallback((numero) => {
     if (modoElastico) {
@@ -617,13 +596,7 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
     setLineasElasticos(nuevas);
   }, [local, tipoOdontograma]);
 
-  // Recalcular cuando cambia algo que afecta el layout
-  useEffect(() => {
-    if (!isOpen) return;
-    recalcularLineasElasticos();
-  }, [recalcularLineasElasticos, isOpen]);
-
-  // Recalcular durante la animación del panel lateral (200ms transition)
+  // Recalcular al abrir, al cambiar lo que afecta el layout y durante la animación del panel lateral (200ms transition)
   useEffect(() => {
     if (!isOpen) return;
     let rafId;

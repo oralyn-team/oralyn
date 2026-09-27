@@ -799,13 +799,16 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
         />
         )}
 
-      <OdontogramaModal
-      isOpen={modalOdonto}
-      onClose={() => setModalOdonto(false)}
-      odontogramas={form.odontograma}
-      onGuardar={actualizarOdontograma}
-      nombrePaciente={form.pacienteNombre}
-      />
+      {/* Se desmonta al cerrar: cada apertura empieza con estado limpio y los odontogramas actuales */}
+      {modalOdonto && (
+        <OdontogramaModal
+          isOpen={modalOdonto}
+          onClose={() => setModalOdonto(false)}
+          odontogramas={form.odontograma}
+          onGuardar={actualizarOdontograma}
+          nombrePaciente={form.pacienteNombre}
+        />
+      )}
     </div>
   );
 }
