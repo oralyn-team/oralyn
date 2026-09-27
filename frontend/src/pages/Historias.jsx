@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import { api } from '../api';
 import { antecedentesDbToForm } from '../data/historiasData';
@@ -166,8 +166,10 @@ function formatearEvolucion(ev) {
 export default function Historias() {
   const navigate = useNavigate();
   const { usuario, pacientes, actualizarHistoria } = useApp();
+  const [searchParams, setSearchParams]     = useSearchParams();
   const [historias, setHistorias]           = useState([]);
-  const [historiaActiva, setHistoriaActiva] = useState(null);
+  // Solo la elección manual desde la lista; la historia activa se deriva en el render
+  const [historiaElegidaId, setHistoriaElegidaId] = useState(null);
   const [loadingH, setLoadingH]             = useState(true);
   const [errorH, setErrorH]                 = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -225,24 +227,21 @@ export default function Historias() {
     cargarHistorias();
   }, [pacientes]);
 
-  useEffect(() => {
-    const params    = new URLSearchParams(window.location.search);
-    const pacienteId = Number(params.get('pacienteId'));
-    if (pacienteId && historias.length > 0) {
-      const encontrada = historias.find((h) => h.paciente_id === pacienteId);
-      if (encontrada) setHistoriaActiva(encontrada);
-    }
-  }, [historias]);
+  // Historia activa: la elegida en la lista tiene prioridad; si no hay, la del ?pacienteId= de la URL.
+  // Se busca siempre en `historias` por id, así nunca apunta a una historia distinta de la elegida.
+  const pacienteIdUrl = Number(searchParams.get('pacienteId'));
+  const historiaActiva = historiaElegidaId != null
+    ? historias.find((h) => h.id === historiaElegidaId) ?? null
+    : (pacienteIdUrl ? historias.find((h) => h.paciente_id === pacienteIdUrl) ?? null : null);
 
   function handleActualizar(actualizada) {
     actualizarHistoria(actualizada);
-    setHistoriaActiva(actualizada);
     setHistorias((prev) => prev.map((h) => (h.id === actualizada.id ? actualizada : h)));
   }
 
   function handleVolver() {
-    setHistoriaActiva(null);
-    window.history.replaceState({}, '', '/historias');
+    setHistoriaElegidaId(null);
+    setSearchParams({}, { replace: true });
   }
 
   const stats = buildStats(historias, pacientes);
@@ -306,6 +305,7 @@ export default function Historias() {
 
         {historiaActiva ? (
           <HistoriaDetalle
+            key={historiaActiva.id}
             historia={historiaActiva}
             onVolver={handleVolver}
             onActualizar={handleActualizar}
@@ -332,7 +332,7 @@ export default function Historias() {
               <p className="text-[13px] text-teal-muted dark:text-slate-400 px-1 text-center py-8">Cargando historias...</p>
             ) : (
               <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
-                <HistoriaLista historias={historias} onSeleccionar={setHistoriaActiva} />
+                <HistoriaLista historias={historias} onSeleccionar={(h) => setHistoriaElegidaId(h.id)} />
               </div>
             )}
           </main>
