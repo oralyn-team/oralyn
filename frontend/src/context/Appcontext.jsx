@@ -179,7 +179,10 @@ export function AppProvider({ children }) {
 
   function cerrarSesion(options = {}) {
     const isExpirada = typeof options === 'object' && options?.expirada === true;
-    api.logout().catch(() => {});
+    // Tras un 401 la sesión ya no es válida en el backend: basta con limpiar el estado local
+    if (!isExpirada) {
+      api.logout().catch(() => {});
+    }
     setUsuario(null);
     setPacientes([]);
     setHistorias([]);

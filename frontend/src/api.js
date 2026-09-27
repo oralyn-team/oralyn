@@ -70,7 +70,7 @@ async function verHistoriaPDF(historiaId) {
   await abrirPDFBlob(response, `historia-${historiaId}.pdf`);
 }
 
-async function request(path, options = {}) {
+async function request(path, { skipUnauthorized = false, ...options } = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
@@ -82,7 +82,7 @@ async function request(path, options = {}) {
   });
 
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 && !skipUnauthorized) {
       onUnauthorized?.();
     }
     const error = await res.json().catch(() => ({}));
@@ -142,7 +142,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
-  logout: () => request('/auth/logout', { method: 'POST' }),
+  // Un 401 en logout no es "sesión expirada": no debe disparar onUnauthorized
+  logout: () => request('/auth/logout', { method: 'POST', skipUnauthorized: true }),
   getMe: () => request('/auth/me'),
   cambiarPassword: (data) => request('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
   forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),

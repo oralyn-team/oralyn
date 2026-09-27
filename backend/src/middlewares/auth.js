@@ -50,4 +50,40 @@ const verificarToken = async (req, res, next) => {
   }
 }
 
+// Variante opcional: nunca responde 401/403. Si el token es válido deja
+// req.usuario poblado; si falta o es inválido continúa con req.usuario undefined.
+const verificarTokenOpcional = async (req, res, next) => {
+  let token = req.cookies ? req.cookies.token : null
+  if (!token) {
+    const authHeader = req.headers['authorization']
+    token = authHeader && authHeader.split(' ')[1]
+  }
+
+  if (!token) return next()
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET)
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: payload.id }
+    })
+
+    const payloadTv = payload.tv !== undefined ? payload.tv : 0
+    if (usuario && usuario.activo !== false && payloadTv === usuario.token_version) {
+      req.usuario = {
+        id: usuario.id,
+        consultorio_id: usuario.consultorio_id,
+        email: usuario.email,
+        nombre: usuario.nombre,
+        rol: usuario.rol || 'DUENO',
+        activo: true
+      }
+    }
+  } catch {
+    // Token inválido o expirado: se continúa sin usuario
+  }
+
+  next()
+}
+
 module.exports = verificarToken
+module.exports.verificarTokenOpcional = verificarTokenOpcional

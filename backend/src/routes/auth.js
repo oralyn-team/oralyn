@@ -5,6 +5,7 @@ const crypto = require('crypto')
 const { rateLimit } = require('express-rate-limit')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
+const { verificarTokenOpcional } = require('../middlewares/auth')
 const { registrarAuditoria } = require('../services/audit.service')
 const { enviarCorreoRecuperacion } = require('../services/email.service')
 
@@ -193,7 +194,8 @@ router.post('/login', loginLimiter, async (req, res) => {
 })
 
 // POST /api/auth/logout
-router.post('/logout', verificarToken, async (req, res) => {
+// Auth opcional: sin sesión no hay nada que cerrar, pero no es un error
+router.post('/logout', verificarTokenOpcional, async (req, res) => {
   if (req.usuario) {
     registrarAuditoria({
       req,
