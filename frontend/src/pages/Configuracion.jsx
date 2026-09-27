@@ -2008,16 +2008,8 @@ export default function Configuracion() {
     return ALL_TABS.filter(t => t.roles.includes(rolActual));
   }, [usuario]);
 
-  const [tabActivo, setTabActivo] = useState(() => {
-    if (usuario?.rol === 'SUPERADMIN') return 'superadmin_perfil';
-    return 'perfil';
-  });
-
-  useEffect(() => {
-    if (tabs.length > 0 && !tabs.some(t => t.id === tabActivo)) {
-      setTabActivo(tabs[0].id);
-    }
-  }, [tabs, tabActivo]);
+  // La primera pestaña permitida para el rol (orden de ALL_TABS); usuario ya existe al montar
+  const [tabActivo, setTabActivo] = useState(() => tabs[0]?.id);
 
   return (
     <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
