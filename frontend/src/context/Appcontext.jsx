@@ -127,7 +127,17 @@ export function AppProvider({ children }) {
   const [usuariosConsultorio, setUsuariosConsultorio] = useState([]);
   const [loadingProcedimientos, setLoadingProcedimientos] = useState(false);
   const [loadingPacientes, setLoadingPacientes] = useState(true);
+  // Arrancan en true y se reinician en iniciarSesion/cerrarSesion, para que estén en true
+  // en el mismo render en que aparece un usuario (antes de que su efecto de carga corra)
+  const [cargandoConfiguracion, setCargandoConfiguracion] = useState(true);
+  const [cargandoUsuariosConsultorio, setCargandoUsuariosConsultorio] = useState(true);
   const [error, setError]             = useState(null);
+
+  // Si el rol no pide el dato, no hay nada que esperar: false de inmediato, sin setState en efecto
+  const pideConfiguracion = Boolean(usuario) && usuario.rol !== 'SUPERADMIN';
+  const pideUsuariosConsultorio = usuario?.rol === 'DUENO';
+  const loadingConfiguracion = pideConfiguracion && cargandoConfiguracion;
+  const loadingUsuariosConsultorio = pideUsuariosConsultorio && cargandoUsuariosConsultorio;
 
   // Registrar handler para peticiones no autorizadas (401/403)
   useEffect(() => {
@@ -172,7 +182,11 @@ export function AppProvider({ children }) {
     if (nuevoToken) {
       localStorage.setItem('token', nuevoToken);
     }
-    if (nuevoUsuario) setUsuario(nuevoUsuario);
+    if (nuevoUsuario) {
+      setCargandoConfiguracion(true);
+      setCargandoUsuariosConsultorio(true);
+      setUsuario(nuevoUsuario);
+    }
     setSesionExpirada(false);
   }
 
@@ -186,8 +200,10 @@ export function AppProvider({ children }) {
     setPacientes([]);
     setHistorias([]);
     setConfiguracion(null);
+    setCargandoConfiguracion(true);
     setProcedimientosCatalog([]);
     setUsuariosConsultorio([]);
+    setCargandoUsuariosConsultorio(true);
     if (isExpirada) {
       setSesionExpirada(true);
     }
@@ -219,17 +235,23 @@ export function AppProvider({ children }) {
   // ── Carga inicial de configuración ────────────────────────────────────────
   useEffect(() => {
     if (!usuario || usuario.rol === 'SUPERADMIN') return;
+    let activo = true;
     api.getConfiguracion()
-      .then(setConfiguracion)
-      .catch(() => {});
+      .then((data) => { if (activo) setConfiguracion(data); })
+      .catch(() => {})
+      .finally(() => { if (activo) setCargandoConfiguracion(false); });
+    return () => { activo = false; };
   }, [usuario]);
 
   // ── Carga inicial de usuarios del consultorio ──────────────────────────────
   useEffect(() => {
     if (usuario?.rol !== 'DUENO') return;
+    let activo = true;
     api.getUsuarios()
-      .then((data) => setUsuariosConsultorio(Array.isArray(data) ? data : []))
-      .catch(() => setUsuariosConsultorio([]));
+      .then((data) => { if (activo) setUsuariosConsultorio(Array.isArray(data) ? data : []); })
+      .catch(() => { if (activo) setUsuariosConsultorio([]); })
+      .finally(() => { if (activo) setCargandoUsuariosConsultorio(false); });
+    return () => { activo = false; };
   }, [usuario]);
 
   // ── Carga inicial del catálogo de procedimientos CUPS ─────────────────────
@@ -447,8 +469,8 @@ export function AppProvider({ children }) {
       // Pagos
       getPagosPaciente, registrarPago,
       // Configuración
-      configuracion, setConfiguracion,
-      usuariosConsultorio,
+      configuracion, setConfiguracion, loadingConfiguracion,
+      usuariosConsultorio, loadingUsuariosConsultorio,
       // Catálogo Procedimientos CUPS
       procedimientosCatalog, loadingProcedimientos,
       getProcedimientosAgrupados,

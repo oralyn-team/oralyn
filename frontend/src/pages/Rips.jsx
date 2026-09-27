@@ -26,9 +26,31 @@ import Topbar from '../components/layout/Topbar';
 import { useApp } from '../context/useApp';
 import { api } from '../api';
 
+// Espera a que configuracion y usuariosConsultorio estén cargados antes de montar el contenido,
+// para que el filtro por defecto y la primera consulta usen los mismos datos desde el inicio.
 export default function Rips() {
+  const { loadingConfiguracion, loadingUsuariosConsultorio } = useApp();
+  if (loadingConfiguracion || loadingUsuariosConsultorio) return <RipsCargando />;
+  return <RipsContenido />;
+}
+
+function RipsCargando() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  return (
+    <div className="flex min-h-screen bg-teal-bg dark:bg-dark-bg font-sans relative">
+      <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <Topbar onToggleMobileMenu={() => setMobileMenuOpen(true)} />
+        <main className="flex-1 flex items-center justify-center gap-2 text-[12px] text-teal-muted dark:text-slate-400">
+          <Loader2 size={16} className="animate-spin" /> Cargando...
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function RipsContenido() {
   const { configuracion, usuariosConsultorio = [] } = useApp();
-  const doctorDefault = configuracion?.nombre_profesional || (usuariosConsultorio.length === 1 ? usuariosConsultorio[0].nombre : '');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,15 +61,11 @@ export default function Rips() {
   // Filters
   const [fechaInicial, setFechaInicial] = useState('');
   const [fechaFinal, setFechaFinal] = useState('');
-  const [profesional, setProfesional] = useState(doctorDefault);
+  // Los datos del contexto ya están cargados al montar (ver Rips), así que basta el valor inicial
+  const [profesional, setProfesional] = useState(() => (
+    configuracion?.nombre_profesional || (usuariosConsultorio.length === 1 ? usuariosConsultorio[0].nombre : '')
+  ));
   const [estadoFilter, setEstadoFilter] = useState('Todos');
-
-  useEffect(() => {
-    if (!profesional && (configuracion?.nombre_profesional || usuariosConsultorio.length === 1)) {
-      const def = configuracion?.nombre_profesional || usuariosConsultorio[0]?.nombre || '';
-      if (def) setProfesional(def);
-    }
-  }, [configuracion, usuariosConsultorio]);
 
   // Modals / Panels
   const [selectedGeneracion, setSelectedGeneracion] = useState(null);
