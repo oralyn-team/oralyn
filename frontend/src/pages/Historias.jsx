@@ -165,7 +165,7 @@ function formatearEvolucion(ev) {
 
 export default function Historias() {
   const navigate = useNavigate();
-  const { usuario, pacientes, actualizarHistoria } = useApp();
+  const { usuario, pacientes } = useApp();
   const [searchParams, setSearchParams]     = useSearchParams();
   const [historias, setHistorias]           = useState([]);
   // Solo la elección manual desde la lista; la historia activa se deriva en el render
@@ -234,9 +234,12 @@ export default function Historias() {
     ? historias.find((h) => h.id === historiaElegidaId) ?? null
     : (pacienteIdUrl ? historias.find((h) => h.paciente_id === pacienteIdUrl) ?? null : null);
 
-  function handleActualizar(actualizada) {
-    actualizarHistoria(actualizada);
-    setHistorias((prev) => prev.map((h) => (h.id === actualizada.id ? actualizada : h)));
+  // Recibe solo lo que HistoriaDetalle ya persistió: un objeto con los campos cambiados o una
+  // función (historiaActual) => cambios. Se combina con el estado más reciente (actualización funcional).
+  function handleActualizar(id, cambios) {
+    setHistorias((prev) => prev.map((h) => (
+      h.id === id ? { ...h, ...(typeof cambios === 'function' ? cambios(h) : cambios) } : h
+    )));
   }
 
   function handleVolver() {

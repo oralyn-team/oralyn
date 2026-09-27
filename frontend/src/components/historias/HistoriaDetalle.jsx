@@ -1,5 +1,5 @@
 // src/components/historias/HistoriaDetalle.jsx
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet, BriefcaseMedical } from 'lucide-react';
 import OdontogramaModal from './OdontogramaModal';
 import { TIPOS_ELASTICO, COLOR_ELASTICO } from './odontogramaConstants';
@@ -140,9 +140,6 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
     tratamientos: historia.tratamientos ?? [],
   });
 
-  const formRef = useRef(form);
-  useEffect(() => { formRef.current = form; }, [form]);
-
   useEffect(() => {
     let activo = true;
 
@@ -216,7 +213,10 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
         },
       });
 
-      onActualizar(form);
+      // Guardado completo: se propaga lo que se acaba de enviar. `tratamientos` es solo de esta vista
+      // eslint-disable-next-line no-unused-vars -- `_t` se descarta a propósito: tratamientos no forma parte del guardado
+      const { tratamientos: _t, ...guardado } = form;
+      onActualizar(historia.id, guardado);
       setEditando(false);
     } catch (err) {
       console.error('Error guardando historia:', err);
@@ -227,7 +227,8 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
   }
 
   function cancelar() {
-    setForm({ ...historia, odontograma: historia.odontograma ?? {} });
+    // Descarta la edición clínica pero conserva lo que no se edita aquí (tratamientos cargados aparte)
+    setForm((prev) => ({ ...historia, odontograma: historia.odontograma ?? {}, tratamientos: prev.tratamientos }));
     setEditando(false);
     setErrorGuardar(null);
   }
@@ -242,11 +243,9 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
 
     try {
       const nueva = await crearEvolucionApp(historia.id, ev);
-      const nuevas = [nueva, ...(form.evoluciones || [])];
-      const actualizada = { ...form, evoluciones: nuevas };
-
-      setForm(actualizada);
-      onActualizar(actualizada);
+      // Solo se propaga lo persistido, calculado sobre el estado más reciente (no sobre copias previas al await)
+      setForm((prev) => ({ ...prev, evoluciones: [nueva, ...(prev.evoluciones || [])] }));
+      onActualizar(historia.id, (h) => ({ evoluciones: [nueva, ...(h.evoluciones || [])] }));
       setModalEv(false);
       setEvEditar(null);
     } catch (err) {
@@ -260,16 +259,11 @@ async function handleGuardarTratamiento(data) {
 
   const cotizaciones = await getCotizacionesPaciente(historia.paciente_id);
 
-  const actualizada = {
-    ...form,
-    tratamientos: cotizaciones,
-  };
-
+  // `tratamientos` solo vive en esta vista: la lista de historias no lo usa, no se propaga
   setForm((prev) => ({
     ...prev,
     tratamientos: cotizaciones,
   }));
-  onActualizar(actualizada);
 
   setModalTratamiento(false);
   setTratamientoEditar(null);
@@ -287,13 +281,8 @@ async function handleEliminarTratamiento(tratamiento) {
   try {
     await eliminarCotizacion(tratamiento.id);
     const cotizaciones = await getCotizacionesPaciente(historia.paciente_id);
-    const actualizada = {
-      ...form,
-      tratamientos: cotizaciones,
-    };
-
-    setForm(actualizada);
-    onActualizar(actualizada);
+    // `tratamientos` solo vive en esta vista: la lista de historias no lo usa, no se propaga
+    setForm((prev) => ({ ...prev, tratamientos: cotizaciones }));
   } catch (err) {
     console.error('Error eliminando tratamiento:', err);
     setErrorGuardar(err.error || 'No se pudo eliminar el tratamiento.');
@@ -311,19 +300,14 @@ async function handleEliminarTratamiento(tratamiento) {
 async function actualizarOdontograma({ tipo, dientes_json }) {
   await api.actualizarOdontograma(historia.id, tipo, { dientes_json, observaciones: null });
 
-  const actualizada = {
-    ...formRef.current,
-    odontograma: { ...formRef.current.odontograma, [tipo]: dientes_json },
-  };
-
-  setForm(actualizada);
-  onActualizar(actualizada);
+  setForm((prev) => ({ ...prev, odontograma: { ...prev.odontograma, [tipo]: dientes_json } }));
+  onActualizar(historia.id, (h) => ({ odontograma: { ...h.odontograma, [tipo]: dientes_json } }));
 }
 
-  function actualizarAdjuntos(nuevos) {
-    const actualizada = { ...form, adjuntos: nuevos };
-    setForm(actualizada);
-    onActualizar(actualizada);
+  // Recibe una función (listaAnterior) => listaNueva, aplicada al estado más reciente del form y de la lista
+  function actualizarAdjuntos(calcular) {
+    setForm((prev) => ({ ...prev, adjuntos: calcular(prev.adjuntos || []) }));
+    onActualizar(historia.id, (h) => ({ adjuntos: calcular(h.adjuntos || []) }));
   }
 
   async function agregarAdjuntos(files) {
@@ -340,12 +324,12 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
       return normalizeAdjunto(creado);
     }));
 
-    actualizarAdjuntos([...(form.adjuntos || []), ...nuevos]);
+    actualizarAdjuntos((lista) => [...lista, ...nuevos]);
   }
 
   async function eliminarAdjuntoHistoria(adjuntoId) {
     await api.eliminarAdjunto(historia.id, adjuntoId);
-    actualizarAdjuntos((form.adjuntos || []).filter((adj) => adj.id !== adjuntoId));
+    actualizarAdjuntos((lista) => lista.filter((adj) => adj.id !== adjuntoId));
   }
 
   const TIPOS_ODONTOGRAMA_RESUMEN = [
@@ -774,7 +758,7 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
         <AdjuntosPanel
           adjuntos={form.adjuntos}
           editable
-          onChange={actualizarAdjuntos}
+          onChange={(lista) => actualizarAdjuntos(() => lista)}
           onAgregarArchivos={agregarAdjuntos}
           onEliminarAdjunto={eliminarAdjuntoHistoria}
         />
