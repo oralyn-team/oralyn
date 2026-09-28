@@ -755,7 +755,8 @@ export default function OdontogramaModal({ isOpen, onClose, odontogramas = {}, o
       onClose();
     } catch (err) {
       console.error('Error guardando odontograma:', err);
-      setError('No se pudieron guardar los cambios. Intenta de nuevo.');
+      // Si el padre ya lo mostró (p. ej. conflicto de versión), el modal solo sigue abierto con las marcas
+      if (!err?.manejado) setError('No se pudieron guardar los cambios. Intenta de nuevo.');
     } finally {
       setGuardando(false);
     }

@@ -113,8 +113,19 @@ const TABS = [
   },
 ];
 
-export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
+// Respuestas del control de concurrencia optimista del backend (se compara el código, nunca se muestra)
+const esConflictoVersion = (err) => err?.status === 409 && err?.error === 'CONFLICTO_VERSION';
+const esVersionRequerida = (err) => err?.status === 400 && err?.error === 'VERSION_REQUERIDA';
+
+export default function HistoriaDetalle({ historia, onVolver, onActualizar, onRecargar }) {
   const [editando, setEditando]         = useState(false);
+  // Conflicto de versión pendiente de decisión del usuario: 'historia' | 'odontograma' | null
+  const [conflicto, setConflicto]       = useState(null);
+  const [recargando, setRecargando]     = useState(false);
+  const [errorRecarga, setErrorRecarga] = useState(null);
+  const [bundleDesactualizado, setBundleDesactualizado] = useState(false);
+  // Cambia tras "Recargar datos actuales" para remontar el modal del odontograma con los datos nuevos
+  const [odontoKey, setOdontoKey]       = useState(0);
   const [tab, setTab]                   = useState('clinica');
   const [modalEv, setModalEv]           = useState(false);
   const [evEditar, setEvEditar]         = useState(null);
@@ -171,7 +182,9 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
     setGuardando(true);
     setErrorGuardar(null);
     try {
-      await api.actualizarHistoria(historia.id, {
+      const guardada = await api.actualizarHistoria(historia.id, {
+        // Versión que se cargó: si otro usuario guardó antes, el backend responde 409
+        version:                    form.version,
         // Campos principales
         motivo_consulta:            form.motivoConsulta            || '',
         diagnostico:                form.diagnostico               || '',
@@ -216,11 +229,19 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
       // Guardado completo: se propaga lo que se acaba de enviar. `tratamientos` es solo de esta vista
       // eslint-disable-next-line no-unused-vars -- `_t` se descarta a propósito: tratamientos no forma parte del guardado
       const { tratamientos: _t, ...guardado } = form;
-      onActualizar(historia.id, guardado);
+      // La versión nueva viene en la respuesta: sin ella, el siguiente guardado sería un falso conflicto
+      setForm((prev) => ({ ...prev, version: guardada.version }));
+      onActualizar(historia.id, { ...guardado, version: guardada.version });
       setEditando(false);
     } catch (err) {
       console.error('Error guardando historia:', err);
-      setErrorGuardar('No se pudieron guardar los cambios. Intenta de nuevo.');
+      if (esConflictoVersion(err)) {
+        setConflicto('historia');        // no se descarta nada: el usuario decide
+      } else if (esVersionRequerida(err)) {
+        setBundleDesactualizado(true);
+      } else {
+        setErrorGuardar('No se pudieron guardar los cambios. Intenta de nuevo.');
+      }
     } finally {
       setGuardando(false);
     }
@@ -298,11 +319,59 @@ async function handleEliminarTratamiento(tratamiento) {
 
 
 async function actualizarOdontograma({ tipo, dientes_json }) {
-  await api.actualizarOdontograma(historia.id, tipo, { dientes_json, observaciones: null });
+  // Versión de la fila de ese tipo que se cargó; un tipo sin fila es 0 (primer guardado)
+  const version = form.odontogramaVersiones?.[tipo] ?? 0;
+  let guardado;
+  try {
+    guardado = await api.actualizarOdontograma(historia.id, tipo, { dientes_json, observaciones: null, version });
+  } catch (err) {
+    if (esConflictoVersion(err) || esVersionRequerida(err)) {
+      if (esConflictoVersion(err)) setConflicto('odontograma');
+      else setBundleDesactualizado(true);
+      err.manejado = true;               // el modal sigue abierto con las marcas, sin su error genérico
+    }
+    throw err;
+  }
 
-  setForm((prev) => ({ ...prev, odontograma: { ...prev.odontograma, [tipo]: dientes_json } }));
-  onActualizar(historia.id, (h) => ({ odontograma: { ...h.odontograma, [tipo]: dientes_json } }));
+  const versiones = (v) => ({ ...(v || {}), [tipo]: guardado.version });
+  setForm((prev) => ({
+    ...prev,
+    odontograma: { ...prev.odontograma, [tipo]: dientes_json },
+    odontogramaVersiones: versiones(prev.odontogramaVersiones),
+  }));
+  onActualizar(historia.id, (h) => ({
+    odontograma: { ...h.odontograma, [tipo]: dientes_json },
+    odontogramaVersiones: versiones(h.odontogramaVersiones),
+  }));
 }
+
+  // "Recargar datos actuales" tras un conflicto: pide la historia al backend y actualiza form, lista y versiones
+  async function recargarDatosActuales() {
+    setRecargando(true);
+    setErrorRecarga(null);
+    try {
+      const fresca = await onRecargar(historia.id);
+      if (conflicto === 'historia') {
+        // Se descarta la edición en curso (el usuario lo eligió); tratamientos se cargan aparte
+        setForm((prev) => ({ ...fresca, odontograma: fresca.odontograma ?? {}, tratamientos: prev.tratamientos }));
+        setEditando(false);
+      } else {
+        // Solo el odontograma: no se toca una posible edición clínica en curso
+        setForm((prev) => ({
+          ...prev,
+          odontograma: fresca.odontograma ?? {},
+          odontogramaVersiones: fresca.odontogramaVersiones ?? {},
+        }));
+        setOdontoKey((k) => k + 1);      // el modal sigue abierto, remontado con los datos actuales
+      }
+      setConflicto(null);
+    } catch (err) {
+      console.error('Error recargando historia:', err);
+      setErrorRecarga('No se pudieron recargar los datos. Intenta de nuevo.');
+    } finally {
+      setRecargando(false);
+    }
+  }
 
   // Recibe una función (listaAnterior) => listaNueva, aplicada al estado más reciente del form y de la lista
   function actualizarAdjuntos(calcular) {
@@ -786,12 +855,66 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
       {/* Se desmonta al cerrar: cada apertura empieza con estado limpio y los odontogramas actuales */}
       {modalOdonto && (
         <OdontogramaModal
+          key={odontoKey}
           isOpen={modalOdonto}
           onClose={() => setModalOdonto(false)}
           odontogramas={form.odontograma}
           onGuardar={actualizarOdontograma}
           nombrePaciente={form.pacienteNombre}
         />
+      )}
+
+      {/* Conflicto de versión: otro usuario guardó antes. Nada se descarta hasta que el usuario elija. */}
+      {conflicto && (
+        <div className="fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10001]" role="alertdialog" aria-modal="true" aria-labelledby="conflicto-titulo">
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-soft-lg max-w-md w-full p-5 space-y-3">
+            <h3 id="conflicto-titulo" className="text-[14px] font-bold text-primary dark:text-dark-text">
+              Otro usuario guardó cambios
+            </h3>
+            <p className="text-[12.5px] text-teal-muted dark:text-slate-300 leading-relaxed">
+              Mientras trabajabas, otra persona guardó cambios en {conflicto === 'odontograma' ? 'este odontograma' : 'esta historia clínica'}.
+              {' '}<strong>Tus cambios no se han guardado.</strong>
+            </p>
+            <p className="text-[12px] text-teal-muted dark:text-slate-400 leading-relaxed">
+              Puedes quedarte para copiar lo que escribiste, o recargar los datos actuales y volver a aplicar tus cambios.
+            </p>
+            {errorRecarga && <p className="text-[12px] text-red-600">{errorRecarga}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={() => { setConflicto(null); setErrorRecarga(null); }} disabled={recargando}
+                className="px-3 py-2 text-[12px] rounded-lg border border-teal-border text-primary dark:text-dark-text hover:bg-teal-soft cursor-pointer disabled:opacity-50">
+                Quedarme
+              </button>
+              <button type="button" onClick={recargarDatosActuales} disabled={recargando}
+                className="px-3 py-2 text-[12px] rounded-lg bg-primary text-white hover:opacity-90 cursor-pointer disabled:opacity-50">
+                {recargando ? 'Recargando…' : 'Recargar datos actuales'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* El backend exige `version` y este cliente no la envió: la app cargada es anterior al despliegue */}
+      {bundleDesactualizado && (
+        <div className="fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10001]" role="alertdialog" aria-modal="true" aria-labelledby="bundle-titulo">
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-soft-lg max-w-md w-full p-5 space-y-3">
+            <h3 id="bundle-titulo" className="text-[14px] font-bold text-primary dark:text-dark-text">
+              La aplicación se actualizó
+            </h3>
+            <p className="text-[12.5px] text-teal-muted dark:text-slate-300 leading-relaxed">
+              Hay una versión nueva de Oralyn. <strong>Tus cambios no se han guardado.</strong> Copia lo que necesites y recarga la página para continuar.
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={() => setBundleDesactualizado(false)}
+                className="px-3 py-2 text-[12px] rounded-lg border border-teal-border text-primary dark:text-dark-text hover:bg-teal-soft cursor-pointer">
+                Cerrar
+              </button>
+              <button type="button" onClick={() => window.location.reload()}
+                className="px-3 py-2 text-[12px] rounded-lg bg-primary text-white hover:opacity-90 cursor-pointer">
+                Recargar página
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

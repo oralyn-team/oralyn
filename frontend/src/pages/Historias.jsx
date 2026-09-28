@@ -67,6 +67,20 @@ function construirOdontogramaPorTipo(odontogramas = []) {
 }
 
 /**
+ * Versión de cada odontograma (control de concurrencia), con la misma clave que
+ * construirOdontogramaPorTipo: { 'general-adulto': 3, ... }. Un tipo sin fila no
+ * aparece; quien lo lea debe tratarlo como versión 0 (primer guardado).
+ */
+function construirVersionesOdontograma(odontogramas = []) {
+  const resultado = {};
+  odontogramas.forEach((o) => {
+    const clave = TIPO_A_CLAVE_FRONTEND[o.tipo] || o.tipo;
+    resultado[clave] = o.version;
+  });
+  return resultado;
+}
+
+/**
  * Construye el objeto historia que consume HistoriaDetalle/FormularioClinico.
  * @param {object} paciente  - fila del módulo Pacientes
  * @param {object} historia  - fila del GET /:pacienteId (lista)
@@ -77,6 +91,8 @@ function construirHistoriaBase(paciente, historia, detalle = null) {
     id:          historia.id,
     pacienteId:  paciente.id,
     paciente_id: paciente.id,
+    // Control de concurrencia optimista: se envía al guardar y se actualiza con cada respuesta
+    version:     detalle?.version ?? historia.version,
 
     // ── Datos del paciente (solo lectura) ──────────────────────────────
     pacienteNombre:  nombreCompletoPaciente(paciente),
@@ -121,6 +137,7 @@ function construirHistoriaBase(paciente, historia, detalle = null) {
     // Reconstruye TODOS los tipos de odontograma (adulto/infantil/ortodoncia),
     // no solo el primero del array — antes esto perdía los tipos != [0].
     odontograma:      construirOdontogramaPorTipo(detalle?.odontogramas),
+    odontogramaVersiones: construirVersionesOdontograma(detalle?.odontogramas),
 
     examenPulpar:     detalle?.examen?.examen_pulpar_json ?? {},
     pulparObs:        detalle?.examen?.pulpar_obs         ?? '',
@@ -242,6 +259,21 @@ export default function Historias() {
     )));
   }
 
+  // Vuelve a pedir una historia al backend (p. ej. tras un conflicto de versión), la reemplaza
+  // en la lista y la devuelve. El detalle incluye el paciente y la fila completa de la historia.
+  async function recargarHistoria(id) {
+    const [detalle, evoluciones] = await Promise.all([
+      api.getHistoriaDetalle(id),
+      api.getEvoluciones(id),
+    ]);
+    const fresca = {
+      ...construirHistoriaBase(detalle.paciente, detalle, detalle),
+      evoluciones: evoluciones.map(formatearEvolucion),
+    };
+    setHistorias((prev) => prev.map((h) => (h.id === id ? fresca : h)));
+    return fresca;
+  }
+
   function handleVolver() {
     setHistoriaElegidaId(null);
     setSearchParams({}, { replace: true });
@@ -312,6 +344,7 @@ export default function Historias() {
             historia={historiaActiva}
             onVolver={handleVolver}
             onActualizar={handleActualizar}
+            onRecargar={recargarHistoria}
             onVerPDF={() => api.verHistoriaPDF(historiaActiva.id)} 
           />
         ) : (
