@@ -174,6 +174,12 @@ export const api = {
   // Evoluciones
   getEvoluciones: (historiaId)       => request(`/historias/${historiaId}/evoluciones`),
   crearEvolucion: (historiaId, data) => request(`/historias/${historiaId}/evoluciones`, { method: 'POST', body: JSON.stringify(data) }),
+  // `datos` debe incluir `version` (la que se cargó): si otro usuario guardó antes, el backend responde 409
+  actualizarEvolucion: (historiaId, evolucionId, datos) =>
+    request(`/historias/${historiaId}/evoluciones/${evolucionId}`, { method: 'PUT', body: JSON.stringify(datos) }),
+  // Las evoluciones no se borran (DELETE responde 405): se anulan con motivo y quedan visibles
+  anularEvolucion: (historiaId, evolucionId, { motivo, version }) =>
+    request(`/historias/${historiaId}/evoluciones/${evolucionId}/anular`, { method: 'PATCH', body: JSON.stringify({ motivo, version }) }),
 
   // Odontograma
   actualizarOdontograma: (historiaId, tipo, data) => request(`/historias/${historiaId}/odontograma/${tipo}`, { method: 'PUT', body: JSON.stringify(data),}),
