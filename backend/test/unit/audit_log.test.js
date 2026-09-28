@@ -46,3 +46,16 @@ test('calcularDiferencias solo compara campos de interés especificados', () => 
   const diffs = calcularDiferencias(prev, curr, ['nombre'])
   assert.equal(diffs.length, 0)
 })
+
+test('calcularDiferencias compara Date por valor: dos instancias distintas de la misma fecha no son un cambio', () => {
+  const prev = { fecha: new Date('2026-08-02T10:00:00Z') }
+  const curr = { fecha: new Date('2026-08-02T10:00:00Z') }
+  assert.notEqual(prev.fecha, curr.fecha) // instancias distintas
+
+  assert.equal(calcularDiferencias(prev, curr, ['fecha']).length, 0)
+
+  const cambiada = { fecha: new Date('2026-08-03T10:00:00Z') }
+  const diffs = calcularDiferencias(prev, cambiada, ['fecha'])
+  assert.equal(diffs.length, 1)
+  assert.equal(diffs[0].campo, 'fecha')
+})

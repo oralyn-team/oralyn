@@ -73,13 +73,18 @@ function createHistoriasPrismaMock() {
         id: 701,
         historia_id: 101,
         fecha: new Date('2026-08-02T10:00:00Z'),
-        procedimiento: 'Limpieza dental'
+        procedimiento: 'Limpieza dental',
+        observaciones: 'Sin novedad',
+        version: 1,
+        anulada: false
       },
       {
         id: 702,
         historia_id: 102,
         fecha: new Date('2026-08-02T10:00:00Z'),
-        procedimiento: 'Limpieza B'
+        procedimiento: 'Limpieza B',
+        version: 1,
+        anulada: false
       }
     ],
     hcOdontograma: [
@@ -384,6 +389,7 @@ test('Evoluciones: PUT /api/historias/:historiaId/evoluciones/:evolucionId — m
 
   const token = generateToken(1, 10)
   const payload = {
+    version: 1,
     procedimiento: 'Limpieza dental profunda',
     observaciones: 'Encías sangrantes'
   }
@@ -400,25 +406,33 @@ test('Evoluciones: PUT /api/historias/:historiaId/evoluciones/:evolucionId — m
   assert.equal(response.status, 200)
   assert.equal(body.procedimiento, 'Limpieza dental profunda')
   assert.equal(body.observaciones, 'Encías sangrantes')
+  assert.equal(body.version, 2)
 
   const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
   assert.equal(ev.procedimiento, 'Limpieza dental profunda')
+  // fecha no venía en el body: se conserva la original, no se reemplaza por "ahora"
+  assert.equal(new Date(ev.fecha).toISOString(), '2026-08-02T10:00:00.000Z')
 })
 
-test('Evoluciones: DELETE /api/historias/:historiaId/evoluciones/:evolucionId — eliminación correcta', async (t) => {
+test('Evoluciones: DELETE /api/historias/:historiaId/evoluciones/:evolucionId — responde 405 y no borra la fila', async (t) => {
   const prismaMock = createHistoriasPrismaMock()
   const harness = await startAppWithPrisma(prismaMock)
   t.after(() => harness.close())
 
   const token = generateToken(1, 10)
 
-  const { response } = await harness.request('/api/historias/101/evoluciones/701', {
+  const { response, body } = await harness.request('/api/historias/101/evoluciones/701', {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` }
   })
 
-  assert.equal(response.status, 204)
-  assert.equal(prismaMock.__db.hojaEvolucion.filter(e => e.id === 701).length, 0)
+  assert.equal(response.status, 405)
+  assert.equal(body.error, 'METODO_NO_PERMITIDO')
+  assert.equal(body.mensaje, 'Las evoluciones no se eliminan; usa la anulación.')
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.ok(ev)
+  assert.equal(ev.anulada, false)
+  assert.equal(ev.version, 1)
 })
 
 // ─────────────────────────────────────────────────────────────
@@ -625,7 +639,7 @@ test('Aislamiento: PUT /api/historias/:historiaId/evoluciones/:evolucionId — n
   t.after(() => harness.close())
 
   const tokenA = generateToken(1, 10)
-  const payload = { procedimiento: 'Edición hacker' }
+  const payload = { version: 1, procedimiento: 'Edición hacker' }
 
   const { response } = await harness.request('/api/historias/102/evoluciones/702', { // Evolución B (id: 702)
     method: 'PUT',
@@ -639,8 +653,9 @@ test('Aislamiento: PUT /api/historias/:historiaId/evoluciones/:evolucionId — n
   assert.equal(response.status, 403)
 })
 
-test('Aislamiento: DELETE /api/historias/:historiaId/evoluciones/:evolucionId — no permite eliminar evolución de otro consultorio (BUG DE SEGURIDAD)', async (t) => {
-  const harness = await startAppWithPrisma(createHistoriasPrismaMock())
+test('Aislamiento: DELETE /api/historias/:historiaId/evoluciones/:evolucionId — evolución de otro consultorio: 405 y la fila sigue intacta', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
   t.after(() => harness.close())
 
   const tokenA = generateToken(1, 10)
@@ -650,7 +665,25 @@ test('Aislamiento: DELETE /api/historias/:historiaId/evoluciones/:evolucionId �
     headers: { Authorization: `Bearer ${tokenA}` }
   })
 
+  assert.equal(response.status, 405)
+  assert.ok(prismaMock.__db.hojaEvolucion.find(e => e.id === 702))
+})
+
+test('Aislamiento: PATCH /api/historias/:historiaId/evoluciones/:evolucionId/anular — no permite anular evolución de otro consultorio', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const tokenA = generateToken(1, 10)
+
+  const { response } = await harness.request('/api/historias/102/evoluciones/702/anular', { // Evolución B (id: 702)
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${tokenA}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ motivo: 'Intrusión', version: 1 })
+  })
+
   assert.equal(response.status, 403)
+  assert.equal(prismaMock.__db.hojaEvolucion.find(e => e.id === 702).anulada, false)
 })
 
 test('Aislamiento: PUT /api/historias/:historiaId/odontograma — no permite modificar odontograma de otro consultorio (BUG DE SEGURIDAD)', async (t) => {
@@ -829,7 +862,7 @@ test('Validación: PUT /api/historias/:historiaId/evoluciones/:evolucionId — I
   assert.equal(response.status, 400)
 })
 
-test('Validación: DELETE /api/historias/:historiaId/evoluciones/:evolucionId — ID de historia inválido (NaN) retorna 400', async (t) => {
+test('Validación: DELETE /api/historias/:historiaId/evoluciones/:evolucionId — con ID inválido (NaN) también responde 405', async (t) => {
   const harness = await startAppWithPrisma(createHistoriasPrismaMock())
   t.after(() => harness.close())
 
@@ -840,7 +873,7 @@ test('Validación: DELETE /api/historias/:historiaId/evoluciones/:evolucionId �
     headers: { Authorization: `Bearer ${token}` }
   })
 
-  assert.equal(response.status, 400)
+  assert.equal(response.status, 405)
 })
 
 test('Validación: POST /api/historias/:historiaId/adjuntos — nombre de archivo vacío retorna 400', async (t) => {
@@ -1411,4 +1444,249 @@ test('Concurrencia odontograma (regresión A/B): el hallazgo de B sobrevive aunq
   assert.deepEqual(prismaMock.__db.hcOdontograma.find(o => o.id === 801).dientes_json, {
     11: { estado: 'restauracion' }, 16: { estado: 'caries' }, 21: { estado: 'ausente' }
   })
+})
+
+// ─────────────────────────────────────────────────────────────
+// 13. Evoluciones: versión, anulación y bloqueo del borrado
+// ─────────────────────────────────────────────────────────────
+
+async function patchJson(harness, url, token, payload) {
+  return harness.request(url, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+}
+
+const URL_EV_701 = '/api/historias/101/evoluciones/701'
+
+test('Evolución PUT: sin version, con "1" (string), true o 0 responde 400 VERSION_REQUERIDA y no escribe', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  for (const [caso, extra] of [['sin version', {}], ['string "1"', { version: '1' }], ['booleano true', { version: true }], ['cero', { version: 0 }]]) {
+    const { response, body } = await putJson(harness, URL_EV_701, token, { procedimiento: `Intento ${caso}`, ...extra })
+    assert.equal(response.status, 400, caso)
+    assert.equal(body.error, 'VERSION_REQUERIDA', caso)
+  }
+
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.equal(ev.procedimiento, 'Limpieza dental')
+  assert.equal(ev.version, 1)
+})
+
+test('Evolución PUT: versión desfasada responde 409 CONFLICTO_VERSION y no escribe', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  prismaMock.__db.hojaEvolucion.find(e => e.id === 701).version = 2
+
+  const { response, body } = await putJson(harness, URL_EV_701, token, { version: 1, procedimiento: 'Con vista vieja' })
+
+  assert.equal(response.status, 409)
+  assert.equal(body.error, 'CONFLICTO_VERSION')
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.equal(ev.procedimiento, 'Limpieza dental')
+  assert.equal(ev.version, 2)
+})
+
+test('Evolución PUT: versión correcta responde 200 con version + 1, ausente no toca, null borra y audita las diferencias', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const ev0 = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  ev0.proximo_control = new Date('2026-09-01T00:00:00Z')
+  ev0.doctor = 'Dr. Original'
+
+  const { response, body } = await putJson(harness, URL_EV_701, token, {
+    version: 1,
+    procedimiento: 'Profilaxis',
+    observaciones: null,       // null explícito: se borra
+    proximo_control: null      // null explícito: se borra
+    // doctor y fecha ausentes: no se tocan
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(body.version, 2)
+  assert.equal(body.procedimiento, 'Profilaxis')
+
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.equal(ev.version, 2)
+  assert.equal(ev.observaciones, null)
+  assert.equal(ev.proximo_control, null)
+  assert.equal(ev.doctor, 'Dr. Original')
+  assert.equal(new Date(ev.fecha).toISOString(), '2026-08-02T10:00:00.000Z')
+
+  const audit = prismaMock.__db.auditoria.find(a => a.accion === 'ACTUALIZAR_EVOLUCION')
+  assert.ok(audit)
+  const campos = audit.metadata.cambios.map(c => c.campo).sort()
+  assert.deepEqual(campos, ['observaciones', 'procedimiento', 'proximo_control'])
+})
+
+test('Evolución PUT: fecha null responde 400 (la columna es obligatoria)', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response } = await putJson(harness, URL_EV_701, token, { version: 1, procedimiento: 'X', fecha: null })
+
+  assert.equal(response.status, 400)
+  assert.equal(prismaMock.__db.hojaEvolucion.find(e => e.id === 701).version, 1)
+})
+
+test('Evolución PUT: editar una evolución anulada responde 409 EVOLUCION_ANULADA aunque la versión coincida', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  Object.assign(prismaMock.__db.hojaEvolucion.find(e => e.id === 701), { anulada: true, version: 2, motivo_anulacion: 'Paciente equivocado' })
+
+  const { response, body } = await putJson(harness, URL_EV_701, token, { version: 2, procedimiento: 'Reescritura' })
+
+  assert.equal(response.status, 409)
+  assert.equal(body.error, 'EVOLUCION_ANULADA')
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.equal(ev.procedimiento, 'Limpieza dental')
+  assert.equal(ev.version, 2)
+})
+
+test('Evolución anular: sin motivo (ausente o en blanco) responde 400 MOTIVO_REQUERIDO; sin version, 400 VERSION_REQUERIDA', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  for (const payload of [{ version: 1 }, { version: 1, motivo: '   ' }]) {
+    const { response, body } = await patchJson(harness, `${URL_EV_701}/anular`, token, payload)
+    assert.equal(response.status, 400)
+    assert.equal(body.error, 'MOTIVO_REQUERIDO')
+  }
+
+  const sinVersion = await patchJson(harness, `${URL_EV_701}/anular`, token, { motivo: 'Error de registro', version: '1' })
+  assert.equal(sinVersion.response.status, 400)
+  assert.equal(sinVersion.body.error, 'VERSION_REQUERIDA')
+
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.equal(ev.anulada, false)
+  assert.equal(ev.version, 1)
+})
+
+test('Evolución anular: correcto marca anulada, quién y cuándo, incrementa versión, audita y sigue en las lecturas', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response, body } = await patchJson(harness, `${URL_EV_701}/anular`, token, { motivo: 'Registrada en el paciente equivocado', version: 1 })
+
+  assert.equal(response.status, 200)
+  assert.equal(body.anulada, true)
+  assert.equal(body.version, 2)
+  assert.equal(body.anulada_por, 1)
+  assert.equal(body.motivo_anulacion, 'Registrada en el paciente equivocado')
+  assert.ok(body.anulada_en)
+  assert.equal(body.procedimiento, 'Limpieza dental')   // el contenido clínico se conserva
+
+  const audit = prismaMock.__db.auditoria.find(a => a.accion === 'ANULAR_EVOLUCION')
+  assert.ok(audit)
+  assert.equal(audit.metadata.motivo, 'Registrada en el paciente equivocado')
+
+  const lista = await harness.request('/api/historias/101/evoluciones', { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(lista.body.length, 1)
+  assert.equal(lista.body[0].anulada, true)
+  assert.equal(lista.body[0].procedimiento, 'Limpieza dental')
+
+  const detalle = await harness.request('/api/historias/detalle/101', { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(detalle.body.evoluciones[0].anulada, true)
+  assert.equal(detalle.body.evoluciones[0].motivo_anulacion, 'Registrada en el paciente equivocado')
+})
+
+test('Evolución anular: anular dos veces responde 409 EVOLUCION_ANULADA y conserva el primer motivo', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const primera = await patchJson(harness, `${URL_EV_701}/anular`, token, { motivo: 'Primer motivo', version: 1 })
+  assert.equal(primera.response.status, 200)
+
+  const segunda = await patchJson(harness, `${URL_EV_701}/anular`, token, { motivo: 'Segundo motivo', version: primera.body.version })
+  assert.equal(segunda.response.status, 409)
+  assert.equal(segunda.body.error, 'EVOLUCION_ANULADA')
+
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.equal(ev.motivo_anulacion, 'Primer motivo')
+  assert.equal(ev.version, 2)
+})
+
+test('Evolución anular: evolución inexistente responde 404', async (t) => {
+  const harness = await startAppWithPrisma(createHistoriasPrismaMock())
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response } = await patchJson(harness, '/api/historias/101/evoluciones/999/anular', token, { motivo: 'X', version: 1 })
+  assert.equal(response.status, 404)
+})
+
+test('Evolución POST: guarda creado_por con el usuario y creado_en con la hora actual', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const antes = Date.now()
+  const { response, body } = await harness.request('/api/historias/101/evoluciones', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ procedimiento: 'Resina' })
+  })
+
+  assert.equal(response.status, 201)
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === body.id)
+  assert.equal(ev.creado_por, 1)
+  assert.ok(ev.creado_en instanceof Date)
+  assert.ok(ev.creado_en.getTime() >= antes && ev.creado_en.getTime() <= Date.now())
+})
+
+test('Evolución (regresión A/B): la edición de B sobrevive aunque A guarde con la vista vieja', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  prismaMock.__db.usuario.push({ id: 3, consultorio_id: 10, email: 'asistente@oralyn.test', password_hash: 'hash', nombre: 'Asistente', rol: 'ASISTENTE_ODONTOLOGO', activo: true, token_version: 0 })
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const tokenA = generateToken(1, 10)   // odontóloga
+  const tokenB = generateToken(3, 10)   // asistente
+
+  const cargar = async (token) => (await harness.request('/api/historias/101/evoluciones', { headers: { Authorization: `Bearer ${token}` } })).body[0]
+  const vistaA = await cargar(tokenA)
+  const vistaB = await cargar(tokenB)
+  assert.equal(vistaA.version, 1)
+  assert.equal(vistaB.version, 1)
+
+  // B corrige las observaciones y guarda
+  const guardadoB = await putJson(harness, URL_EV_701, tokenB, { version: vistaB.version, procedimiento: vistaB.procedimiento, observaciones: 'Sangrado leve (B)' })
+  assert.equal(guardadoB.response.status, 200)
+
+  // A, con su vista de antes, cambia el procedimiento: debe ser rechazado
+  const guardadoA = await putJson(harness, URL_EV_701, tokenA, { version: vistaA.version, procedimiento: 'Profilaxis (A)', observaciones: vistaA.observaciones })
+  assert.equal(guardadoA.response.status, 409)
+  assert.equal(guardadoA.body.error, 'CONFLICTO_VERSION')
+  assert.equal(prismaMock.__db.hojaEvolucion.find(e => e.id === 701).observaciones, 'Sangrado leve (B)')
+
+  // A recarga y vuelve a guardar: quedan los dos cambios
+  const recargadaA = await cargar(tokenA)
+  assert.equal(recargadaA.version, 2)
+  const reintentoA = await putJson(harness, URL_EV_701, tokenA, { version: recargadaA.version, procedimiento: 'Profilaxis (A)', observaciones: recargadaA.observaciones })
+  assert.equal(reintentoA.response.status, 200)
+  assert.equal(reintentoA.body.version, 3)
+  const ev = prismaMock.__db.hojaEvolucion.find(e => e.id === 701)
+  assert.equal(ev.procedimiento, 'Profilaxis (A)')
+  assert.equal(ev.observaciones, 'Sangrado leve (B)')
 })
