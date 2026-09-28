@@ -50,14 +50,16 @@ function createHistoriasPrismaMock() {
         paciente_id: 1,
         motivo_consulta: 'Control inicial',
         diagnostico: 'Sano',
-        fecha_atencion: new Date('2026-08-01T10:00:00Z')
+        fecha_atencion: new Date('2026-08-01T10:00:00Z'),
+        version: 1
       },
       {
         id: 102,
         paciente_id: 2,
         motivo_consulta: 'Control B',
         diagnostico: 'Sano B',
-        fecha_atencion: new Date('2026-08-01T10:00:00Z')
+        fecha_atencion: new Date('2026-08-01T10:00:00Z'),
+        version: 1
       }
     ],
     hcAntecedentes: [
@@ -84,8 +86,10 @@ function createHistoriasPrismaMock() {
       {
         id: 801,
         historia_id: 101,
+        tipo: 'GENERAL_ADULTO',
         dientes_json: '{"11": "S"}',
-        observaciones: 'Odontograma inicial'
+        observaciones: 'Odontograma inicial',
+        version: 1
       }
     ],
     hcAdjunto: [
@@ -269,6 +273,7 @@ test('PUT /api/historias/:id — modificación correcta (incluyendo upserts)', a
 
   const token = generateToken(1, 10)
   const payload = {
+    version: 1,
     motivo_consulta: 'Motivo modificado',
     diagnostico: 'Diagnostico modificado',
     antecedentes: { reacciones_alergicas: true, alergias_obs: 'Nueva alergia' },
@@ -287,6 +292,7 @@ test('PUT /api/historias/:id — modificación correcta (incluyendo upserts)', a
   assert.equal(response.status, 200)
   assert.equal(body.motivo_consulta, 'Motivo modificado')
   assert.equal(body.diagnostico, 'Diagnostico modificado')
+  assert.equal(body.version, 2)
 
   // Verificar actualizaciones en la db
   const h = prismaMock.__db.historiaClinica.find(h => h.id === 101)
@@ -427,7 +433,8 @@ test('Odontograma: PUT /api/historias/:historiaId/odontograma — actualización
   const token = generateToken(1, 10)
   const payload = {
     dientes_json: '{"11": "C", "12": "S"}',
-    observaciones: 'Odontograma actualizado'
+    observaciones: 'Odontograma actualizado',
+    version: 1
   }
 
   const { response, body } = await harness.request('/api/historias/101/odontograma/general_adulto', {
@@ -566,7 +573,7 @@ test('Aislamiento: PUT /api/historias/:id — no permite modificar historia de o
   t.after(() => harness.close())
 
   const tokenA = generateToken(1, 10)
-  const payload = { motivo_consulta: 'Ataque', diagnostico: 'Modificado' }
+  const payload = { version: 1, motivo_consulta: 'Ataque', diagnostico: 'Modificado' }
 
   const { response } = await harness.request('/api/historias/102', { // Historia B (id: 102, consultorio 99)
     method: 'PUT',
@@ -651,7 +658,7 @@ test('Aislamiento: PUT /api/historias/:historiaId/odontograma — no permite mod
   t.after(() => harness.close())
 
   const tokenA = generateToken(1, 10)
-  const payload = { dientes_json: '{"18":"C"}' }
+  const payload = { dientes_json: '{"18":"C"}', version: 1 }
 
   const { response } = await harness.request('/api/historias/102/odontograma/general_adulto', { // Historia B
     method: 'PUT',
@@ -787,7 +794,8 @@ test('Validación: PUT /api/historias/:historiaId/odontograma — dientes_json v
 
   const token = generateToken(1, 10)
   const payload = {
-    observaciones: 'Sin dientes' // Falta dientes_json
+    observaciones: 'Sin dientes', // Falta dientes_json
+    version: 1
   }
 
   const { response } = await harness.request('/api/historias/101/odontograma/general_adulto', {
@@ -880,7 +888,7 @@ test('Odontograma: Crear odontograma en historia existente', async (t) => {
   t.after(() => harness.close())
 
   const token = generateToken(1, 10)
-  const payload = { dientes_json: '{"21": "C"}', observaciones: 'Odonto nuevo' }
+  const payload = { dientes_json: '{"21": "C"}', observaciones: 'Odonto nuevo', version: 0 }
 
   // Eliminar el odontograma precargado para probar creación
   prismaMock.__db.hcOdontograma = prismaMock.__db.hcOdontograma.filter(o => o.historia_id !== 101)
@@ -906,7 +914,7 @@ test('Odontograma: Actualizar odontograma existente', async (t) => {
   t.after(() => harness.close())
 
   const token = generateToken(1, 10)
-  const payload = { dientes_json: '{"21": "S"}', observaciones: 'Odonto modificado' }
+  const payload = { dientes_json: '{"21": "S"}', observaciones: 'Odonto modificado', version: 1 }
 
   const { response, body } = await harness.request('/api/historias/101/odontograma/general_adulto', {
     method: 'PUT',
@@ -944,7 +952,7 @@ test('Odontograma: Intentar crear/actualizar en historia inexistente da 404', as
   t.after(() => harness.close())
 
   const token = generateToken(1, 10)
-  const payload = { dientes_json: '{"21": "C"}', observaciones: 'Inexistente' }
+  const payload = { dientes_json: '{"21": "C"}', observaciones: 'Inexistente', version: 1 }
 
   const { response } = await harness.request('/api/historias/999/odontograma/general_adulto', {
     method: 'PUT',
@@ -963,7 +971,7 @@ test('Odontograma: Aislamiento — Intentar modificar odontograma de otro consul
   t.after(() => harness.close())
 
   const tokenA = generateToken(1, 10) // Usuario A de Consultorio 10
-  const payload = { dientes_json: '{"21": "C"}' }
+  const payload = { dientes_json: '{"21": "C"}', version: 1 }
 
   const { response } = await harness.request('/api/historias/102/odontograma/general_adulto', { // Historia B de Consultorio 99
     method: 'PUT',
@@ -1203,7 +1211,204 @@ test('PDF: Aislamiento — Historia perteneciente a otro consultorio retorna 403
   assert.equal(response.status, 403)
 })
 
+// ─────────────────────────────────────────────────────────────
+// 12. Control de concurrencia optimista (campo `version`)
+// ─────────────────────────────────────────────────────────────
 
+async function putJson(harness, url, token, payload) {
+  return harness.request(url, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+}
 
+// ── PUT /api/historias/:id ──
 
+test('Concurrencia historia: sin version, con "1" (string) o con true responde 400 VERSION_REQUERIDA y no escribe', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
 
+  for (const [caso, extra] of [['sin version', {}], ['string "1"', { version: '1' }], ['booleano true', { version: true }]]) {
+    const { response, body } = await putJson(harness, '/api/historias/101', token, { motivo_consulta: `Intento ${caso}`, ...extra })
+    assert.equal(response.status, 400, caso)
+    assert.equal(body.error, 'VERSION_REQUERIDA', caso)
+  }
+
+  const h = prismaMock.__db.historiaClinica.find(x => x.id === 101)
+  assert.equal(h.motivo_consulta, 'Control inicial')
+  assert.equal(h.version, 1)
+})
+
+test('Concurrencia historia: versión desfasada responde 409 y deja intactos motivo, antecedentes y examen', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  // Otro usuario ya guardó: la historia está en version 2
+  prismaMock.__db.historiaClinica.find(x => x.id === 101).version = 2
+
+  const { response, body } = await putJson(harness, '/api/historias/101', token, {
+    version: 1,
+    motivo_consulta: 'Motivo con vista vieja',
+    antecedentes: { reacciones_alergicas: true, alergias_obs: 'Sobrescrita' },
+    examen: { estructuras_json: '{}', observaciones: 'Sobrescrito' }
+  })
+
+  assert.equal(response.status, 409)
+  assert.equal(body.error, 'CONFLICTO_VERSION')
+  assert.ok(body.mensaje)
+
+  const h = prismaMock.__db.historiaClinica.find(x => x.id === 101)
+  assert.equal(h.motivo_consulta, 'Control inicial')
+  assert.equal(h.version, 2)
+  assert.equal(prismaMock.__db.hcAntecedentes.find(a => a.historia_id === 101).alergias_obs, 'Ninguna')
+  assert.equal(prismaMock.__db.hcExamenEstomatologico.find(e => e.historia_id === 101).observaciones, 'Normal')
+})
+
+test('Concurrencia historia: versión correcta responde 200 e incrementa version', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response, body } = await putJson(harness, '/api/historias/101', token, { version: 1, motivo_consulta: 'Nuevo motivo' })
+
+  assert.equal(response.status, 200)
+  assert.equal(body.version, 2)
+  assert.equal(body.motivo_consulta, 'Nuevo motivo')
+  assert.equal(prismaMock.__db.historiaClinica.find(x => x.id === 101).version, 2)
+})
+
+// ── PUT /api/historias/:historiaId/odontograma/:tipo ──
+
+test('Concurrencia odontograma: version 0 sin fila crea el odontograma con version 1', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response, body } = await putJson(harness, '/api/historias/101/odontograma/general_infantil', token, { version: 0, dientes_json: { 55: { estado: 'caries' } } })
+
+  assert.equal(response.status, 200)
+  assert.equal(body.version, 1)
+  assert.equal(body.tipo, 'GENERAL_INFANTIL')
+  const filas = prismaMock.__db.hcOdontograma.filter(o => o.historia_id === 101)
+  assert.equal(filas.length, 2)
+  assert.equal(prismaMock.__db.hcOdontograma.find(o => o.id === 801).version, 1)   // el adulto no se tocó
+})
+
+test('Concurrencia odontograma: version 0 con fila existente responde 409 y no sobrescribe', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response, body } = await putJson(harness, '/api/historias/101/odontograma/general_adulto', token, { version: 0, dientes_json: { 21: { estado: 'caries' } } })
+
+  assert.equal(response.status, 409)
+  assert.equal(body.error, 'CONFLICTO_VERSION')
+  const od = prismaMock.__db.hcOdontograma.find(o => o.id === 801)
+  assert.equal(od.dientes_json, '{"11": "S"}')
+  assert.equal(od.version, 1)
+  assert.equal(prismaMock.__db.hcOdontograma.filter(o => o.historia_id === 101).length, 1)
+})
+
+test('Concurrencia odontograma: versión correcta incrementa y la desfasada responde 409 sin escribir', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const ok = await putJson(harness, '/api/historias/101/odontograma/general_adulto', token, { version: 1, dientes_json: { 16: { estado: 'caries' } } })
+  assert.equal(ok.response.status, 200)
+  assert.equal(ok.body.version, 2)
+  assert.equal(ok.body.id, 801)
+
+  const viejo = await putJson(harness, '/api/historias/101/odontograma/general_adulto', token, { version: 1, dientes_json: { 21: { estado: 'ausente' } } })
+  assert.equal(viejo.response.status, 409)
+  assert.equal(viejo.body.error, 'CONFLICTO_VERSION')
+
+  const od = prismaMock.__db.hcOdontograma.find(o => o.id === 801)
+  assert.deepEqual(od.dientes_json, { 16: { estado: 'caries' } })
+  assert.equal(od.version, 2)
+})
+
+test('Concurrencia odontograma: version como string responde 400 VERSION_REQUERIDA', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response, body } = await putJson(harness, '/api/historias/101/odontograma/general_adulto', token, { version: '1', dientes_json: { 21: { estado: 'caries' } } })
+
+  assert.equal(response.status, 400)
+  assert.equal(body.error, 'VERSION_REQUERIDA')
+  assert.equal(prismaMock.__db.hcOdontograma.find(o => o.id === 801).dientes_json, '{"11": "S"}')
+})
+
+test('Concurrencia odontograma: dos guardados seguidos con la versión devuelta no generan conflicto', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const primero = await putJson(harness, '/api/historias/101/odontograma/general_adulto', token, { version: 1, dientes_json: { 26: { estado: 'caries' } } })
+  assert.equal(primero.response.status, 200)
+
+  const segundo = await putJson(harness, '/api/historias/101/odontograma/general_adulto', token, {
+    version: primero.body.version,
+    dientes_json: { 26: { estado: 'caries' }, 27: { estado: 'caries' } }
+  })
+  assert.equal(segundo.response.status, 200)
+  assert.equal(segundo.body.version, 3)
+})
+
+// ── Regresión: dos sesiones sobre el mismo odontograma (lost update) ──
+
+test('Concurrencia odontograma (regresión A/B): el hallazgo de B sobrevive aunque A guarde con la vista vieja', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  // Segunda persona del mismo consultorio: asistente con permiso para editar el odontograma
+  prismaMock.__db.usuario.push({ id: 3, consultorio_id: 10, email: 'asistente@oralyn.test', password_hash: 'hash', nombre: 'Asistente', rol: 'ASISTENTE_ODONTOLOGO', activo: true, token_version: 0 })
+  prismaMock.__db.hcOdontograma.find(o => o.id === 801).dientes_json = { 11: { estado: 'restauracion' } }
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const tokenA = generateToken(1, 10)   // odontóloga
+  const tokenB = generateToken(3, 10)   // asistente
+
+  // Las dos sesiones cargan la historia (odontograma en version 1)
+  const cargar = async (token) => (await harness.request('/api/historias/detalle/101', { headers: { Authorization: `Bearer ${token}` } })).body.odontogramas[0]
+  const vistaA = await cargar(tokenA)
+  const vistaB = await cargar(tokenB)
+  assert.equal(vistaA.version, 1)
+  assert.equal(vistaB.version, 1)
+
+  // B marca el 16 como caries y guarda
+  const guardadoB = await putJson(harness, '/api/historias/101/odontograma/general_adulto', tokenB, {
+    version: vistaB.version, dientes_json: { ...vistaB.dientes_json, 16: { estado: 'caries' } }
+  })
+  assert.equal(guardadoB.response.status, 200)
+
+  // A, con su vista de antes, marca el 21 y guarda: debe ser rechazado
+  const guardadoA = await putJson(harness, '/api/historias/101/odontograma/general_adulto', tokenA, {
+    version: vistaA.version, dientes_json: { ...vistaA.dientes_json, 21: { estado: 'ausente' } }
+  })
+  assert.equal(guardadoA.response.status, 409)
+  assert.equal(guardadoA.body.error, 'CONFLICTO_VERSION')
+  assert.deepEqual(prismaMock.__db.hcOdontograma.find(o => o.id === 801).dientes_json, { 11: { estado: 'restauracion' }, 16: { estado: 'caries' } })
+
+  // A recarga y vuelve a guardar: ahora quedan los tres dientes
+  const recargadaA = await cargar(tokenA)
+  assert.equal(recargadaA.version, 2)
+  const reintentoA = await putJson(harness, '/api/historias/101/odontograma/general_adulto', tokenA, {
+    version: recargadaA.version, dientes_json: { ...recargadaA.dientes_json, 21: { estado: 'ausente' } }
+  })
+  assert.equal(reintentoA.response.status, 200)
+  assert.equal(reintentoA.body.version, 3)
+  assert.deepEqual(prismaMock.__db.hcOdontograma.find(o => o.id === 801).dientes_json, {
+    11: { estado: 'restauracion' }, 16: { estado: 'caries' }, 21: { estado: 'ausente' }
+  })
+})
