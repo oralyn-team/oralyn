@@ -439,6 +439,8 @@ router.post('/:historiaId/evoluciones', requirePermission(PERMISSIONS.CLINICAL_R
         proximo_control: proximo_control ? new Date(proximo_control) : null,
         observaciones:   observaciones   ?? null,
         profesional_id:   profesional_id  ? Number(profesional_id) : null,
+        creado_en:       new Date(),
+        creado_por:      req.usuario.id,
       }
     })
 
@@ -584,6 +586,58 @@ router.put('/:historiaId/odontograma/:tipo', requirePermission(PERMISSIONS.ODONT
   }
 })
 
+// Campos clínicos de una evolución que se auditan al editarla
+const CAMPOS_CLINICOS_EVOLUCION = [
+  'fecha', 'doctor', 'profesional_id', 'motivo', 'diagnostico', 'procedimiento',
+  'piezas_tratadas', 'tratamiento', 'estado_clinico', 'recomendaciones',
+  'proximo_control', 'observaciones',
+]
+
+// Misma regla que la versión de la historia: número JSON entero ≥ 1, sin conversiones
+function versionValida(version) {
+  return typeof version === 'number' && Number.isInteger(version) && version >= 1
+}
+
+// undefined = no tocar; null o '' = borrar; cualquier otro valor se convierte a Date
+function fechaOpcional(valor) {
+  if (valor === undefined) return undefined
+  if (valor === null || valor === '') return null
+  return new Date(valor)
+}
+
+// Carga la evolución y comprueba consultorio y pertenencia a la historia.
+// Devuelve { evolucion } o { status, error } para responder tal cual.
+async function obtenerEvolucionAutorizada(evolucionId, historiaId, consultorioId) {
+  const evolucion = await prisma.hojaEvolucion.findUnique({
+    where: { id: evolucionId },
+    include: { historia: { include: { paciente: true } } }
+  })
+  if (!evolucion) return { status: 404, error: 'Evolución no encontrada' }
+  if (evolucion.historia.paciente.consultorio_id !== consultorioId) {
+    return { status: 403, error: 'No autorizado' }
+  }
+  if (evolucion.historia_id !== historiaId) {
+    return { status: 400, error: 'La evolución no pertenece a esta historia' }
+  }
+  return { evolucion }
+}
+
+// updateMany no coincidió: se relee para distinguir borrada, anulada o versión desfasada
+async function responderSinCoincidencia(res, evolucionId) {
+  const actual = await prisma.hojaEvolucion.findUnique({ where: { id: evolucionId } })
+  if (!actual) return res.status(404).json({ error: 'Evolución no encontrada' })
+  if (actual.anulada) {
+    return res.status(409).json({
+      error: 'EVOLUCION_ANULADA',
+      mensaje: 'Esta evolución está anulada y ya no se puede modificar.'
+    })
+  }
+  return res.status(409).json({
+    error: 'CONFLICTO_VERSION',
+    mensaje: 'Otro usuario guardó cambios en esta evolución. Recarga para ver los cambios más recientes.'
+  })
+}
+
 // PUT /api/historias/:historiaId/evoluciones/:evolucionId
 router.put('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
   const historiaId  = parseInt(req.params.historiaId)
@@ -593,108 +647,142 @@ router.put('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSION
     fecha, doctor, motivo, diagnostico, procedimiento,
     piezas_tratadas, tratamiento, estado_clinico,
     recomendaciones, proximo_control, observaciones,
-    profesional_id,
+    profesional_id, version,
   } = req.body
 
   if (isNaN(historiaId) || isNaN(evolucionId)) {
     return res.status(400).json({ error: 'ID inválido' })
   }
 
+  if (!versionValida(version)) {
+    return res.status(400).json({
+      error: 'VERSION_REQUERIDA',
+      mensaje: 'Falta la versión de la evolución. Recarga la página e intenta de nuevo.'
+    })
+  }
+
   if (!procedimiento) {
     return res.status(400).json({ error: 'El procedimiento es obligatorio' })
   }
 
-  try {
-    const existeEvolucion = await prisma.hojaEvolucion.findUnique({
-      where: { id: evolucionId },
-      include: { historia: { include: { paciente: true } } }
-    })
-    if (!existeEvolucion) return res.status(404).json({ error: 'Evolución no encontrada' })
-    if (existeEvolucion.historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
-      return res.status(403).json({ error: 'No autorizado' })
-    }
-    if (existeEvolucion.historia_id !== historiaId) {
-      return res.status(400).json({ error: 'La evolución no pertenece a esta historia' })
-    }
+  // La columna fecha es obligatoria: se puede omitir (no se toca), pero no vaciar
+  if (fecha === null || fecha === '') {
+    return res.status(400).json({ error: 'La fecha de la evolución no puede quedar vacía' })
+  }
 
-    const evolucion = await prisma.hojaEvolucion.update({
-      where: { id: evolucionId },
+  try {
+    const { evolucion: existente, status, error } = await obtenerEvolucionAutorizada(evolucionId, historiaId, req.usuario.consultorio_id)
+    if (!existente) return res.status(status).json({ error })
+
+    // Sin `?? null`: un campo ausente (undefined) no se toca; un null explícito sí se guarda como null
+    const { count } = await prisma.hojaEvolucion.updateMany({
+      where: { id: evolucionId, historia_id: historiaId, version, anulada: false },
       data: {
-        fecha:           fecha ? new Date(fecha) : new Date(),
-        doctor:          doctor          ?? null,
-        motivo:          motivo          ?? null,
-        diagnostico:     diagnostico     ?? null,
+        fecha:           fechaOpcional(fecha),
+        doctor,
+        motivo,
+        diagnostico,
         procedimiento,
-        piezas_tratadas: piezas_tratadas ?? null,
-        tratamiento:     tratamiento     ?? null,
-        estado_clinico:  estado_clinico  ?? null,
-        recomendaciones: recomendaciones ?? null,
-        proximo_control: proximo_control ? new Date(proximo_control) : null,
-        observaciones:   observaciones   ?? null,
-        profesional_id:   profesional_id  !== undefined ? (profesional_id ? Number(profesional_id) : null) : undefined,
+        piezas_tratadas,
+        tratamiento,
+        estado_clinico,
+        recomendaciones,
+        proximo_control: fechaOpcional(proximo_control),
+        observaciones,
+        profesional_id:  profesional_id !== undefined ? (profesional_id ? Number(profesional_id) : null) : undefined,
+        version:         { increment: 1 },
       }
     })
+
+    if (count === 0) return responderSinCoincidencia(res, evolucionId)
+
+    // updateMany no devuelve la fila: se relee ya con la versión nueva
+    const evolucion = await prisma.hojaEvolucion.findUnique({ where: { id: evolucionId } })
 
     registrarAuditoria({
       req,
       accion: 'ACTUALIZAR_EVOLUCION',
       modulo: 'Historia Clínica',
       recurso_id: evolucion.id,
-      detalles: `Evolución #${evolucionId} actualizada`
+      detalles: `Evolución #${evolucionId} actualizada`,
+      metadata: { cambios: calcularDiferencias(existente, evolucion, CAMPOS_CLINICOS_EVOLUCION) }
     })
 
     res.json(evolucion)
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Evolución no encontrada' })
-    }
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// PATCH /api/historias/:historiaId/evoluciones/:evolucionId/anular
+// Las evoluciones no se borran: se marcan como anuladas y siguen visibles en las lecturas.
+router.patch('/:historiaId/evoluciones/:evolucionId/anular', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
+  const historiaId  = parseInt(req.params.historiaId)
+  const evolucionId = parseInt(req.params.evolucionId)
+  const { motivo, version } = req.body
+
+  if (isNaN(historiaId) || isNaN(evolucionId)) {
+    return res.status(400).json({ error: 'ID inválido' })
+  }
+
+  const motivoLimpio = typeof motivo === 'string' ? motivo.trim() : ''
+  if (!motivoLimpio) {
+    return res.status(400).json({
+      error: 'MOTIVO_REQUERIDO',
+      mensaje: 'Indica el motivo de la anulación.'
+    })
+  }
+
+  if (!versionValida(version)) {
+    return res.status(400).json({
+      error: 'VERSION_REQUERIDA',
+      mensaje: 'Falta la versión de la evolución. Recarga la página e intenta de nuevo.'
+    })
+  }
+
+  try {
+    const { evolucion: existente, status, error } = await obtenerEvolucionAutorizada(evolucionId, historiaId, req.usuario.consultorio_id)
+    if (!existente) return res.status(status).json({ error })
+
+    const { count } = await prisma.hojaEvolucion.updateMany({
+      where: { id: evolucionId, historia_id: historiaId, version, anulada: false },
+      data: {
+        anulada:          true,
+        anulada_en:       new Date(),
+        anulada_por:      req.usuario.id,
+        motivo_anulacion: motivoLimpio,
+        version:          { increment: 1 },
+      }
+    })
+
+    if (count === 0) return responderSinCoincidencia(res, evolucionId)
+
+    const evolucion = await prisma.hojaEvolucion.findUnique({ where: { id: evolucionId } })
+
+    registrarAuditoria({
+      req,
+      accion: 'ANULAR_EVOLUCION',
+      modulo: 'Historia Clínica',
+      recurso_id: evolucionId,
+      detalles: `Evolución #${evolucionId} anulada en la historia #${historiaId}: ${motivoLimpio}`,
+      metadata: { motivo: motivoLimpio }
+    })
+
+    res.json(evolucion)
+  } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })
 
 // DELETE /api/historias/:historiaId/evoluciones/:evolucionId
-router.delete('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
-  const historiaId  = parseInt(req.params.historiaId)
-  const evolucionId = parseInt(req.params.evolucionId)
-
-  if (isNaN(historiaId) || isNaN(evolucionId)) {
-    return res.status(400).json({ error: 'ID inválido' })
-  }
-
-  try {
-    const evolucion = await prisma.hojaEvolucion.findUnique({
-      where: { id: evolucionId },
-      include: { historia: { include: { paciente: true } } }
-    })
-
-    if (!evolucion) {
-      return res.status(404).json({ error: 'Evolución no encontrada' })
-    }
-
-    if (evolucion.historia.paciente.consultorio_id !== req.usuario.consultorio_id) {
-      return res.status(403).json({ error: 'No autorizado' })
-    }
-
-    if (evolucion.historia_id !== historiaId) {
-      return res.status(400).json({ error: 'La evolución no pertenece a esta historia' })
-    }
-
-    await prisma.hojaEvolucion.delete({ where: { id: evolucionId } })
-
-    registrarAuditoria({
-      req,
-      accion: 'ELIMINAR_EVOLUCION',
-      modulo: 'Historia Clínica',
-      recurso_id: evolucionId,
-      detalles: `Evolución #${evolucionId} eliminada de la historia #${historiaId}`
-    })
-
-    res.status(204).send()
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Error interno del servidor' })
-  }
+// Deshabilitado: una evolución es parte del registro clínico y no se elimina (ver PATCH .../anular)
+router.delete('/:historiaId/evoluciones/:evolucionId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), (req, res) => {
+  res.status(405).json({
+    error: 'METODO_NO_PERMITIDO',
+    mensaje: 'Las evoluciones no se eliminan; usa la anulación.'
+  })
 })
 
 // GET /api/historias/:historiaId/adjuntos
