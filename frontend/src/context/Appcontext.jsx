@@ -70,6 +70,12 @@ function normalizeEvolucion(ev = {}) {
     recomendaciones: ev.recomendaciones ?? '',
     proximoControl: toDateInput(ev.proximoControl ?? ev.proximo_control),
     observaciones: ev.observaciones ?? '',
+    // Control de versión y anulación: se envían de vuelta al editar/anular y deciden qué acciones se muestran
+    version: ev.version,
+    anulada: Boolean(ev.anulada),
+    anuladaEn: ev.anuladaEn ?? ev.anulada_en ?? null,
+    anuladaPor: ev.anuladaPor ?? ev.anulada_por ?? null,
+    motivoAnulacion: ev.motivoAnulacion ?? ev.motivo_anulacion ?? '',
   };
 }
 
@@ -291,6 +297,20 @@ export function AppProvider({ children }) {
     );
   }
 
+  // Devuelven la evolución tal como quedó en el backend (versión nueva incluida) para que la vista
+  // la reemplace en su estado local sin recargar la historia. Un 409 se propaga tal cual al llamador.
+  async function actualizarEvolucion(historiaId, evolucionId, datos, version) {
+    return normalizeEvolucion(
+      await api.actualizarEvolucion(historiaId, evolucionId, { ...evolucionToApi(datos), version })
+    );
+  }
+
+  async function anularEvolucion(historiaId, evolucionId, motivo, version) {
+    return normalizeEvolucion(
+      await api.anularEvolucion(historiaId, evolucionId, { motivo, version })
+    );
+  }
+
   // ── Cotizaciones / Tratamientos ───────────────────────────────────────────
   async function getCotizacionesPaciente(pacienteId) {
     const cotizaciones = await api.getCotizacionesPaciente(pacienteId);
@@ -422,7 +442,7 @@ export function AppProvider({ children }) {
       agregarPaciente, eliminarPaciente, recargarPacientes,
 
       // Historias
-      crearEvolucion,
+      crearEvolucion, actualizarEvolucion, anularEvolucion,
       // Cotizaciones
       getCotizacionesPaciente, guardarTratamiento, cambiarEstadoCotizacion, eliminarCotizacion,
       // Pagos
