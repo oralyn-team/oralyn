@@ -351,6 +351,7 @@ model HistoriaClinica {
   tipo_sangre                String?
   rh                         String?
   alergias                   String?
+  version                    Int      @default(1)
 
   antecedentes           HcAntecedentes?
   examen                 HcExamenEstomatologico?
@@ -420,6 +421,7 @@ model HcOdontograma {
   observaciones String?
   creado_en     DateTime        @default(now())
   actualizado_en DateTime       @default(now()) @updatedAt
+  version        Int            @default(1)
 
   @@index([historia_id])
   @@unique([historia_id, tipo])
