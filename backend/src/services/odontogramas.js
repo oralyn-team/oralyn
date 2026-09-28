@@ -100,12 +100,51 @@ async function obtenerOdontograma(prisma, historiaId, tipo) {
   })
 }
 
- async function guardarOdontograma(prisma, historiaId, tipo, datos) {
+function errorConflictoVersion() {
+  const error = new Error('CONFLICTO_VERSION')
+  error.conflictoVersion = true
+  return error
+}
+
+/**
+ * Guarda un odontograma con control de concurrencia optimista.
+ *
+ * `versionRecibida` es la versión de la fila HcOdontograma que cargó el cliente:
+ *  - 0  → el cliente cree que ese tipo aún no existe: se CREA la fila (queda con version 1).
+ *         Si otro usuario la creó mientras tanto, la restricción única [historia_id, tipo]
+ *         falla (P2002) y se responde como conflicto, sin sobrescribir.
+ *  - ≥1 → se ACTUALIZA solo si la versión en BD sigue siendo esa; si no coincide
+ *         (otro usuario guardó antes), se lanza conflicto y no se escribe nada.
+ * El llamador debe validar antes que sea un entero ≥ 0 (omitirla no es válido).
+ *
+ * Devuelve la fila completa con su versión nueva. Lanza un error con `conflictoVersion = true`.
+ */
+async function guardarOdontograma(prisma, historiaId, tipo, datos, versionRecibida) {
   const tipoNormalizado = normalizarTipoOdontograma(tipo)
-  return prisma.hcOdontograma.upsert({
-    where: { historia_id_tipo: { historia_id: historiaId, tipo: tipoNormalizado } },
-    update: datos,
-    create: { historia_id: historiaId, tipo: tipoNormalizado, ...datos },
+
+  if (versionRecibida === 0) {
+    try {
+      return await prisma.hcOdontograma.create({
+        data: { historia_id: historiaId, tipo: tipoNormalizado, ...datos, version: 1 },
+      })
+    } catch (error) {
+      if (error.code === 'P2002') throw errorConflictoVersion()
+      throw error
+    }
+  }
+
+  // Actualización condicionada + relectura en la misma transacción: el updateMany bloquea la fila
+  // hasta el commit, así que la relectura devuelve exactamente la versión que acaba de escribir.
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.hcOdontograma.updateMany({
+      where: { historia_id: historiaId, tipo: tipoNormalizado, version: versionRecibida },
+      data: { ...datos, version: { increment: 1 } },
+    })
+    if (count === 0) throw errorConflictoVersion()
+
+    return tx.hcOdontograma.findUnique({
+      where: { historia_id_tipo: { historia_id: historiaId, tipo: tipoNormalizado } },
+    })
   })
 }
 

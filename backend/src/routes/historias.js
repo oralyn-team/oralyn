@@ -199,6 +199,7 @@ router.get('/:pacienteId', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ),
         tipo_sangre: true,
         rh: true,
         alergias: true,
+        version: true,
       }
     })
 
@@ -252,7 +253,17 @@ router.get('/detalle/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ),
 // PUT /api/historias/:id — editar historia completa
 router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async (req, res) => {
   const id = parseInt(req.params.id)
-  const { antecedentes, examen, ...datos } = req.body
+  const { antecedentes, examen, version, ...datos } = req.body
+
+  // Control de concurrencia optimista: el cliente debe enviar la versión que cargó, como número JSON.
+  // Sin versión no se puede detectar si otro usuario guardó antes, así que se rechaza.
+  // Estricto: no se aceptan strings ("3"), booleanos ni valores convertibles.
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
+    return res.status(400).json({
+      error: 'VERSION_REQUERIDA',
+      mensaje: 'Falta la versión de la historia clínica. Recarga la página e intenta de nuevo.'
+    })
+  }
 
   try {
     const historiaExistente = await prisma.historiaClinica.findUnique({
@@ -269,8 +280,9 @@ router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async
     }
 
     const historia = await prisma.$transaction(async (tx) => {
-      const h = await tx.historiaClinica.update({
-        where: { id },
+      // Solo actualiza si la versión en BD sigue siendo la que el cliente cargó (comprobación atómica)
+      const { count } = await tx.historiaClinica.updateMany({
+        where: { id, version },
         data: {
           motivo_consulta:            datos.motivo_consulta,
           medicamentos_actuales:      datos.medicamentos_actuales,
@@ -299,8 +311,17 @@ router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async
           rh:                         datos.rh,
           alergias:                   datos.alergias,
           profesional_id:             datos.profesional_id !== undefined ? (datos.profesional_id ? Number(datos.profesional_id) : null) : undefined,
+          version:                    { increment: 1 },
         }
       })
+
+      // Nadie coincidió: otro usuario guardó antes (la versión cambió). Lanzar aborta la transacción,
+      // así que los upserts de antecedentes/examen de abajo no se ejecutan.
+      if (count === 0) {
+        const conflicto = new Error('CONFLICTO_VERSION')
+        conflicto.conflictoVersion = true
+        throw conflicto
+      }
 
       if (antecedentes && Object.keys(antecedentes).length > 0) {
         const antecedentesNormalizados = normalizarAntecedentes(antecedentes)
@@ -340,7 +361,8 @@ router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async
         })
       }
 
-      return h
+      // updateMany no devuelve la fila: se relee dentro de la misma transacción (ya con la versión nueva)
+      return tx.historiaClinica.findUnique({ where: { id } })
     })
 
     const diferencias = calcularDiferencias(historiaExistente, historia, [
@@ -356,8 +378,14 @@ router.put('/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_UPDATE), async
       metadata: { cambios: diferencias }
     })
 
-    res.json(historia) 
+    res.json(historia)
   } catch (error) {
+    if (error.conflictoVersion) {
+      return res.status(409).json({
+        error: 'CONFLICTO_VERSION',
+        mensaje: 'Otro usuario guardó cambios en esta historia. Recarga para ver los cambios más recientes.'
+      })
+    }
     if (error.statusCode) return res.status(error.statusCode).json({ error: error.message })
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
@@ -511,6 +539,18 @@ router.put('/:historiaId/odontograma/:tipo', requirePermission(PERMISSIONS.ODONT
     return res.status(400).json({ error: 'dientes_json es obligatorio' })
   }
 
+  // Control de concurrencia optimista: `version` es la de la fila que cargó el cliente.
+  // Primer guardado de ese tipo (la fila no existe): el cliente DEBE enviar version: 0.
+  // Omitirla no es válido (anularía la protección), igual que en PUT /historias/:id.
+  // Estricto: debe ser un número JSON entero; no se aceptan strings ("0"), booleanos ni null.
+  const { version } = req.body
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 0) {
+    return res.status(400).json({
+      error: 'VERSION_REQUERIDA',
+      mensaje: 'Falta la versión del odontograma (usa 0 si aún no existe). Recarga la página e intenta de nuevo.'
+    })
+  }
+
   try {
     const historia = await obtenerHistoriaAutorizada(prisma, historiaId, req.usuario.consultorio_id)
     if (!historia) return res.status(404).json({ error: 'Historia no encontrada' })
@@ -518,7 +558,7 @@ router.put('/:historiaId/odontograma/:tipo', requirePermission(PERMISSIONS.ODONT
     const odontograma = await guardarOdontograma(prisma, historiaId, req.params.tipo, {
       dientes_json,
       observaciones,
-    })
+    }, version)
 
     registrarAuditoria({
       req,
@@ -530,6 +570,12 @@ router.put('/:historiaId/odontograma/:tipo', requirePermission(PERMISSIONS.ODONT
 
     res.json(odontograma)
   } catch (error) {
+    if (error.conflictoVersion) {
+      return res.status(409).json({
+        error: 'CONFLICTO_VERSION',
+        mensaje: 'Otro usuario guardó cambios en este odontograma. Recarga para ver los cambios más recientes.'
+      })
+    }
     if (error.statusCode) {
       return res.status(error.statusCode).json({ error: error.message })
     }
