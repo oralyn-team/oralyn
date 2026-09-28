@@ -177,6 +177,12 @@ function formatearEvolucion(ev) {
     recomendaciones: ev.recomendaciones || '',
     proximoControl:  ev.proximo_control?.split('T')[0] || '',
     observaciones:   ev.observaciones || '',
+    // Mismos campos que normalizeEvolucion del contexto: la vista los necesita para editar/anular
+    version:         ev.version,
+    anulada:         Boolean(ev.anulada),
+    anuladaEn:       ev.anulada_en ?? null,
+    anuladaPor:      ev.anulada_por ?? null,
+    motivoAnulacion: ev.motivo_anulacion || '',
   };
 }
 
