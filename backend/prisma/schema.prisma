@@ -448,6 +448,14 @@ model HojaEvolucion {
   recomendaciones              String?
   proximo_control              DateTime?
   observaciones                String?
+  version                      Int                       @default(1)
+  anulada                      Boolean                   @default(false)
+  anulada_en                   DateTime?
+  anulada_por                  Int?
+  motivo_anulacion             String?
+  // Sin default: las evoluciones anteriores a esta columna quedan en null en vez de con una fecha falsa
+  creado_en                    DateTime?
+  creado_por                   Int?
 
   @@index([historia_id])
   @@index([profesional_id])
