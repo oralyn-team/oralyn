@@ -291,14 +291,6 @@ export function AppProvider({ children }) {
     );
   }
 
-  async function eliminarEvolucion(historiaId, evolucionId) {
-    await api.eliminarEvolucion(historiaId, evolucionId);
-  }
-
-  async function actualizarOdontograma(historiaId, tipo, data) {
-    await api.actualizarOdontograma(historiaId, tipo, data);
-  }
-
   // ── Cotizaciones / Tratamientos ───────────────────────────────────────────
   async function getCotizacionesPaciente(pacienteId) {
     const cotizaciones = await api.getCotizacionesPaciente(pacienteId);
@@ -430,7 +422,7 @@ export function AppProvider({ children }) {
       agregarPaciente, eliminarPaciente, recargarPacientes,
 
       // Historias
-      crearEvolucion, eliminarEvolucion, actualizarOdontograma,
+      crearEvolucion,
       // Cotizaciones
       getCotizacionesPaciente, guardarTratamiento, cambiarEstadoCotizacion, eliminarCotizacion,
       // Pagos
