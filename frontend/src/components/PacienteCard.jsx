@@ -93,11 +93,11 @@ async function handleGuardar() {
 }
 
 function handleChange(e) {
-  const { name, value } = e.target;
+  const { name, value, type, checked } = e.target;
 
   setForm((prev) => ({
     ...prev,
-    [name]: value,
+    [name]: type === 'checkbox' ? checked : value,
   }));
 }
 
@@ -238,6 +238,22 @@ function handleChange(e) {
                       </div>
                     </div>
                   ))}
+
+                  <div className="pt-2 pb-1 border-t border-teal-soft dark:border-dark-border/60">
+                    <label htmlFor="edit_notificaciones_email" className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        id="edit_notificaciones_email"
+                        name="notificaciones_email"
+                        checked={form.notificaciones_email !== false}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-teal rounded border-teal-border focus:ring-teal cursor-pointer"
+                      />
+                      <span className="text-[12px] font-medium text-primary dark:text-dark-text">
+                        Recibir notificaciones de citas por correo
+                      </span>
+                    </label>
+                  </div>
 
                   <div className="text-[12px] text-teal-muted pt-2 border-t border-teal-soft dark:border-dark-border/60">
                     Estado actual: <span className="font-semibold text-primary dark:text-dark-text">{paciente.estado}</span>
