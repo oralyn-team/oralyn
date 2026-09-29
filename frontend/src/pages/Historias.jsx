@@ -168,6 +168,7 @@ function formatearEvolucion(ev) {
     id:              ev.id,
     fecha:           ev.fecha?.split('T')[0] || '',
     doctor:          ev.doctor || '',
+    profesionalId:   ev.profesional_id ?? '',
     motivo:          ev.motivo || '',
     diagnostico:     ev.diagnostico || '',
     procedimiento:   ev.procedimiento || '',
@@ -182,6 +183,7 @@ function formatearEvolucion(ev) {
     anulada:         Boolean(ev.anulada),
     anuladaEn:       ev.anulada_en ?? null,
     anuladaPor:      ev.anulada_por ?? null,
+    anuladaPorNombre: ev.anulada_por_nombre || '',
     motivoAnulacion: ev.motivo_anulacion || '',
   };
 }

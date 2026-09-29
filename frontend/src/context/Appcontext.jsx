@@ -61,6 +61,7 @@ function normalizeEvolucion(ev = {}) {
     id: ev.id,
     fecha: toDateInput(ev.fecha),
     doctor: ev.doctor ?? '',
+    profesionalId: ev.profesionalId ?? ev.profesional_id ?? '',
     motivo: ev.motivo ?? '',
     diagnostico: ev.diagnostico ?? '',
     procedimiento: ev.procedimiento ?? '',
@@ -75,6 +76,7 @@ function normalizeEvolucion(ev = {}) {
     anulada: Boolean(ev.anulada),
     anuladaEn: ev.anuladaEn ?? ev.anulada_en ?? null,
     anuladaPor: ev.anuladaPor ?? ev.anulada_por ?? null,
+    anuladaPorNombre: ev.anuladaPorNombre ?? ev.anulada_por_nombre ?? '',
     motivoAnulacion: ev.motivoAnulacion ?? ev.motivo_anulacion ?? '',
   };
 }
@@ -83,6 +85,7 @@ function evolucionToApi(ev = {}) {
   return {
     fecha: ev.fecha || null,
     doctor: ev.doctor || null,
+    profesional_id: ev.profesionalId ? Number(ev.profesionalId) : null,
     motivo: ev.motivo || null,
     diagnostico: ev.diagnostico || null,
     procedimiento: ev.procedimiento,
