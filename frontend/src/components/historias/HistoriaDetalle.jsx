@@ -86,7 +86,8 @@ function EvolucionCard({ ev, puedeModificar, onEditar, onAnular }) {
       </div>
       {anulada && (
         <p className="px-4 pb-3 -mt-1 text-[11px] text-status-red dark:text-red-400 leading-snug">
-          Anulada el {formatearFechaHora(ev.anuladaEn) || 'fecha desconocida'} — motivo: {ev.motivoAnulacion || 'sin motivo registrado'}
+          Anulada el {formatearFechaHora(ev.anuladaEn) || 'fecha desconocida'}
+          {ev.anuladaPorNombre ? ` por ${ev.anuladaPorNombre}` : ''} — motivo: {ev.motivoAnulacion || 'sin motivo registrado'}
         </p>
       )}
       {abierto && (
