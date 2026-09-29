@@ -12,6 +12,7 @@ const ESTADO_INICIAL = {
   telefono: '',
   correo: '',
   municipio_ciudad: '',
+  notificaciones_email: true,
   estado: 'Nuevo',
 };
 
@@ -184,6 +185,7 @@ export default function PacienteForm({
       telefono: form.telefono.trim() || null,
       correo: form.correo.trim() || null,
       municipio_ciudad: form.municipio_ciudad.trim(),
+      notificaciones_email: form.notificaciones_email !== false,
     };
 
     if (pacienteEditar) {
@@ -319,6 +321,20 @@ export default function PacienteForm({
               value={form.correo}
               onChange={handleChange}
             />
+          </div>
+
+          <div className="flex items-center gap-2 mb-3.5 px-1 py-1">
+            <input
+              type="checkbox"
+              id="notificaciones_email"
+              name="notificaciones_email"
+              checked={form.notificaciones_email !== false}
+              onChange={(e) => setForm((prev) => ({ ...prev, notificaciones_email: e.target.checked }))}
+              className="w-4 h-4 text-teal rounded border-teal-border focus:ring-teal cursor-pointer"
+            />
+            <label htmlFor="notificaciones_email" className="text-[12px] text-primary dark:text-dark-text cursor-pointer font-medium select-none">
+              Recibir notificaciones de citas por correo
+            </label>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">

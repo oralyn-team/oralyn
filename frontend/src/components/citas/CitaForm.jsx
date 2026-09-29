@@ -397,6 +397,17 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
                 </option>
               ))}
             </select>
+            {(() => {
+              const pacSel = pacientes.find((p) => String(p.id) === String(form.pacienteId));
+              if (pacSel && pacSel.correo && pacSel.notificaciones_email !== false) {
+                return (
+                  <p className="text-[11px] text-teal-700 dark:text-teal-400 mt-1 font-medium flex items-center gap-1 bg-teal-50 dark:bg-slate-800/80 p-1.5 rounded border border-teal-200 dark:border-slate-700">
+                    <span>✓</span> Se enviará una confirmación al correo del paciente ({pacSel.correo})
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </Field>
 
           {cotizacionesPendientes.length > 0 && (

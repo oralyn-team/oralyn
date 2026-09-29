@@ -18,7 +18,8 @@ router.post('/', requirePermission(PERMISSIONS.PATIENTS_CREATE), async (req, res
     correo, departamento, municipio_ciudad, ocupacion,
     rh, clase_seguro, asegurador, rango_salarial,
     tipo_vinculacion, nombre_empresa,
-    acudiente_nombre, acudiente_parentesco, acudiente_telefono
+    acudiente_nombre, acudiente_parentesco, acudiente_telefono,
+    notificaciones_email
   } = req.body
 
   const trimmedDoc = numero_documento ? String(numero_documento).trim() : ''
@@ -81,6 +82,7 @@ router.post('/', requirePermission(PERMISSIONS.PATIENTS_CREATE), async (req, res
           acudiente_nombre,
           acudiente_parentesco,
           acudiente_telefono,
+          notificaciones_email: notificaciones_email !== undefined ? Boolean(notificaciones_email) : true,
           activo: true
         }
       })
@@ -166,6 +168,7 @@ function mapPacienteSummary(p, ahora = new Date()) {
     telefono: p.telefono,
     correo: p.correo,
     municipio_ciudad: p.municipio_ciudad,
+    notificaciones_email: p.notificaciones_email !== false,
     creado_en: p.creado_en,
     ultimaVisita,
     estado,
@@ -203,6 +206,7 @@ router.get('/', requirePermission(PERMISSIONS.PATIENTS_READ), async (req, res) =
       telefono: true,
       correo: true,
       municipio_ciudad: true,
+      notificaciones_email: true,
       creado_en: true,
       citas: {
         select: { id: true, fecha_hora: true, estado: true },
@@ -345,7 +349,7 @@ router.put('/:id', requirePermission(PERMISSIONS.PATIENTS_UPDATE), async (req, r
     })
 
     const diferencias = calcularDiferencias(pacienteExistente, paciente, [
-      'nombres', 'primer_apellido', 'segundo_apellido', 'telefono', 'correo', 'direccion_residencia'
+      'nombres', 'primer_apellido', 'segundo_apellido', 'telefono', 'correo', 'direccion_residencia', 'notificaciones_email'
     ])
 
     registrarAuditoria({
