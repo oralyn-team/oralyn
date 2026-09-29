@@ -16,6 +16,20 @@ const {
 } = require('../services/odontogramas')
 const { normalizarAntecedentes } = require('../services/antecedentes')
 
+// anulada_por es un id sin relación Prisma con Usuario: los nombres se resuelven con una sola
+// consulta para todas las evoluciones a devolver, limitada al consultorio del usuario.
+async function adjuntarNombreAnulador(evoluciones, consultorioId) {
+  const ids = [...new Set(evoluciones.map((e) => e.anulada_por).filter((id) => id != null))]
+  if (ids.length === 0) return evoluciones.map((e) => ({ ...e, anulada_por_nombre: null }))
+
+  const usuarios = await prisma.usuario.findMany({
+    where:  { id: { in: ids }, consultorio_id: consultorioId },
+    select: { id: true, nombre: true },
+  })
+  const nombres = new Map(usuarios.map((u) => [u.id, u.nombre]))
+  return evoluciones.map((e) => ({ ...e, anulada_por_nombre: nombres.get(e.anulada_por) ?? null }))
+}
+
 const router = express.Router()
 router.use(verificarToken)
 router.use(restrictSuperadminClinicalAccess) // Restringe al SUPERADMIN de acceder a historias clínicas
@@ -243,6 +257,7 @@ router.get('/detalle/:id', requirePermission(PERMISSIONS.CLINICAL_RECORDS_READ),
     res.json({
       ...historia,
       odontogramas: ordenarOdontogramas(historia.odontogramas),
+      evoluciones: await adjuntarNombreAnulador(historia.evoluciones, req.usuario.consultorio_id),
     })
   } catch (error) {
     console.error(error)
@@ -476,7 +491,7 @@ router.get('/:historiaId/evoluciones', requirePermission(PERMISSIONS.CLINICAL_RE
       where:   { historia_id: historiaId },
       orderBy: { fecha: 'desc' }
     })
-    res.json(evoluciones)
+    res.json(await adjuntarNombreAnulador(evoluciones, req.usuario.consultorio_id))
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
@@ -758,7 +773,8 @@ router.patch('/:historiaId/evoluciones/:evolucionId/anular', requirePermission(P
 
     if (count === 0) return responderSinCoincidencia(res, evolucionId)
 
-    const evolucion = await prisma.hojaEvolucion.findUnique({ where: { id: evolucionId } })
+    const fila = await prisma.hojaEvolucion.findUnique({ where: { id: evolucionId } })
+    const [evolucion] = await adjuntarNombreAnulador([fila], req.usuario.consultorio_id)
 
     registrarAuditoria({
       req,

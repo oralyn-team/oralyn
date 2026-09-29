@@ -1690,3 +1690,75 @@ test('Evolución (regresión A/B): la edición de B sobrevive aunque A guarde co
   assert.equal(ev.procedimiento, 'Profilaxis (A)')
   assert.equal(ev.observaciones, 'Sangrado leve (B)')
 })
+
+// ── Nombre de quien anuló (anulada_por_nombre) ──
+
+test('Evolución anulada: PATCH, listado y detalle devuelven anulada_por_nombre', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+  const auth = { headers: { Authorization: `Bearer ${token}` } }
+
+  const anular = await patchJson(harness, `${URL_EV_701}/anular`, token, { motivo: 'Duplicada', version: 1 })
+  assert.equal(anular.response.status, 200)
+  assert.equal(anular.body.anulada_por, 1)
+  assert.equal(anular.body.anulada_por_nombre, 'Dra. Test')
+
+  const lista = await harness.request('/api/historias/101/evoluciones', auth)
+  assert.equal(lista.body[0].anulada_por_nombre, 'Dra. Test')
+
+  const detalle = await harness.request('/api/historias/detalle/101', auth)
+  assert.equal(detalle.body.evoluciones[0].anulada_por_nombre, 'Dra. Test')
+})
+
+test('Evolución anulada: los nombres se resuelven con una sola consulta { id: { in } } y solo del mismo consultorio', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  prismaMock.__db.usuario.push({ id: 3, consultorio_id: 10, email: 'asistente@oralyn.test', password_hash: 'hash', nombre: 'Asistente', rol: 'ASISTENTE_ODONTOLOGO', activo: true, token_version: 0 })
+  prismaMock.__db.hojaEvolucion.push(
+    { id: 703, historia_id: 101, fecha: new Date('2026-08-03T10:00:00Z'), procedimiento: 'Resina', version: 2, anulada: true, anulada_por: 3, motivo_anulacion: 'Error' },
+    // anulada_por apunta a un usuario de otro consultorio: no se debe filtrar su nombre
+    { id: 704, historia_id: 101, fecha: new Date('2026-08-04T10:00:00Z'), procedimiento: 'Sellante', version: 2, anulada: true, anulada_por: 2, motivo_anulacion: 'Error' }
+  )
+  Object.assign(prismaMock.__db.hojaEvolucion.find(e => e.id === 701), { anulada: true, anulada_por: 1, version: 2 })
+
+  const consultasIn = []
+  const findManyOriginal = prismaMock.usuario.findMany
+  prismaMock.usuario.findMany = async (args) => {
+    if (args?.where?.id?.in) consultasIn.push(args)
+    return findManyOriginal(args)
+  }
+
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { response, body } = await harness.request('/api/historias/101/evoluciones', { headers: { Authorization: `Bearer ${token}` } })
+
+  assert.equal(response.status, 200)
+  const nombre = (id) => body.find(e => e.id === id).anulada_por_nombre
+  assert.equal(nombre(701), 'Dra. Test')
+  assert.equal(nombre(703), 'Asistente')
+  assert.equal(nombre(704), null)
+
+  assert.equal(consultasIn.length, 1)
+  assert.deepEqual([...consultasIn[0].where.id.in].sort(), [1, 2, 3])
+  assert.equal(consultasIn[0].where.consultorio_id, 10)
+})
+
+test('Evolución no anulada: anulada_por_nombre es null y no se consulta Usuario', async (t) => {
+  const prismaMock = createHistoriasPrismaMock()
+  let consultasIn = 0
+  const findManyOriginal = prismaMock.usuario.findMany
+  prismaMock.usuario.findMany = async (args) => {
+    if (args?.where?.id?.in) consultasIn += 1
+    return findManyOriginal(args)
+  }
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+  const token = generateToken(1, 10)
+
+  const { body } = await harness.request('/api/historias/101/evoluciones', { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(body[0].anulada_por_nombre, null)
+  assert.equal(consultasIn, 0)
+})
