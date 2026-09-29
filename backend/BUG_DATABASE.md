@@ -11,7 +11,7 @@ Este documento mantiene el seguimiento operativo y actualizado del estado de cad
 | GAP-003 | Ausencia de logs de auditoría | 🔴 Abierto | Sin registro estructurado de logins fallidos, cambios de contraseña, ni accesos 401/403. |
 | GAP-004 | Secreto administrativo estático | 🟢 Cerrado (28 ago 2026) | Reemplazado por autenticación de administradores en BD y JWT con clave dedicada (JWT_ADMIN_SECRET). |
 | GAP-005 | Ausencia de política de complejidad de contraseñas | 🔴 Abierto | Sin validación de longitud mínima ni caracteres especiales en el registro. |
-| GAP-006 | Dependencia muerta (express-validator) | 🔴 Abierto | Instalada pero no usada en ninguna parte del código. |
+| GAP-006 | Dependencia muerta (express-validator) | 🟢 Cerrado (verificado 28 sept 2026) | `express-validator` ya no aparece en `package.json` ni se importa en el código. Confirmado por auditoría directa del repo. |
 
 ---
 
