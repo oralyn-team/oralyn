@@ -5,6 +5,7 @@ const verificarToken = require('../middlewares/auth')
 const { requireRole } = require('../middlewares/rbac')
 const { ROLES } = require('../lib/permissions')
 const { registrarAuditoria } = require('../services/audit.service')
+const { validarComplejidadPassword } = require('../utils/validacion')
 
 const router = express.Router()
 
@@ -30,6 +31,11 @@ router.post('/consultorio', async (req, res) => {
 
   if (!nombre_consultorio || !nombre_profesional || !usuario_email || !usuario_password || !usuario_nombre) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' })
+  }
+
+  const { valida, errores } = validarComplejidadPassword(usuario_password)
+  if (!valida) {
+    return res.status(400).json({ error: 'La contraseña no cumple los requisitos de seguridad', detalles: errores })
   }
 
   try {

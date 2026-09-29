@@ -5,6 +5,7 @@ const verificarToken = require('../middlewares/auth')
 const { requirePermission } = require('../middlewares/rbac')
 const { PERMISSIONS, ROLES } = require('../lib/permissions')
 const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
+const { validarComplejidadPassword } = require('../utils/validacion')
 
 const router = express.Router()
 router.use(verificarToken)
@@ -38,6 +39,11 @@ router.post('/', requirePermission(PERMISSIONS.USERS_CREATE), async (req, res) =
 
   if (!email || !password || !nombre) {
     return res.status(400).json({ error: 'Correo, contraseña y nombre son requeridos' })
+  }
+
+  const { valida, errores } = validarComplejidadPassword(password)
+  if (!valida) {
+    return res.status(400).json({ error: 'La contraseña no cumple los requisitos de seguridad', detalles: errores })
   }
 
   const rolAsignar = rol || ROLES.ASISTENTE_ODONTOLOGO
