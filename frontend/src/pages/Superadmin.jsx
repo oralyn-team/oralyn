@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  Building2, Users, UserCheck, ShieldCheck, Plus, RefreshCw, X,
-  CheckCircle2, XCircle, Activity, Globe, Lock, ShieldAlert, AlertCircle
+  Building2, Users, UserCheck, Plus, RefreshCw, X,
+  CheckCircle2, XCircle, Activity, Lock, ShieldAlert, AlertCircle
 } from 'lucide-react';
 import { api } from '../api';
 import { useApp } from '../context/useApp';
@@ -15,7 +15,7 @@ export default function Superadmin() {
   const [consultorios, setConsultorios] = useState([]);
   const [stats, setStats] = useState({ totalConsultorios: 0, totalUsuarios: 0, totalPacientes: 0, totalCitas: 0 });
   const [loading, setLoading] = useState(true);
-  const [, setError] = useState(null);
+  const [error, setError] = useState(null);
   const [modalCrearOpen, setModalCrearOpen] = useState(false);
   const [creando, setCreando] = useState(false);
 

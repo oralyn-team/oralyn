@@ -181,7 +181,7 @@ function TeethPicker({ selected = [], onChange }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function ProcedureCard({ proc, index, onChange, onDelete, onDuplicate, error = {} }) {
+export default function ProcedureCard({ proc, index, onChange, onDelete, onDuplicate, error = {}, intentoValidacion = 0 }) {
   const { getProcedimientosAgrupados, procedimientosCatalog } = useApp();
   const procedimientosAgrupados = getProcedimientosAgrupados();
 
@@ -190,10 +190,13 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
   const hasError = Object.keys(error).length > 0;
   const aplicResumen = resumirAplicacion(proc);
 
-  // Auto-expandir la tarjeta si contiene errores
-  useEffect(() => {
+  // Auto-expandir la tarjeta en cada intento de guardar que la deje con errores.
+  // Se compara con el intento del render anterior (sin efecto); el usuario puede colapsarla después.
+  const [intentoVisto, setIntentoVisto] = useState(intentoValidacion);
+  if (intentoValidacion !== intentoVisto) {
+    setIntentoVisto(intentoValidacion);
     if (hasError) setExpanded(true);
-  }, [hasError]);
+  }
 
   // Helpers de cambio
   const set = (field, value) => onChange(proc.id, field, value);

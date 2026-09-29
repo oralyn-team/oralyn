@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save, Stethoscope, ClipboardList, Wrench, CalendarCheck, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/useApp';
+import { api } from '../../api';
 
 // ─── Constantes clínicas ──────────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ const ESTADOS_CLINICOS = [
 const VACIO = {
   fecha: '',
   doctor: '',
+  profesionalId: '',
   motivo: '',
   diagnostico: '',
   procedimiento: '',
@@ -105,9 +107,36 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
   const [errs, setErrs] = useState({});
   const esEdicion = Boolean(evolucionEditar);
 
+  // Profesionales del consultorio (Configuración). null = cargando; si la carga falla o no hay
+  // activos, el campo vuelve a ser texto libre para no bloquear el registro de la evolución.
+  const [profesionales, setProfesionales] = useState(null);
+  const [errorProfesionales, setErrorProfesionales] = useState(false);
+  useEffect(() => {
+    let activo = true;
+    api.getProfesionales()
+      .then((data) => {
+        if (!activo) return;
+        const activos = (Array.isArray(data) ? data : []).filter((p) => p.activo !== false);
+        setProfesionales(activos);
+        // Igual que FormularioClinico: con un único profesional activo se preselecciona en una evolución nueva
+        if (!esEdicion && activos.length === 1) {
+          setForm((prev) => (prev.profesionalId ? prev : { ...prev, profesionalId: activos[0].id, doctor: activos[0].nombre_completo }));
+        }
+      })
+      .catch(() => { if (activo) setErrorProfesionales(true); });
+    return () => { activo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar, como los demás formularios
+  }, []);
+
+  const usarSelectProfesional = !errorProfesionales && Array.isArray(profesionales) && profesionales.length > 0;
+  // Evolución anterior al select: tiene texto en `doctor` pero ningún profesional vinculado
+  const doctorOriginal = esEdicion && !evolucionEditar.profesionalId ? (evolucionEditar.doctor || '') : '';
+  const doctorSinVincular = Boolean(doctorOriginal) && !form.profesionalId;
+
   // Respaldo: si configuracion llega después del montaje
   useEffect(() => {
     if (!esEdicion && !form.doctor && configuracion?.nombre_profesional) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: rellenar valor por defecto solo si el campo sigue vacío cuando llegan datos tarde (usuariosConsultorio/configuracion), sin pisar lo que el usuario haya escrito. Ver docs/eslint-exceptions.md
       setForm((prev) => ({ ...prev, doctor: configuracion.nombre_profesional }));
     }
   }, [configuracion]);
@@ -120,12 +149,29 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
     if (errs[name]) setErrs((prev) => ({ ...prev, [name]: '' }));
   }
 
+  // Guarda el id del profesional y rellena `doctor` con su nombre (el texto que se muestra y se imprime)
+  function handleProfesional(e) {
+    const id = e.target.value;
+    const prof = (profesionales || []).find((p) => String(p.id) === id);
+    setForm((prev) => ({
+      ...prev,
+      profesionalId: id,
+      doctor: prof ? prof.nombre_completo : doctorOriginal,
+    }));
+    if (errs.doctor) setErrs((prev) => ({ ...prev, doctor: '' }));
+  }
+
   // ── Validaciones ─────────────────────────────────────────────────────────────
 
   function validar() {
     const e = {};
     if (!form.fecha)                  e.fecha         = 'La fecha es obligatoria.';
-    if (!form.doctor)                 e.doctor        = 'Doctor es obligatorio.';
+    if (usarSelectProfesional) {
+      // Una evolución anterior sin profesional vinculado puede guardarse conservando su texto
+      if (!form.profesionalId && !doctorSinVincular) e.doctor = 'Selecciona el profesional tratante.';
+    } else if (!form.doctor) {
+      e.doctor = 'Doctor es obligatorio.';
+    }
     if (!form.motivo.trim())          e.motivo        = 'El motivo es obligatorio.';
     if (!form.diagnostico.trim())     e.diagnostico   = 'El diagnóstico es obligatorio.';
     if (!form.procedimiento)          e.procedimiento = 'Selecciona el procedimiento realizado.';
@@ -191,19 +237,38 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
               />
             </Field>
             <Field label="Doctor tratante" error={errs.doctor}>
-              <input
-              type="text"
-              name="doctor"
-              list="doctores-lista-evolucion"
-              value={form.doctor}
-              onChange={handleChange}
-              placeholder="Nombre del doctor..."
-              className={`${inputBase} ${errs.doctor ? inputError : ''}`}
-              />
-              <datalist id="doctores-lista-evolucion">
-                {usuariosConsultorio.map((u) => <option key={u.id} value={u.nombre} />)}
-              </datalist>
-                </Field>
+              {usarSelectProfesional ? (
+                <div className="relative">
+                  <select
+                    name="profesionalId"
+                    value={form.profesionalId || ''}
+                    onChange={handleProfesional}
+                    className={`${inputBase} appearance-none pr-7 cursor-pointer ${errs.doctor ? inputError : ''}`}
+                  >
+                    <option value="">Seleccionar profesional...</option>
+                    {profesionales.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre_completo} {p.cedula_profesional ? `(${p.cedula_profesional})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  name="doctor"
+                  value={form.doctor}
+                  onChange={handleChange}
+                  disabled={profesionales === null && !errorProfesionales}
+                  placeholder={profesionales === null && !errorProfesionales ? 'Cargando profesionales...' : 'Nombre del doctor...'}
+                  className={`${inputBase} ${errs.doctor ? inputError : ''}`}
+                />
+              )}
+              {usarSelectProfesional && doctorSinVincular && (
+                <p className="text-[10.5px] text-teal-muted mt-1">Registrado como: {doctorOriginal}</p>
+              )}
+            </Field>
           </div>
 
           {/* ── SECCIÓN 2: Evaluación clínica ── */}

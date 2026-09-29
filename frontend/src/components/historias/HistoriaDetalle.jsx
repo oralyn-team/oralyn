@@ -1,6 +1,6 @@
 // src/components/historias/HistoriaDetalle.jsx
-import { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet, BriefcaseMedical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Pencil, Plus, Save, X, ChevronDown, FileText, ChevronUp, Trash2, ClipboardList, CalendarDays, Paperclip, Activity, Wallet, BriefcaseMedical, Ban } from 'lucide-react';
 import OdontogramaModal from './OdontogramaModal';
 import { TIPOS_ELASTICO, COLOR_ELASTICO } from './odontogramaConstants';
 import TratamientosCotizacionesForm from './tratamientos/TratamientoCotizacionForm';
@@ -10,6 +10,7 @@ import FormularioClinico from './FormularioClinico';
 import { api }           from '../../api';
 import { antecedentesFormToDb } from '../../data/historiasData';
 import { useApp } from '../../context/useApp';
+import { hasPermission, PERMISSIONS } from '../../utils/rbac';
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -36,31 +37,61 @@ function SeccionLabel({ text }) {
   return <p className="text-[10px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.8px] mb-1.5">{text}</p>;
 }
 
-function EvolucionCard({ ev, onEditar, onEliminar }) {
+function formatearFechaHora(valor) {
+  if (!valor) return '';
+  const fecha = new Date(valor);
+  return Number.isNaN(fecha.getTime())
+    ? ''
+    : fecha.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+// Una evolución anulada se muestra atenuada, con el aviso de anulación, y su contenido sigue legible (solo lectura)
+function EvolucionCard({ ev, puedeModificar, onEditar, onAnular }) {
   const [abierto, setAbierto] = useState(false);
+  const anulada = Boolean(ev.anulada);
   return (
-    <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl overflow-hidden mb-2 shadow-soft-sm">
+    <div className={[
+      'border rounded-xl overflow-hidden mb-2 shadow-soft-sm',
+      anulada
+        ? 'border-red-200 dark:border-red-900/50 bg-red-50/40 dark:bg-red-950/10'
+        : 'bg-white dark:bg-dark-card border-teal-border dark:border-dark-border',
+    ].join(' ')}>
       <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-teal-panel dark:hover:bg-slate-800/40 transition-colors"
         onClick={() => setAbierto((v) => !v)}>
-        <div className="w-2.5 h-2.5 rounded-full bg-teal flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-primary dark:text-dark-text">{ev.motivo}</p>
+        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${anulada ? 'bg-status-red' : 'bg-teal'}`} />
+        <div className={`flex-1 min-w-0 ${anulada ? 'opacity-70' : ''}`}>
+          <p className={`text-[13px] font-semibold text-primary dark:text-dark-text ${anulada ? 'line-through' : ''}`}>{ev.motivo}</p>
           <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">{ev.fecha} · {ev.doctor}</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={(e) => { e.stopPropagation(); onEditar(ev); }}
-            className="p-1.5 rounded-lg border border-teal-border dark:border-dark-border bg-white dark:bg-dark-input hover:bg-teal-soft dark:hover:bg-slate-700 text-primary dark:text-teal transition-colors cursor-pointer touch-target">
-            <Pencil size={13} />
-          </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onEliminar(ev.id); }}
-            className="p-1.5 rounded-lg bg-status-redBg dark:bg-red-950/40 text-status-red dark:text-red-400 border border-status-redBg dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer touch-target">
-            <Trash2 size={13} />
-          </button>
+          {anulada && (
+            <span className="text-[10px] font-medium px-2 py-1 rounded-full whitespace-nowrap bg-red-100 dark:bg-red-950/40 text-status-red dark:text-red-400">
+              Anulada
+            </span>
+          )}
+          {!anulada && puedeModificar && (
+            <>
+              <button type="button" title="Editar evolución" onClick={(e) => { e.stopPropagation(); onEditar(ev); }}
+                className="p-1.5 rounded-lg border border-teal-border dark:border-dark-border bg-white dark:bg-dark-input hover:bg-teal-soft dark:hover:bg-slate-700 text-primary dark:text-teal transition-colors cursor-pointer touch-target">
+                <Pencil size={13} />
+              </button>
+              <button type="button" title="Anular evolución" onClick={(e) => { e.stopPropagation(); onAnular(ev); }}
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium bg-status-redBg dark:bg-red-950/40 text-status-red dark:text-red-400 border border-status-redBg dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors cursor-pointer touch-target">
+                <Ban size={12} /> Anular
+              </button>
+            </>
+          )}
           {abierto ? <ChevronUp size={15} className="text-teal-muted dark:text-slate-400" /> : <ChevronDown size={15} className="text-teal-muted dark:text-slate-400" />}
         </div>
       </div>
+      {anulada && (
+        <p className="px-4 pb-3 -mt-1 text-[11px] text-status-red dark:text-red-400 leading-snug">
+          Anulada el {formatearFechaHora(ev.anuladaEn) || 'fecha desconocida'}
+          {ev.anuladaPorNombre ? ` por ${ev.anuladaPorNombre}` : ''} — motivo: {ev.motivoAnulacion || 'sin motivo registrado'}
+        </p>
+      )}
       {abierto && (
-        <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-teal-soft dark:border-dark-border pt-3.5 bg-teal-panel/40 dark:bg-slate-800/40">
+        <div className={`px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-teal-soft dark:border-dark-border pt-3.5 bg-teal-panel/40 dark:bg-slate-800/40 ${anulada ? 'opacity-70' : ''}`}>
           <div>
             <SeccionLabel text="Diagnóstico" />
             <p className="text-[12px] text-primary dark:text-dark-text leading-relaxed">{ev.diagnostico}</p>
@@ -113,8 +144,21 @@ const TABS = [
   },
 ];
 
-export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
+// Respuestas del control de concurrencia optimista del backend (se compara el código, nunca se muestra)
+const esConflictoVersion = (err) => err?.status === 409 && err?.error === 'CONFLICTO_VERSION';
+const esVersionRequerida = (err) => err?.status === 400 && err?.error === 'VERSION_REQUERIDA';
+// Solo en evoluciones: otro usuario ya la anuló, así que no admite más cambios
+const esEvolucionAnulada = (err) => err?.status === 409 && err?.error === 'EVOLUCION_ANULADA';
+
+export default function HistoriaDetalle({ historia, onVolver, onActualizar, onRecargar }) {
   const [editando, setEditando]         = useState(false);
+  // Conflicto de versión pendiente de decisión del usuario: 'historia' | 'odontograma' | 'evolucion' | null
+  const [conflicto, setConflicto]       = useState(null);
+  const [recargando, setRecargando]     = useState(false);
+  const [errorRecarga, setErrorRecarga] = useState(null);
+  const [bundleDesactualizado, setBundleDesactualizado] = useState(false);
+  // Cambia tras "Recargar datos actuales" para remontar el modal del odontograma con los datos nuevos
+  const [odontoKey, setOdontoKey]       = useState(0);
   const [tab, setTab]                   = useState('clinica');
   const [modalEv, setModalEv]           = useState(false);
   const [evEditar, setEvEditar]         = useState(null);
@@ -125,23 +169,30 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
   const [tratamientoEditar, setTratamientoEditar] = useState(null);
   const [cargandoTratamientos, setCargandoTratamientos] = useState(false);
   const [eliminandoTratamientoId, setEliminandoTratamientoId] = useState(null);
+  // Diálogo de anulación: evolución elegida (con la versión que se cargó) y motivo escrito
+  const [evAnular, setEvAnular]         = useState(null);
+  const [motivoAnular, setMotivoAnular] = useState('');
+  const [anulando, setAnulando]         = useState(false);
+  const [errorAnular, setErrorAnular]   = useState(null);
 
   const {
+  usuario,
   guardarTratamiento: guardarTratamientoApp,
   getCotizacionesPaciente,
   eliminarCotizacion,
   crearEvolucion: crearEvolucionApp,
+  actualizarEvolucion: actualizarEvolucionApp,
+  anularEvolucion: anularEvolucionApp,
 } = useApp();
-  
+
+  // Editar y anular usan el mismo permiso en el backend
+  const puedeModificarEvoluciones = hasPermission(usuario, PERMISSIONS.CLINICAL_RECORDS_UPDATE);
 
   const [form, setForm] = useState({
     ...historia,
     odontograma: historia.odontograma ?? {},
     tratamientos: historia.tratamientos ?? [],
   });
-
-  const formRef = useRef(form);
-  useEffect(() => { formRef.current = form; }, [form]);
 
   useEffect(() => {
     let activo = true;
@@ -174,7 +225,9 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
     setGuardando(true);
     setErrorGuardar(null);
     try {
-      await api.actualizarHistoria(historia.id, {
+      const guardada = await api.actualizarHistoria(historia.id, {
+        // Versión que se cargó: si otro usuario guardó antes, el backend responde 409
+        version:                    form.version,
         // Campos principales
         motivo_consulta:            form.motivoConsulta            || '',
         diagnostico:                form.diagnostico               || '',
@@ -216,37 +269,91 @@ export default function HistoriaDetalle({ historia, onVolver, onActualizar }) {
         },
       });
 
-      onActualizar(form);
+      // Guardado completo: se propaga lo que se acaba de enviar. `tratamientos` es solo de esta vista
+      // eslint-disable-next-line no-unused-vars -- `_t` se descarta a propósito: tratamientos no forma parte del guardado
+      const { tratamientos: _t, ...guardado } = form;
+      // La versión nueva viene en la respuesta: sin ella, el siguiente guardado sería un falso conflicto
+      setForm((prev) => ({ ...prev, version: guardada.version }));
+      onActualizar(historia.id, { ...guardado, version: guardada.version });
       setEditando(false);
     } catch (err) {
       console.error('Error guardando historia:', err);
-      setErrorGuardar('No se pudieron guardar los cambios. Intenta de nuevo.');
+      if (esConflictoVersion(err)) {
+        setConflicto('historia');        // no se descarta nada: el usuario decide
+      } else if (esVersionRequerida(err)) {
+        setBundleDesactualizado(true);
+      } else {
+        setErrorGuardar('No se pudieron guardar los cambios. Intenta de nuevo.');
+      }
     } finally {
       setGuardando(false);
     }
   }
 
   function cancelar() {
-    setForm({ ...historia, odontograma: historia.odontograma ?? {} });
+    // Descarta la edición clínica pero conserva lo que no se edita aquí (tratamientos cargados aparte)
+    setForm((prev) => ({ ...historia, odontograma: historia.odontograma ?? {}, tratamientos: prev.tratamientos }));
     setEditando(false);
     setErrorGuardar(null);
+  }
+
+  // Reemplaza una evolución por la que devolvió el backend (versión nueva incluida), en el form y en la lista
+  function reemplazarEvolucion(actualizada) {
+    const reemplazar = (lista) => (lista || []).map((e) => (e.id === actualizada.id ? actualizada : e));
+    setForm((prev) => ({ ...prev, evoluciones: reemplazar(prev.evoluciones) }));
+    onActualizar(historia.id, (h) => ({ evoluciones: reemplazar(h.evoluciones) }));
+  }
+
+  // Pide la historia al backend y solo actualiza las evoluciones del form (no toca una edición clínica en curso)
+  async function recargarEvoluciones() {
+    const fresca = await onRecargar(historia.id);
+    setForm((prev) => ({ ...prev, evoluciones: fresca.evoluciones }));
+    return fresca.evoluciones || [];
+  }
+
+  // Otro usuario anuló la evolución: se avisa y se recargan los datos para mostrarla anulada
+  async function avisarEvolucionYaAnulada() {
+    setErrorGuardar('Esta evolución ya fue anulada. Se recargaron los datos.');
+    try {
+      await recargarEvoluciones();
+    } catch (err) {
+      console.error('Error recargando evoluciones:', err);
+      setErrorGuardar('Esta evolución ya fue anulada. Recarga la página para ver los datos actuales.');
+    }
   }
 
   async function guardarEvolucion(ev) {
     setErrorGuardar(null);
 
     if (evEditar) {
-      setErrorGuardar('La edición de evoluciones aún necesita endpoint PUT en backend.');
+      try {
+        // Se envía la versión que se cargó al abrir el formulario, no la del objeto editado
+        const actualizada = await actualizarEvolucionApp(historia.id, evEditar.id, ev, evEditar.version);
+        reemplazarEvolucion(actualizada);
+        setModalEv(false);
+        setEvEditar(null);
+      } catch (err) {
+        console.error('Error actualizando evolución:', err);
+        if (esEvolucionAnulada(err)) {
+          setModalEv(false);
+          setEvEditar(null);
+          await avisarEvolucionYaAnulada();
+        } else if (esConflictoVersion(err)) {
+          setConflicto('evolucion');     // el formulario sigue abierto: el usuario decide
+        } else if (esVersionRequerida(err)) {
+          setBundleDesactualizado(true);
+        } else {
+          setErrorGuardar(err.error || 'No se pudo guardar la evolución.');
+        }
+      }
       return;
     }
 
     try {
       const nueva = await crearEvolucionApp(historia.id, ev);
-      const nuevas = [nueva, ...(form.evoluciones || [])];
-      const actualizada = { ...form, evoluciones: nuevas };
-
-      setForm(actualizada);
-      onActualizar(actualizada);
+      // Solo se propaga lo persistido, calculado sobre el estado más reciente (no sobre copias previas al await)
+      setForm((prev) => ({ ...prev, evoluciones: [nueva, ...(prev.evoluciones || [])] }));
+      onActualizar(historia.id, (h) => ({ evoluciones: [nueva, ...(h.evoluciones || [])] }));
       setModalEv(false);
       setEvEditar(null);
     } catch (err) {
@@ -260,16 +367,11 @@ async function handleGuardarTratamiento(data) {
 
   const cotizaciones = await getCotizacionesPaciente(historia.paciente_id);
 
-  const actualizada = {
-    ...form,
-    tratamientos: cotizaciones,
-  };
-
+  // `tratamientos` solo vive en esta vista: la lista de historias no lo usa, no se propaga
   setForm((prev) => ({
     ...prev,
     tratamientos: cotizaciones,
   }));
-  onActualizar(actualizada);
 
   setModalTratamiento(false);
   setTratamientoEditar(null);
@@ -287,13 +389,8 @@ async function handleEliminarTratamiento(tratamiento) {
   try {
     await eliminarCotizacion(tratamiento.id);
     const cotizaciones = await getCotizacionesPaciente(historia.paciente_id);
-    const actualizada = {
-      ...form,
-      tratamientos: cotizaciones,
-    };
-
-    setForm(actualizada);
-    onActualizar(actualizada);
+    // `tratamientos` solo vive en esta vista: la lista de historias no lo usa, no se propaga
+    setForm((prev) => ({ ...prev, tratamientos: cotizaciones }));
   } catch (err) {
     console.error('Error eliminando tratamiento:', err);
     setErrorGuardar(err.error || 'No se pudo eliminar el tratamiento.');
@@ -302,28 +399,122 @@ async function handleEliminarTratamiento(tratamiento) {
   }
 }
 
-  function eliminarEvolucion(id) {
-    console.warn('Eliminar evolución requiere endpoint DELETE en backend:', id);
-    setErrorGuardar('Eliminar evoluciones aún necesita endpoint DELETE en backend.');
+  function abrirAnulacion(ev) {
+    setEvAnular(ev);
+    setMotivoAnular('');
+    setErrorAnular(null);
+  }
+
+  function cerrarAnulacion() {
+    setEvAnular(null);
+    setMotivoAnular('');
+    setErrorAnular(null);
+  }
+
+  async function anularEvolucion(evolucionId, motivo, version) {
+    setAnulando(true);
+    setErrorAnular(null);
+    try {
+      const anulada = await anularEvolucionApp(historia.id, evolucionId, motivo, version);
+      reemplazarEvolucion(anulada);
+      cerrarAnulacion();
+    } catch (err) {
+      console.error('Error anulando evolución:', err);
+      if (esEvolucionAnulada(err)) {
+        cerrarAnulacion();
+        await avisarEvolucionYaAnulada();
+      } else if (esConflictoVersion(err)) {
+        // Otro usuario la editó: se recarga y el diálogo queda con la versión nueva y el motivo escrito
+        try {
+          const evoluciones = await recargarEvoluciones();
+          const fresca = evoluciones.find((e) => e.id === evolucionId);
+          if (!fresca || fresca.anulada) {
+            cerrarAnulacion();
+            if (fresca?.anulada) setErrorGuardar('Esta evolución ya fue anulada. Se recargaron los datos.');
+          } else {
+            setEvAnular(fresca);
+            setErrorAnular('Otro usuario modificó esta evolución. Se recargaron los datos; revísala y confirma de nuevo.');
+          }
+        } catch (errRecarga) {
+          console.error('Error recargando evoluciones:', errRecarga);
+          setErrorAnular('Otro usuario modificó esta evolución. Recarga la página e intenta de nuevo.');
+        }
+      } else if (esVersionRequerida(err)) {
+        cerrarAnulacion();
+        setBundleDesactualizado(true);
+      } else {
+        setErrorAnular(err.mensaje || err.error || 'No se pudo anular la evolución.');
+      }
+    } finally {
+      setAnulando(false);
+    }
   }
 
 
 async function actualizarOdontograma({ tipo, dientes_json }) {
-  await api.actualizarOdontograma(historia.id, tipo, { dientes_json, observaciones: null });
+  // Versión de la fila de ese tipo que se cargó; un tipo sin fila es 0 (primer guardado)
+  const version = form.odontogramaVersiones?.[tipo] ?? 0;
+  let guardado;
+  try {
+    guardado = await api.actualizarOdontograma(historia.id, tipo, { dientes_json, observaciones: null, version });
+  } catch (err) {
+    if (esConflictoVersion(err) || esVersionRequerida(err)) {
+      if (esConflictoVersion(err)) setConflicto('odontograma');
+      else setBundleDesactualizado(true);
+      err.manejado = true;               // el modal sigue abierto con las marcas, sin su error genérico
+    }
+    throw err;
+  }
 
-  const actualizada = {
-    ...formRef.current,
-    odontograma: { ...formRef.current.odontograma, [tipo]: dientes_json },
-  };
-
-  setForm(actualizada);
-  onActualizar(actualizada);
+  const versiones = (v) => ({ ...(v || {}), [tipo]: guardado.version });
+  setForm((prev) => ({
+    ...prev,
+    odontograma: { ...prev.odontograma, [tipo]: dientes_json },
+    odontogramaVersiones: versiones(prev.odontogramaVersiones),
+  }));
+  onActualizar(historia.id, (h) => ({
+    odontograma: { ...h.odontograma, [tipo]: dientes_json },
+    odontogramaVersiones: versiones(h.odontogramaVersiones),
+  }));
 }
 
-  function actualizarAdjuntos(nuevos) {
-    const actualizada = { ...form, adjuntos: nuevos };
-    setForm(actualizada);
-    onActualizar(actualizada);
+  // "Recargar datos actuales" tras un conflicto: pide la historia al backend y actualiza form, lista y versiones
+  async function recargarDatosActuales() {
+    setRecargando(true);
+    setErrorRecarga(null);
+    try {
+      const fresca = await onRecargar(historia.id);
+      if (conflicto === 'evolucion') {
+        // Se descarta la edición de la evolución (el usuario lo eligió); lo demás del form no se toca
+        setForm((prev) => ({ ...prev, evoluciones: fresca.evoluciones }));
+        setModalEv(false);
+        setEvEditar(null);
+      } else if (conflicto === 'historia') {
+        // Se descarta la edición en curso (el usuario lo eligió); tratamientos se cargan aparte
+        setForm((prev) => ({ ...fresca, odontograma: fresca.odontograma ?? {}, tratamientos: prev.tratamientos }));
+        setEditando(false);
+      } else {
+        // Solo el odontograma: no se toca una posible edición clínica en curso
+        setForm((prev) => ({
+          ...prev,
+          odontograma: fresca.odontograma ?? {},
+          odontogramaVersiones: fresca.odontogramaVersiones ?? {},
+        }));
+        setOdontoKey((k) => k + 1);      // el modal sigue abierto, remontado con los datos actuales
+      }
+      setConflicto(null);
+    } catch (err) {
+      console.error('Error recargando historia:', err);
+      setErrorRecarga('No se pudieron recargar los datos. Intenta de nuevo.');
+    } finally {
+      setRecargando(false);
+    }
+  }
+
+  // Recibe una función (listaAnterior) => listaNueva, aplicada al estado más reciente del form y de la lista
+  function actualizarAdjuntos(calcular) {
+    setForm((prev) => ({ ...prev, adjuntos: calcular(prev.adjuntos || []) }));
+    onActualizar(historia.id, (h) => ({ adjuntos: calcular(h.adjuntos || []) }));
   }
 
   async function agregarAdjuntos(files) {
@@ -340,12 +531,12 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
       return normalizeAdjunto(creado);
     }));
 
-    actualizarAdjuntos([...(form.adjuntos || []), ...nuevos]);
+    actualizarAdjuntos((lista) => [...lista, ...nuevos]);
   }
 
   async function eliminarAdjuntoHistoria(adjuntoId) {
     await api.eliminarAdjunto(historia.id, adjuntoId);
-    actualizarAdjuntos((form.adjuntos || []).filter((adj) => adj.id !== adjuntoId));
+    actualizarAdjuntos((lista) => lista.filter((adj) => adj.id !== adjuntoId));
   }
 
   const TIPOS_ODONTOGRAMA_RESUMEN = [
@@ -616,8 +807,9 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
                 .sort((a, b) => b.fecha.localeCompare(a.fecha))
                 .map((ev) => (
                   <EvolucionCard key={ev.id} ev={ev}
+                    puedeModificar={puedeModificarEvoluciones}
                     onEditar={(e) => { setEvEditar(e); setModalEv(true); }}
-                    onEliminar={eliminarEvolucion} />
+                    onAnular={abrirAnulacion} />
                 ))
             )}
           </div>
@@ -774,7 +966,7 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
         <AdjuntosPanel
           adjuntos={form.adjuntos}
           editable
-          onChange={actualizarAdjuntos}
+          onChange={(lista) => actualizarAdjuntos(() => lista)}
           onAgregarArchivos={agregarAdjuntos}
           onEliminarAdjunto={eliminarAdjuntoHistoria}
         />
@@ -799,13 +991,117 @@ async function actualizarOdontograma({ tipo, dientes_json }) {
         />
         )}
 
-      <OdontogramaModal
-      isOpen={modalOdonto}
-      onClose={() => setModalOdonto(false)}
-      odontogramas={form.odontograma}
-      onGuardar={actualizarOdontograma}
-      nombrePaciente={form.pacienteNombre}
-      />
+      {/* Se desmonta al cerrar: cada apertura empieza con estado limpio y los odontogramas actuales */}
+      {modalOdonto && (
+        <OdontogramaModal
+          key={odontoKey}
+          isOpen={modalOdonto}
+          onClose={() => setModalOdonto(false)}
+          odontogramas={form.odontograma}
+          onGuardar={actualizarOdontograma}
+          nombrePaciente={form.pacienteNombre}
+        />
+      )}
+
+      {/* Anulación de evolución: exige motivo; el contenido clínico no se borra */}
+      {evAnular && (
+        <div className="fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10001]" role="alertdialog" aria-modal="true" aria-labelledby="anular-ev-titulo">
+          <form
+            className="bg-white dark:bg-dark-card rounded-2xl shadow-soft-lg max-w-md w-full p-5 space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (motivoAnular.trim() && !anulando) anularEvolucion(evAnular.id, motivoAnular.trim(), evAnular.version);
+            }}
+          >
+            <h3 id="anular-ev-titulo" className="text-[14px] font-bold text-status-red dark:text-red-400">
+              Anular evolución
+            </h3>
+            <p className="text-[12.5px] text-teal-muted dark:text-slate-300 leading-relaxed">
+              {evAnular.fecha} · {evAnular.motivo || evAnular.procedimiento}
+            </p>
+            <p className="text-[12px] text-teal-muted dark:text-slate-400 leading-relaxed">
+              La evolución no se borra: queda en la historia marcada como anulada, con su contenido original y el motivo que indiques. Esta acción no se puede deshacer.
+            </p>
+            <label className="block">
+              <span className="text-[11px] font-semibold text-primary dark:text-dark-text">Motivo de la anulación</span>
+              <textarea
+                value={motivoAnular}
+                onChange={(e) => setMotivoAnular(e.target.value)}
+                rows={3}
+                autoFocus
+                disabled={anulando}
+                placeholder="Ej.: registrada en el paciente equivocado"
+                className="mt-1 w-full text-[12.5px] rounded-lg border border-teal-border dark:border-dark-border bg-white dark:bg-dark-input text-primary dark:text-dark-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:opacity-60"
+              />
+            </label>
+            {errorAnular && <p className="text-[12px] text-red-600">{errorAnular}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={cerrarAnulacion} disabled={anulando}
+                className="px-3 py-2 text-[12px] rounded-lg border border-teal-border text-primary dark:text-dark-text hover:bg-teal-soft cursor-pointer disabled:opacity-50">
+                Cancelar
+              </button>
+              <button type="submit" disabled={!motivoAnular.trim() || anulando}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] rounded-lg bg-status-red text-white hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                <Ban size={13} />
+                {anulando ? 'Anulando…' : 'Anular evolución'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Conflicto de versión: otro usuario guardó antes. Nada se descarta hasta que el usuario elija. */}
+      {conflicto && (
+        <div className="fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10001]" role="alertdialog" aria-modal="true" aria-labelledby="conflicto-titulo">
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-soft-lg max-w-md w-full p-5 space-y-3">
+            <h3 id="conflicto-titulo" className="text-[14px] font-bold text-primary dark:text-dark-text">
+              Otro usuario guardó cambios
+            </h3>
+            <p className="text-[12.5px] text-teal-muted dark:text-slate-300 leading-relaxed">
+              Mientras trabajabas, otra persona guardó cambios en {{ odontograma: 'este odontograma', evolucion: 'esta evolución' }[conflicto] ?? 'esta historia clínica'}.
+              {' '}<strong>Tus cambios no se han guardado.</strong>
+            </p>
+            <p className="text-[12px] text-teal-muted dark:text-slate-400 leading-relaxed">
+              Puedes quedarte para copiar lo que escribiste, o recargar los datos actuales y volver a aplicar tus cambios.
+            </p>
+            {errorRecarga && <p className="text-[12px] text-red-600">{errorRecarga}</p>}
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={() => { setConflicto(null); setErrorRecarga(null); }} disabled={recargando}
+                className="px-3 py-2 text-[12px] rounded-lg border border-teal-border text-primary dark:text-dark-text hover:bg-teal-soft cursor-pointer disabled:opacity-50">
+                Quedarme
+              </button>
+              <button type="button" onClick={recargarDatosActuales} disabled={recargando}
+                className="px-3 py-2 text-[12px] rounded-lg bg-primary text-white hover:opacity-90 cursor-pointer disabled:opacity-50">
+                {recargando ? 'Recargando…' : 'Recargar datos actuales'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* El backend exige `version` y este cliente no la envió: la app cargada es anterior al despliegue */}
+      {bundleDesactualizado && (
+        <div className="fixed inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10001]" role="alertdialog" aria-modal="true" aria-labelledby="bundle-titulo">
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-soft-lg max-w-md w-full p-5 space-y-3">
+            <h3 id="bundle-titulo" className="text-[14px] font-bold text-primary dark:text-dark-text">
+              La aplicación se actualizó
+            </h3>
+            <p className="text-[12.5px] text-teal-muted dark:text-slate-300 leading-relaxed">
+              Hay una versión nueva de Oralyn. <strong>Tus cambios no se han guardado.</strong> Copia lo que necesites y recarga la página para continuar.
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button type="button" onClick={() => setBundleDesactualizado(false)}
+                className="px-3 py-2 text-[12px] rounded-lg border border-teal-border text-primary dark:text-dark-text hover:bg-teal-soft cursor-pointer">
+                Cerrar
+              </button>
+              <button type="button" onClick={() => window.location.reload()}
+                className="px-3 py-2 text-[12px] rounded-lg bg-primary text-white hover:opacity-90 cursor-pointer">
+                Recargar página
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

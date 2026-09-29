@@ -19,7 +19,6 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
-  XCircle,
   Check,
   Trash2
 } from 'lucide-react';

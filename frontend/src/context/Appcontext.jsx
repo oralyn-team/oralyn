@@ -1,9 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { api, setUnauthorizedHandler } from '../api';
-import { tokenExpirado } from '../utils/jwt';
 import { calcTotales } from '../components/historias/tratamientos/helpers';
-
-const AppContext = createContext(null);
+import { AppContext } from './AppContextObject';
 
 function toDateInput(value) {
   return value ? String(value).split('T')[0] : '';
@@ -63,6 +61,7 @@ function normalizeEvolucion(ev = {}) {
     id: ev.id,
     fecha: toDateInput(ev.fecha),
     doctor: ev.doctor ?? '',
+    profesionalId: ev.profesionalId ?? ev.profesional_id ?? '',
     motivo: ev.motivo ?? '',
     diagnostico: ev.diagnostico ?? '',
     procedimiento: ev.procedimiento ?? '',
@@ -72,6 +71,13 @@ function normalizeEvolucion(ev = {}) {
     recomendaciones: ev.recomendaciones ?? '',
     proximoControl: toDateInput(ev.proximoControl ?? ev.proximo_control),
     observaciones: ev.observaciones ?? '',
+    // Control de versión y anulación: se envían de vuelta al editar/anular y deciden qué acciones se muestran
+    version: ev.version,
+    anulada: Boolean(ev.anulada),
+    anuladaEn: ev.anuladaEn ?? ev.anulada_en ?? null,
+    anuladaPor: ev.anuladaPor ?? ev.anulada_por ?? null,
+    anuladaPorNombre: ev.anuladaPorNombre ?? ev.anulada_por_nombre ?? '',
+    motivoAnulacion: ev.motivoAnulacion ?? ev.motivo_anulacion ?? '',
   };
 }
 
@@ -79,6 +85,7 @@ function evolucionToApi(ev = {}) {
   return {
     fecha: ev.fecha || null,
     doctor: ev.doctor || null,
+    profesional_id: ev.profesionalId ? Number(ev.profesionalId) : null,
     motivo: ev.motivo || null,
     diagnostico: ev.diagnostico || null,
     procedimiento: ev.procedimiento,
@@ -123,13 +130,22 @@ export function AppProvider({ children }) {
   const [sesionExpirada, setSesionExpirada] = useState(false);
   const [darkMode, setDarkMode]       = useState(() => localStorage.getItem('theme') === 'dark');
   const [pacientes, setPacientes]     = useState([]);
-  const [historias, setHistorias]     = useState([]);
   const [configuracion, setConfiguracion] = useState(null);
   const [procedimientosCatalog, setProcedimientosCatalog] = useState([]);
   const [usuariosConsultorio, setUsuariosConsultorio] = useState([]);
   const [loadingProcedimientos, setLoadingProcedimientos] = useState(false);
   const [loadingPacientes, setLoadingPacientes] = useState(true);
+  // Arrancan en true y se reinician en iniciarSesion/cerrarSesion, para que estén en true
+  // en el mismo render en que aparece un usuario (antes de que su efecto de carga corra)
+  const [cargandoConfiguracion, setCargandoConfiguracion] = useState(true);
+  const [cargandoUsuariosConsultorio, setCargandoUsuariosConsultorio] = useState(true);
   const [error, setError]             = useState(null);
+
+  // Si el rol no pide el dato, no hay nada que esperar: false de inmediato, sin setState en efecto
+  const pideConfiguracion = Boolean(usuario) && usuario.rol !== 'SUPERADMIN';
+  const pideUsuariosConsultorio = usuario?.rol === 'DUENO';
+  const loadingConfiguracion = pideConfiguracion && cargandoConfiguracion;
+  const loadingUsuariosConsultorio = pideUsuariosConsultorio && cargandoUsuariosConsultorio;
 
   // Registrar handler para peticiones no autorizadas (401/403)
   useEffect(() => {
@@ -174,19 +190,27 @@ export function AppProvider({ children }) {
     if (nuevoToken) {
       localStorage.setItem('token', nuevoToken);
     }
-    if (nuevoUsuario) setUsuario(nuevoUsuario);
+    if (nuevoUsuario) {
+      setCargandoConfiguracion(true);
+      setCargandoUsuariosConsultorio(true);
+      setUsuario(nuevoUsuario);
+    }
     setSesionExpirada(false);
   }
 
   function cerrarSesion(options = {}) {
     const isExpirada = typeof options === 'object' && options?.expirada === true;
-    api.logout().catch(() => {});
+    // Tras un 401 la sesión ya no es válida en el backend: basta con limpiar el estado local
+    if (!isExpirada) {
+      api.logout().catch(() => {});
+    }
     setUsuario(null);
     setPacientes([]);
-    setHistorias([]);
     setConfiguracion(null);
+    setCargandoConfiguracion(true);
     setProcedimientosCatalog([]);
     setUsuariosConsultorio([]);
+    setCargandoUsuariosConsultorio(true);
     if (isExpirada) {
       setSesionExpirada(true);
     }
@@ -198,6 +222,7 @@ export function AppProvider({ children }) {
 
   // ── Carga inicial de pacientes ────────────────────────────────────────────
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     if (!usuario || usuario.rol === 'SUPERADMIN') { setLoadingPacientes(false); return; }
     setLoadingPacientes(true);
     setError(null);
@@ -217,22 +242,29 @@ export function AppProvider({ children }) {
   // ── Carga inicial de configuración ────────────────────────────────────────
   useEffect(() => {
     if (!usuario || usuario.rol === 'SUPERADMIN') return;
+    let activo = true;
     api.getConfiguracion()
-      .then(setConfiguracion)
-      .catch(() => {});
+      .then((data) => { if (activo) setConfiguracion(data); })
+      .catch(() => {})
+      .finally(() => { if (activo) setCargandoConfiguracion(false); });
+    return () => { activo = false; };
   }, [usuario]);
 
   // ── Carga inicial de usuarios del consultorio ──────────────────────────────
   useEffect(() => {
     if (usuario?.rol !== 'DUENO') return;
+    let activo = true;
     api.getUsuarios()
-      .then((data) => setUsuariosConsultorio(Array.isArray(data) ? data : []))
-      .catch(() => setUsuariosConsultorio([]));
+      .then((data) => { if (activo) setUsuariosConsultorio(Array.isArray(data) ? data : []); })
+      .catch(() => { if (activo) setUsuariosConsultorio([]); })
+      .finally(() => { if (activo) setCargandoUsuariosConsultorio(false); });
+    return () => { activo = false; };
   }, [usuario]);
 
   // ── Carga inicial del catálogo de procedimientos CUPS ─────────────────────
   useEffect(() => {
     if (!usuario || usuario.rol === 'SUPERADMIN') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     setLoadingProcedimientos(true);
     api.getProcedimientos()
       .then(setProcedimientosCatalog)
@@ -258,53 +290,29 @@ export function AppProvider({ children }) {
   async function eliminarPaciente(id) {
     await api.eliminarPaciente(id);
     setPacientes((prev) => prev.filter((p) => p.id !== id));
-    setHistorias((prev) => prev.filter((h) => h.pacienteId !== id));
   }
 
   // ── Historias ─────────────────────────────────────────────────────────────
-  async function actualizarHistoria(historiaActualizada) {
-    const { id } = historiaActualizada;
-    const datos = { ...historiaActualizada };
-    [
-      'id', 'evoluciones', 'adjuntos', 'pacienteNombre', 'cedula',
-      'tipoDocumento', 'fechaNacimiento', 'sexo', 'telefono',
-      'correo', 'municipioCiudad', 'pacienteId',
-    ].forEach((key) => delete datos[key]);
-    await api.actualizarHistoria(id, datos);
-    setHistorias((prev) =>
-      prev.map((h) => h.id === id ? historiaActualizada : h)
-    );
-  }
-
+  // La lista de historias vive en pages/Historias.jsx; aquí solo quedan las llamadas a la API.
   async function crearEvolucion(historiaId, datos) {
-    const nueva = normalizeEvolucion(
+    return normalizeEvolucion(
       await api.crearEvolucion(historiaId, evolucionToApi(datos))
     );
-    setHistorias((prev) => prev.map((h) =>
-      h.id === historiaId
-        ? { ...h, evoluciones: [...(h.evoluciones || []), nueva] }
-        : h
-    ));
-    return nueva;
   }
 
-  async function eliminarEvolucion(historiaId, evolucionId) {
-    await api.eliminarEvolucion(historiaId, evolucionId);
-    setHistorias((prev) => prev.map((h) =>
-      h.id === historiaId
-        ? { ...h, evoluciones: h.evoluciones.filter((e) => e.id !== evolucionId) }
-        : h
-    ));
+  // Devuelven la evolución tal como quedó en el backend (versión nueva incluida) para que la vista
+  // la reemplace en su estado local sin recargar la historia. Un 409 se propaga tal cual al llamador.
+  async function actualizarEvolucion(historiaId, evolucionId, datos, version) {
+    return normalizeEvolucion(
+      await api.actualizarEvolucion(historiaId, evolucionId, { ...evolucionToApi(datos), version })
+    );
   }
 
-  async function actualizarOdontograma(historiaId, tipo, data) {
-    await api.actualizarOdontograma(historiaId, tipo, data);
-    setHistorias((prev) => prev.map((h) =>
-      h.id === historiaId
-    ? { ...h, odontograma: { ...h.odontograma, [tipo]: data.dientes_json } }
-    : h
-  ));
-}
+  async function anularEvolucion(historiaId, evolucionId, motivo, version) {
+    return normalizeEvolucion(
+      await api.anularEvolucion(historiaId, evolucionId, { motivo, version })
+    );
+  }
 
   // ── Cotizaciones / Tratamientos ───────────────────────────────────────────
   async function getCotizacionesPaciente(pacienteId) {
@@ -437,15 +445,14 @@ export function AppProvider({ children }) {
       agregarPaciente, eliminarPaciente, recargarPacientes,
 
       // Historias
-      historias, setHistorias,
-      actualizarHistoria, crearEvolucion, eliminarEvolucion, actualizarOdontograma,
+      crearEvolucion, actualizarEvolucion, anularEvolucion,
       // Cotizaciones
       getCotizacionesPaciente, guardarTratamiento, cambiarEstadoCotizacion, eliminarCotizacion,
       // Pagos
       getPagosPaciente, registrarPago,
       // Configuración
-      configuracion, setConfiguracion,
-      usuariosConsultorio,
+      configuracion, setConfiguracion, loadingConfiguracion,
+      usuariosConsultorio, loadingUsuariosConsultorio,
       // Catálogo Procedimientos CUPS
       procedimientosCatalog, loadingProcedimientos,
       getProcedimientosAgrupados,
@@ -465,12 +472,3 @@ export function AppProvider({ children }) {
     </AppContext.Provider>
   );
 }
-
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp debe usarse dentro de AppProvider');
-  return ctx;
-}
-
-export { AppContext };
-export default AppContext;

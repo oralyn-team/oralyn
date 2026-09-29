@@ -185,7 +185,7 @@ function Campo({ label, children }) {
 }
 
 export default function Consentimientos() {
-  const { pacientes, loading, error } = useApp();
+  const { pacientes, loading, error, recargarPacientes } = useApp();
 
   const [busqueda, setBusqueda] = useState('');
   const [pacienteId, setPacienteId] = useState('');

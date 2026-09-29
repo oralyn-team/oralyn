@@ -70,7 +70,7 @@ async function verHistoriaPDF(historiaId) {
   await abrirPDFBlob(response, `historia-${historiaId}.pdf`);
 }
 
-async function request(path, options = {}) {
+async function request(path, { skipUnauthorized = false, ...options } = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
@@ -82,7 +82,7 @@ async function request(path, options = {}) {
   });
 
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 && !skipUnauthorized) {
       onUnauthorized?.();
     }
     const error = await res.json().catch(() => ({}));
@@ -142,7 +142,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
-  logout: () => request('/auth/logout', { method: 'POST' }),
+  // Un 401 en logout no es "sesión expirada": no debe disparar onUnauthorized
+  logout: () => request('/auth/logout', { method: 'POST', skipUnauthorized: true }),
   getMe: () => request('/auth/me'),
   cambiarPassword: (data) => request('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
   forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
@@ -173,6 +174,12 @@ export const api = {
   // Evoluciones
   getEvoluciones: (historiaId)       => request(`/historias/${historiaId}/evoluciones`),
   crearEvolucion: (historiaId, data) => request(`/historias/${historiaId}/evoluciones`, { method: 'POST', body: JSON.stringify(data) }),
+  // `datos` debe incluir `version` (la que se cargó): si otro usuario guardó antes, el backend responde 409
+  actualizarEvolucion: (historiaId, evolucionId, datos) =>
+    request(`/historias/${historiaId}/evoluciones/${evolucionId}`, { method: 'PUT', body: JSON.stringify(datos) }),
+  // Las evoluciones no se borran (DELETE responde 405): se anulan con motivo y quedan visibles
+  anularEvolucion: (historiaId, evolucionId, { motivo, version }) =>
+    request(`/historias/${historiaId}/evoluciones/${evolucionId}/anular`, { method: 'PATCH', body: JSON.stringify({ motivo, version }) }),
 
   // Odontograma
   actualizarOdontograma: (historiaId, tipo, data) => request(`/historias/${historiaId}/odontograma/${tipo}`, { method: 'PUT', body: JSON.stringify(data),}),

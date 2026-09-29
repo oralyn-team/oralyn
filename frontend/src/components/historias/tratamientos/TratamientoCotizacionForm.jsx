@@ -121,6 +121,8 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
   const [errs,   setErrs]   = useState({});
   const [pErrs,  setPErrs]  = useState({});
   const [paErrs, setPaErrs] = useState({});
+  // Cuenta los intentos de guardar: cada intento fallido vuelve a expandir las tarjetas con errores
+  const [intentoValidacion, setIntentoValidacion] = useState(0);
   const [saving, setSaving] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const [showFacturaModal, setShowFacturaModal] = useState(false);
@@ -166,7 +168,12 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
   const changeProc = useCallback((id, field, value) => {
     setProcs((prev) => prev.map((p) => p.id === id ? { ...p, [field]: value } : p));
     if (pErrs[id]?.[field]) {
-      setPErrs((prev) => ({ ...prev, [id]: { ...prev[id], [field]: '' } }));
+      // Se elimina la clave (no solo el mensaje) para que la tarjeta deje de contar como "con error"
+      setPErrs((prev) => {
+        const restoCampos = { ...prev[id] };
+        delete restoCampos[field];
+        return { ...prev, [id]: restoCampos };
+      });
     }
   }, [pErrs]);
 
@@ -213,6 +220,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
 
   async function handleSubmit(accion) {
     const { e, pe, pae } = validar();
+    setIntentoValidacion((n) => n + 1);
     setErrs(e);
     setPErrs(pe);
     setPaErrs(pae);
@@ -435,6 +443,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
                     onDelete={deleteProc}
                     onDuplicate={duplicateProc}
                     error={pErrs[p.id] || {}}
+                    intentoValidacion={intentoValidacion}
                   />
                 ))
               )}

@@ -232,7 +232,7 @@ test('Admin: POST /api/admin/consultorio — creación correcta de consultorio c
     nombre_profesional: 'Dr. C',
     nit: ' Nit-C',
     usuario_email: 'adminC@oralyn.test',
-    usuario_password: 'Password123',
+    usuario_password: 'Password123!',
     usuario_nombre: 'Dra. Carlos C'
   }
 
@@ -253,6 +253,31 @@ test('Admin: POST /api/admin/consultorio — creación correcta de consultorio c
 
   const dbConfig = prismaMock.__db.configuracion.find(c => c.id === body.consultorio_id)
   assert.ok(dbConfig)
+})
+
+test('Admin: POST /api/admin/consultorio — falla con 400 si usuario_password no cumple la política de seguridad (GAP-005)', async (t) => {
+  const prismaMock = await createAdminMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const payload = {
+    nombre_consultorio: 'Consultorio D',
+    nombre_profesional: 'Dr. D',
+    usuario_email: 'adminD@oralyn.test',
+    usuario_password: 'debil', // no cumple longitud ni complejidad
+    usuario_nombre: 'Dra. D'
+  }
+
+  const token = signAdminToken()
+  const { response, body } = await harness.request('/api/admin/consultorio', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+
+  assert.equal(response.status, 400)
+  assert.equal(body.error, 'La contraseña no cumple los requisitos de seguridad')
+  assert.equal(prismaMock.__db.configuracion.some(c => c.nombre_consultorio === 'Consultorio D'), false)
 })
 
 // ─────────────────────────────────────────────────────────────

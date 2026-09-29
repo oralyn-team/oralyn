@@ -1,5 +1,16 @@
 const { hasPermission, ROLES } = require('../lib/permissions')
 const prisma = require('../lib/prisma')
+const { registrarAuditoria } = require('../services/audit.service')
+
+function registrarAccesoDenegado(req, detalles) {
+  registrarAuditoria({
+    req,
+    accion: 'ACCESO_DENEGADO',
+    modulo: 'Autorización',
+    detalles: `${detalles} — ${req.method} ${req.originalUrl}`,
+    estado: 'FALLIDO'
+  })
+}
 
 /**
  * Middleware para requerir uno o más roles específicos
@@ -11,6 +22,7 @@ function requireRole(...allowedRoles) {
     }
 
     if (!req.usuario.rol || !allowedRoles.includes(req.usuario.rol)) {
+      registrarAccesoDenegado(req, `Rol '${req.usuario.rol}' no está entre los autorizados (${allowedRoles.join(', ')})`)
       return res.status(403).json({ error: 'Acceso denegado: rol no autorizado' })
     }
 
@@ -31,8 +43,29 @@ function requirePermission(...requiredPermissions) {
 
     for (const perm of requiredPermissions) {
       if (!hasPermission(userRole, perm)) {
+        registrarAccesoDenegado(req, `Rol '${userRole}' sin el permiso requerido '${perm}'`)
         return res.status(403).json({ error: 'Acceso denegado: permiso insuficiente' })
       }
+    }
+
+    next()
+  }
+}
+
+/**
+ * Middleware para requerir al menos uno de los permisos indicados (módulo.acción)
+ */
+function requireAnyPermission(...permissions) {
+  return (req, res, next) => {
+    if (!req.usuario) {
+      return res.status(401).json({ error: 'No autenticado' })
+    }
+
+    const userRole = req.usuario.rol
+
+    if (!permissions.some(perm => hasPermission(userRole, perm))) {
+      registrarAccesoDenegado(req, `Rol '${userRole}' sin ninguno de los permisos requeridos (${permissions.join(', ')})`)
+      return res.status(403).json({ error: 'Acceso denegado: permiso insuficiente' })
     }
 
     next()
@@ -63,6 +96,7 @@ function verifyTenantAccess(modelName, paramName = 'id') {
     // SUPERADMIN no debe acceder a recursos clínicos ni de consultorios ajenos
     if (req.usuario.rol === ROLES.SUPERADMIN) {
       if (['paciente', 'historiaClinica', 'cita', 'cotizacion', 'pago', 'factura'].includes(modelName)) {
+        registrarAccesoDenegado(req, `SUPERADMIN intentó acceder a un recurso clínico (${modelName})`)
         return res.status(403).json({
           error: 'Acceso denegado: El rol SUPERADMIN no tiene permitido acceder a recursos clínicos.'
         })
@@ -91,7 +125,9 @@ function verifyTenantAccess(modelName, paramName = 'id') {
       }
 
       if (resource.consultorio_id !== req.usuario.consultorio_id) {
-        // Responder 404 o 403 sin revelar información entre consultorios
+        // Se responde 404 (sin revelar información entre consultorios), pero se audita como
+        // intento de acceso cruzado — es el evento de seguridad real, aunque el cliente vea un 404.
+        registrarAccesoDenegado(req, `Intento de acceso cruzado entre consultorios: recurso ${modelName}#${idParsed} pertenece a otro consultorio`)
         return res.status(404).json({ error: 'Recurso no encontrado' })
       }
 
@@ -107,6 +143,7 @@ function verifyTenantAccess(modelName, paramName = 'id') {
 module.exports = {
   requireRole,
   requirePermission,
+  requireAnyPermission,
   restrictSuperadminClinicalAccess,
   verifyTenantAccess
 }

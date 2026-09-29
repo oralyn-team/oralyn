@@ -12,7 +12,7 @@ process.env.NODE_ENV = 'test'
 
 // Helper para crear un mock de Prisma con datos iniciales de auth
 function createAuthPrismaMock() {
-  const passwordHash = bcrypt.hashSync('Password123', 10)
+  const passwordHash = bcrypt.hashSync('Password123!', 10)
   return createUnifiedPrismaMock({
     configuracion: [
       { id: 10, nombre_consultorio: 'Consultorio A', nombre_profesional: 'Dr. A' }
@@ -36,7 +36,7 @@ test('Auth Registro: Registra un usuario válido correctamente', async (t) => {
     method: 'POST',
     body: JSON.stringify({
       email: 'nuevo_doctor@oralyn.test',
-      password: 'Password123',
+      password: 'Password123!',
       nombre: 'Dr. Nuevo',
       consultorio_id: 10
     })
@@ -51,7 +51,7 @@ test('Auth Registro: Registra un usuario válido correctamente', async (t) => {
   // Verificar en la "base de datos" mock
   const usuarioDB = prismaMock.__db.usuario.find(u => u.email === 'nuevo_doctor@oralyn.test')
   assert.ok(usuarioDB)
-  assert.ok(bcrypt.compareSync('Password123', usuarioDB.password_hash))
+  assert.ok(bcrypt.compareSync('Password123!', usuarioDB.password_hash))
   assert.equal(usuarioDB.token_version, 0)
 })
 
@@ -63,7 +63,7 @@ test('Auth Registro: Falla con código 400 si el correo ya está registrado', as
     method: 'POST',
     body: JSON.stringify({
       email: 'doctor@oralyn.test', // Ya existe en la base de datos
-      password: 'Password123',
+      password: 'Password123!',
       nombre: 'Dr. Duplicado',
       consultorio_id: 10
     })
@@ -81,7 +81,7 @@ test('Auth Registro: Falla con código 404 si el consultorio no existe', async (
     method: 'POST',
     body: JSON.stringify({
       email: 'doctor_clinica_invalida@oralyn.test',
-      password: 'Password123',
+      password: 'Password123!',
       nombre: 'Dr. Clinica Invalida',
       consultorio_id: 999 // ID de consultorio inexistente
     })
@@ -96,9 +96,9 @@ test('Auth Registro: Falla con código 400 si faltan campos obligatorios', async
   t.after(() => harness.close())
 
   const casosIncompletos = [
-    { password: 'Password123', nombre: 'Test', consultorio_id: 10 }, // Falta email
+    { password: 'Password123!', nombre: 'Test', consultorio_id: 10 }, // Falta email
     { email: 'test@oralyn.test', nombre: 'Test', consultorio_id: 10 }, // Falta password
-    { email: 'test@oralyn.test', password: 'Password123', consultorio_id: 10 }, // Falta nombre
+    { email: 'test@oralyn.test', password: 'Password123!', consultorio_id: 10 }, // Falta nombre
   ]
 
   for (const payload of casosIncompletos) {
@@ -115,12 +115,31 @@ test('Auth Registro: Falla con código 400 si faltan campos obligatorios', async
     method: 'POST',
     body: JSON.stringify({
       email: 'test_sin_id@oralyn.test',
-      password: 'Password123',
+      password: 'Password123!',
       nombre: 'Test sin ID'
     })
   })
   assert.equal(response.status, 400)
   assert.equal(body.error, 'El consultorio_id es obligatorio')
+})
+
+test('Auth Registro: Falla con código 400 si la contraseña no cumple la política de complejidad (GAP-005)', async (t) => {
+  const harness = await startAppWithPrisma(createAuthPrismaMock())
+  t.after(() => harness.close())
+
+  const { response, body } = await harness.request('/api/auth/registro', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: 'password_debil@oralyn.test',
+      password: '12345678', // sin mayúscula, minúscula ni especial, y justo en el límite de longitud
+      nombre: 'Dr. Débil',
+      consultorio_id: 10
+    })
+  })
+
+  assert.equal(response.status, 400)
+  assert.equal(body.error, 'La contraseña no cumple los requisitos de seguridad')
+  assert.ok(Array.isArray(body.detalles) && body.detalles.length > 0)
 })
 
 // ─────────────────────────────────────────────────────────────
@@ -135,7 +154,7 @@ test('Auth Login: Inicia sesión correctamente con credenciales válidas, no ret
     method: 'POST',
     body: JSON.stringify({
       email: 'doctor@oralyn.test',
-      password: 'Password123'
+      password: 'Password123!'
     })
   })
 
@@ -174,7 +193,7 @@ test('Auth Login: Falla con código 401 si el usuario no existe', async (t) => {
     method: 'POST',
     body: JSON.stringify({
       email: 'no_existe_usuario@oralyn.test',
-      password: 'Password123'
+      password: 'Password123!'
     })
   })
 
@@ -195,7 +214,7 @@ test('Auth Cookies: SameSite se configura como None en producción y Lax en desa
   process.env.NODE_ENV = 'test'
   const { response: resTest } = await harness.request('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123' })
+    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123!' })
   })
   const cookieHeaderTest = resTest.headers.get('set-cookie') || ''
   assert.ok(cookieHeaderTest.includes('SameSite=Lax'), 'Debe usar SameSite=Lax en entorno test')
@@ -204,7 +223,7 @@ test('Auth Cookies: SameSite se configura como None en producción y Lax en desa
   process.env.NODE_ENV = 'production'
   const { response: resProd } = await harness.request('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123' })
+    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123!' })
   })
   const cookieHeaderProd = resProd.headers.get('set-cookie') || ''
   assert.ok(cookieHeaderProd.includes('SameSite=None'), 'Debe usar SameSite=None en entorno producción')
@@ -218,7 +237,7 @@ test('Auth Cookies: POST /api/auth/logout limpia la cookie y posterior petición
   // Login para obtener cookie
   const { response: loginRes } = await harness.request('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123' })
+    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123!' })
   })
   const cookieHeader = loginRes.headers.get('set-cookie') || ''
   const tokenCookie = cookieHeader.split(';')[0]
@@ -286,7 +305,7 @@ test('Auth Revocación: Cambiar contraseña incrementa token_version en BD e inv
   // 1. Obtener cookie inicial
   const { response: loginRes } = await harness.request('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123' })
+    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123!' })
   })
   const cookieHeader = loginRes.headers.get('set-cookie') || ''
   const initialCookie = cookieHeader.split(';')[0]
@@ -305,8 +324,8 @@ test('Auth Revocación: Cambiar contraseña incrementa token_version en BD e inv
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      currentPassword: 'Password123',
-      newPassword: 'NewPassword456'
+      currentPassword: 'Password123!',
+      newPassword: 'NewPassword456!'
     })
   })
   assert.equal(changeRes.status, 200)
@@ -324,7 +343,7 @@ test('Auth Revocación: Cambiar contraseña incrementa token_version en BD e inv
   // 4. Login con nueva contraseña debe funcionar y emitir cookie con tv = 1
   const { response: loginResNew } = await harness.request('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'NewPassword456' })
+    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'NewPassword456!' })
   })
   assert.equal(loginResNew.status, 200)
 
@@ -336,6 +355,31 @@ test('Auth Revocación: Cambiar contraseña incrementa token_version en BD e inv
     headers: { 'Cookie': newCookie }
   })
   assert.equal(meResAceptado.status, 200)
+})
+
+test('Auth Cambio de contraseña: Falla con código 400 si la nueva contraseña no cumple la política (GAP-005)', async (t) => {
+  const prismaMock = createAuthPrismaMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const { response: loginRes } = await harness.request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email: 'doctor@oralyn.test', password: 'Password123!' })
+  })
+  const cookie = (loginRes.headers.get('set-cookie') || '').split(';')[0]
+
+  const { response, body } = await harness.request('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Cookie': cookie, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword: 'Password123!', newPassword: 'debil' })
+  })
+
+  assert.equal(response.status, 400)
+  assert.equal(body.error, 'La nueva contraseña no cumple los requisitos de seguridad')
+
+  // La contraseña original sigue funcionando: el cambio débil no se aplicó
+  const userDB = prismaMock.__db.usuario.find(u => u.email === 'doctor@oralyn.test')
+  assert.equal(userDB.token_version, 0)
 })
 
 // ─────────────────────────────────────────────────────────────

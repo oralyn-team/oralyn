@@ -1,3 +1,10 @@
+// Prisma real ignora los campos con valor `undefined` en un update ("no modificar"),
+// mientras que `null` sí se escribe. El mock debe comportarse igual para no ocultar ni
+// fabricar pérdidas de datos en actualizaciones parciales.
+function sinUndefined(data = {}) {
+  return Object.fromEntries(Object.entries(data).filter(([, val]) => val !== undefined));
+}
+
 function matchesWhere(row, where = {}) {
   if (!where) return true;
   return Object.entries(where).every(([key, expected]) => {
@@ -9,6 +16,14 @@ function matchesWhere(row, where = {}) {
     // Match OR clauses
     if (key === 'OR' && Array.isArray(expected)) {
       return expected.some(clause => matchesWhere(row, clause));
+    }
+
+    // Clave única compuesta de Prisma (p. ej. historia_id_tipo: { historia_id, tipo }).
+    // Se reconoce porque su nombre es la unión con '_' de sus campos, y se compara campo a campo;
+    // sin esto, el objeto caía en la rama de operadores de abajo y coincidía con cualquier fila.
+    if (expected && typeof expected === 'object' && !Array.isArray(expected) && !(expected instanceof Date)
+        && Object.keys(expected).length > 1 && key === Object.keys(expected).join('_')) {
+      return matchesWhere(row, expected);
     }
     
     if (expected && typeof expected === 'object') {
@@ -307,6 +322,16 @@ function createUnifiedPrismaMock(initialData = {}) {
             throw err;
           }
         }
+        // Restricción única @@unique([historia_id, tipo]) de HcOdontograma (tipo por defecto GENERAL_ADULTO)
+        if (modelName === 'hcOdontograma' && args.data) {
+          const tipo = args.data.tipo ?? 'GENERAL_ADULTO';
+          const duplicate = db[modelName].some(o => o.historia_id === args.data.historia_id && (o.tipo ?? 'GENERAL_ADULTO') === tipo);
+          if (duplicate) {
+            const err = new Error('Unique constraint failed on the fields: (`historia_id`,`tipo`)');
+            err.code = 'P2002';
+            throw err;
+          }
+        }
         const nextId = (modelName === 'insumo' || modelName === 'movimientoInsumo')
           ? `${modelName}_${db[modelName].length + 1}`
           : (db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1);
@@ -354,7 +379,7 @@ function createUnifiedPrismaMock(initialData = {}) {
         const current = db[modelName][idx];
         const updated = { ...current };
         
-        Object.entries(args.data).forEach(([key, val]) => {
+        Object.entries(sinUndefined(args.data)).forEach(([key, val]) => {
           if (val && typeof val === 'object' && 'create' in val) {
             const relatedModelName = getRelatedModelName(modelName, key);
             if (relatedModelName) {
@@ -378,6 +403,28 @@ function createUnifiedPrismaMock(initialData = {}) {
         const rowWithIncludes = resolveIncludes(modelName, updated, args.include || args.select, db);
         return applySelectOrSelectOnly(rowWithIncludes, args.select);
       },
+      // Como Prisma: actualiza todas las filas que coinciden, ignora claves undefined,
+      // soporta { increment } / { decrement } y devuelve solo { count } (no las filas).
+      updateMany: async (args = {}) => {
+        const data = sinUndefined(args.data);
+        let count = 0;
+        db[modelName] = db[modelName].map(row => {
+          if (!matchesWhere(row, args.where)) return row;
+          count += 1;
+          const updated = { ...row };
+          Object.entries(data).forEach(([key, val]) => {
+            if (val && typeof val === 'object' && 'increment' in val) {
+              updated[key] = (row[key] || 0) + val.increment;
+            } else if (val && typeof val === 'object' && 'decrement' in val) {
+              updated[key] = (row[key] || 0) - val.decrement;
+            } else {
+              updated[key] = val;
+            }
+          });
+          return updated;
+        });
+        return { count };
+      },
       delete: async (args = {}) => {
         const idx = db[modelName].findIndex(row => matchesWhere(row, args.where));
         if (idx < 0) {
@@ -400,7 +447,7 @@ function createUnifiedPrismaMock(initialData = {}) {
         const row = db[modelName].find(row => matchesWhere(row, args.where));
         if (row) {
           const idx = db[modelName].indexOf(row);
-          db[modelName][idx] = { ...row, ...args.update };
+          db[modelName][idx] = { ...row, ...sinUndefined(args.update) };
           return db[modelName][idx];
         } else {
           const nextId = db[modelName].length ? Math.max(...db[modelName].map(r => r.id || 0)) + 1 : 1;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { api } from '../../api';
 import { X, Package, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -56,33 +56,29 @@ function Field({
 }
 
 export default function InsumoFormModal({ insumoEditar, onClose, onSuccess }) {
-  const [form, setForm] = useState(ESTADO_INICIAL);
+  const [form, setForm] = useState(() =>
+    insumoEditar
+      ? {
+          nombre: insumoEditar.nombre || '',
+          categoria: insumoEditar.categoria || '',
+          unidad_medida: insumoEditar.unidad_medida || 'Unidad',
+          cantidad_actual: insumoEditar.cantidad_actual !== undefined ? String(insumoEditar.cantidad_actual) : '',
+          stock_minimo: insumoEditar.stock_minimo !== undefined ? String(insumoEditar.stock_minimo) : '',
+          lote: insumoEditar.lote || '',
+          registro_invima: insumoEditar.registro_invima || '',
+          fabricante: insumoEditar.fabricante || '',
+          proveedor: insumoEditar.proveedor || '',
+          fecha_vencimiento: insumoEditar.fecha_vencimiento ? insumoEditar.fecha_vencimiento.substring(0, 10) : '',
+          fecha_apertura: insumoEditar.fecha_apertura ? insumoEditar.fecha_apertura.substring(0, 10) : '',
+          ubicacion: insumoEditar.ubicacion || '',
+        }
+      : ESTADO_INICIAL
+  );
   const [errs, setErrs] = useState({});
   const [guardando, setGuardando] = useState(false);
   const [errorApi, setErrorApi] = useState(null);
 
   const esEdicion = Boolean(insumoEditar);
-
-  useEffect(() => {
-    if (insumoEditar) {
-      setForm({
-        nombre: insumoEditar.nombre || '',
-        categoria: insumoEditar.categoria || '',
-        unidad_medida: insumoEditar.unidad_medida || 'Unidad',
-        cantidad_actual: insumoEditar.cantidad_actual !== undefined ? String(insumoEditar.cantidad_actual) : '',
-        stock_minimo: insumoEditar.stock_minimo !== undefined ? String(insumoEditar.stock_minimo) : '',
-        lote: insumoEditar.lote || '',
-        registro_invima: insumoEditar.registro_invima || '',
-        fabricante: insumoEditar.fabricante || '',
-        proveedor: insumoEditar.proveedor || '',
-        fecha_vencimiento: insumoEditar.fecha_vencimiento ? insumoEditar.fecha_vencimiento.substring(0, 10) : '',
-        fecha_apertura: insumoEditar.fecha_apertura ? insumoEditar.fecha_apertura.substring(0, 10) : '',
-        ubicacion: insumoEditar.ubicacion || '',
-      });
-    } else {
-      setForm(ESTADO_INICIAL);
-    }
-  }, [insumoEditar]);
 
   function handleChange(e) {
     const { name, value } = e.target;

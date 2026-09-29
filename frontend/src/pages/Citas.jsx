@@ -97,6 +97,7 @@ export default function Citas() {
 
   const pacientesRef = useRef(pacientes);
   useEffect(() => { pacientesRef.current = pacientes; }, [pacientes]);
+  const toastTimerRef = useRef(null);
 
   const cargarCitas = async () => {
     setLoading(true);
@@ -113,6 +114,7 @@ export default function Citas() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarCitas();
   }, []);
 
@@ -141,7 +143,6 @@ export default function Citas() {
     );
   }
 
-  const toastTimerRef = useRef(null);
   function mostrarToast(msg, duracion = 2200) {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(msg);

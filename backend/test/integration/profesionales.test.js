@@ -63,22 +63,38 @@ test('GET /api/profesionales — retorna lista de profesionales activos del cons
   assert.equal(ids.includes(991), false)
 })
 
-test('GET /api/profesionales — permite acceso a RECEPCIONISTA (SETTINGS_READ) y bloquea a ASISTENTE sin permiso', async (t) => {
+test('GET /api/profesionales — RECEPCIONISTA (SETTINGS_READ) recibe la fila completa', async (t) => {
   const harness = await startAppWithPrisma(createProfesionalesMock())
   t.after(() => harness.close())
 
   const tokenRecepcion = generateToken(5, 10, ROLES.RECEPCIONISTA)
-  const tokenAsistente = generateToken(4, 10, ROLES.ASISTENTE_ODONTOLOGO)
 
-  const resRecepcion = await harness.request('/api/profesionales', {
+  const { response, body } = await harness.request('/api/profesionales', {
     headers: { Authorization: `Bearer ${tokenRecepcion}` }
   })
-  assert.equal(resRecepcion.response.status, 200)
+  assert.equal(response.status, 200)
+  const p101 = body.find(p => p.id === 101)
+  assert.equal(p101.firma_default, 'data:image/png;base64,firma101')
+  assert.equal(p101.consultorio_id, 10)
+})
 
-  const resAsistente = await harness.request('/api/profesionales', {
+test('GET /api/profesionales — ASISTENTE_ODONTOLOGO (solo CLINICAL_RECORDS_READ) recibe 200 con campos reducidos y sin firma_default', async (t) => {
+  const harness = await startAppWithPrisma(createProfesionalesMock())
+  t.after(() => harness.close())
+
+  const tokenAsistente = generateToken(4, 10, ROLES.ASISTENTE_ODONTOLOGO)
+
+  const { response, body } = await harness.request('/api/profesionales', {
     headers: { Authorization: `Bearer ${tokenAsistente}` }
   })
-  assert.equal(resAsistente.response.status, 403)
+  assert.equal(response.status, 200)
+  assert.equal(body.length, 2)
+  for (const p of body) {
+    assert.deepEqual(Object.keys(p).sort(), ['activo', 'cedula_profesional', 'id', 'nombre_completo'])
+    assert.equal('firma_default' in p, false)
+  }
+  const p101 = body.find(p => p.id === 101)
+  assert.deepEqual(p101, { id: 101, nombre_completo: 'Dra. Rocío Murillo', cedula_profesional: '39579364', activo: true })
 })
 
 test('GET /api/profesionales — sin token retorna 401', async (t) => {

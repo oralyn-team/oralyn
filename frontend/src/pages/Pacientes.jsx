@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { useApp } from '../context/Appcontext';
+import { useApp } from '../context/useApp';
 
 import Sidebar       from '../components/layout/Sidebar';
 import Topbar        from '../components/layout/Topbar';
@@ -20,7 +20,7 @@ function buildStats(pacientes) {
 }
 
 export default function Pacientes() {
-  const { pacientes, agregarPaciente, eliminarPaciente, loading, error } = useApp();
+  const { pacientes, agregarPaciente, eliminarPaciente, recargarPacientes, loading, error } = useApp();
 
   const [busqueda, setBusqueda]   = useState('');
   const [filtroEstado, setFiltro] = useState('Todos');

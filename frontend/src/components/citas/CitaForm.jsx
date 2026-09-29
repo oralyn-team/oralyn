@@ -190,6 +190,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
     if (!esEdicion && !form.doctor) {
       const def = calcDoctorDefault();
       if (def) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: rellenar valor por defecto solo si el campo sigue vacío cuando llegan datos tarde (usuariosConsultorio/configuracion), sin pisar lo que el usuario haya escrito. Ver docs/eslint-exceptions.md
         setForm((prev) => ({ ...prev, doctor: def }));
       }
     }

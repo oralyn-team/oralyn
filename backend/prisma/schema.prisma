@@ -244,6 +244,7 @@ model Usuario {
   token_version       Int                  @default(0)
   auditorias          Auditoria[]
   passwordResetTokens PasswordResetToken[]
+  evoluciones_anuladas HojaEvolucion[]     @relation("EvolucionAnuladaPor")
 }
 
 model PasswordResetToken {
@@ -369,6 +370,7 @@ model HistoriaClinica {
   tipo_sangre                String?
   rh                         String?
   alergias                   String?
+  version                    Int      @default(1)
 
   antecedentes           HcAntecedentes?
   examen                 HcExamenEstomatologico?
@@ -438,6 +440,7 @@ model HcOdontograma {
   observaciones String?
   creado_en     DateTime        @default(now())
   actualizado_en DateTime       @default(now()) @updatedAt
+  version        Int            @default(1)
 
   @@index([historia_id])
   @@unique([historia_id, tipo])
@@ -464,6 +467,12 @@ model HojaEvolucion {
   recomendaciones              String?
   proximo_control              DateTime?
   observaciones                String?
+  version                      Int                       @default(1)
+  anulada                      Boolean                   @default(false)
+  anulada_en                   DateTime?
+  motivo_anulacion             String?
+  anulada_por_id               Int?
+  anulada_por                  Usuario?                  @relation("EvolucionAnuladaPor", fields: [anulada_por_id], references: [id], onDelete: SetNull)
 
   @@index([historia_id])
   @@index([profesional_id])
@@ -831,4 +840,4 @@ model Notificacion {
   @@index([cita_id])
   @@index([estado])
   @@map("notificaciones")
-}
+}

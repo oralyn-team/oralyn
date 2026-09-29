@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/useApp';
 import { api } from '../api';
 import { antecedentesDbToForm } from '../data/historiasData';
@@ -67,6 +67,20 @@ function construirOdontogramaPorTipo(odontogramas = []) {
 }
 
 /**
+ * Versión de cada odontograma (control de concurrencia), con la misma clave que
+ * construirOdontogramaPorTipo: { 'general-adulto': 3, ... }. Un tipo sin fila no
+ * aparece; quien lo lea debe tratarlo como versión 0 (primer guardado).
+ */
+function construirVersionesOdontograma(odontogramas = []) {
+  const resultado = {};
+  odontogramas.forEach((o) => {
+    const clave = TIPO_A_CLAVE_FRONTEND[o.tipo] || o.tipo;
+    resultado[clave] = o.version;
+  });
+  return resultado;
+}
+
+/**
  * Construye el objeto historia que consume HistoriaDetalle/FormularioClinico.
  * @param {object} paciente  - fila del módulo Pacientes
  * @param {object} historia  - fila del GET /:pacienteId (lista)
@@ -77,6 +91,8 @@ function construirHistoriaBase(paciente, historia, detalle = null) {
     id:          historia.id,
     pacienteId:  paciente.id,
     paciente_id: paciente.id,
+    // Control de concurrencia optimista: se envía al guardar y se actualiza con cada respuesta
+    version:     detalle?.version ?? historia.version,
 
     // ── Datos del paciente (solo lectura) ──────────────────────────────
     pacienteNombre:  nombreCompletoPaciente(paciente),
@@ -121,6 +137,7 @@ function construirHistoriaBase(paciente, historia, detalle = null) {
     // Reconstruye TODOS los tipos de odontograma (adulto/infantil/ortodoncia),
     // no solo el primero del array — antes esto perdía los tipos != [0].
     odontograma:      construirOdontogramaPorTipo(detalle?.odontogramas),
+    odontogramaVersiones: construirVersionesOdontograma(detalle?.odontogramas),
 
     examenPulpar:     detalle?.examen?.examen_pulpar_json ?? {},
     pulparObs:        detalle?.examen?.pulpar_obs         ?? '',
@@ -151,6 +168,7 @@ function formatearEvolucion(ev) {
     id:              ev.id,
     fecha:           ev.fecha?.split('T')[0] || '',
     doctor:          ev.doctor || '',
+    profesionalId:   ev.profesional_id ?? '',
     motivo:          ev.motivo || '',
     diagnostico:     ev.diagnostico || '',
     procedimiento:   ev.procedimiento || '',
@@ -160,14 +178,23 @@ function formatearEvolucion(ev) {
     recomendaciones: ev.recomendaciones || '',
     proximoControl:  ev.proximo_control?.split('T')[0] || '',
     observaciones:   ev.observaciones || '',
+    // Mismos campos que normalizeEvolucion del contexto: la vista los necesita para editar/anular
+    version:         ev.version,
+    anulada:         Boolean(ev.anulada),
+    anuladaEn:       ev.anulada_en ?? null,
+    anuladaPor:      ev.anulada_por ?? null,
+    anuladaPorNombre: ev.anulada_por_nombre || '',
+    motivoAnulacion: ev.motivo_anulacion || '',
   };
 }
 
 export default function Historias() {
   const navigate = useNavigate();
-  const { usuario, pacientes, actualizarHistoria } = useApp();
+  const { usuario, pacientes } = useApp();
+  const [searchParams, setSearchParams]     = useSearchParams();
   const [historias, setHistorias]           = useState([]);
-  const [historiaActiva, setHistoriaActiva] = useState(null);
+  // Solo la elección manual desde la lista; la historia activa se deriva en el render
+  const [historiaElegidaId, setHistoriaElegidaId] = useState(null);
   const [loadingH, setLoadingH]             = useState(true);
   const [errorH, setErrorH]                 = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -176,7 +203,6 @@ export default function Historias() {
 
   const cargarHistorias = () => {
     if (!tienePermisoClinico) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
       setLoadingH(false);
       return;
     }
@@ -222,27 +248,43 @@ export default function Historias() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Patrón aceptado: carga de datos al montar componente, ver docs/eslint-exceptions.md
     cargarHistorias();
   }, [pacientes]);
 
-  useEffect(() => {
-    const params    = new URLSearchParams(window.location.search);
-    const pacienteId = Number(params.get('pacienteId'));
-    if (pacienteId && historias.length > 0) {
-      const encontrada = historias.find((h) => h.paciente_id === pacienteId);
-      if (encontrada) setHistoriaActiva(encontrada);
-    }
-  }, [historias]);
+  // Historia activa: la elegida en la lista tiene prioridad; si no hay, la del ?pacienteId= de la URL.
+  // Se busca siempre en `historias` por id, así nunca apunta a una historia distinta de la elegida.
+  const pacienteIdUrl = Number(searchParams.get('pacienteId'));
+  const historiaActiva = historiaElegidaId != null
+    ? historias.find((h) => h.id === historiaElegidaId) ?? null
+    : (pacienteIdUrl ? historias.find((h) => h.paciente_id === pacienteIdUrl) ?? null : null);
 
-  function handleActualizar(actualizada) {
-    actualizarHistoria(actualizada);
-    setHistoriaActiva(actualizada);
-    setHistorias((prev) => prev.map((h) => (h.id === actualizada.id ? actualizada : h)));
+  // Recibe solo lo que HistoriaDetalle ya persistió: un objeto con los campos cambiados o una
+  // función (historiaActual) => cambios. Se combina con el estado más reciente (actualización funcional).
+  function handleActualizar(id, cambios) {
+    setHistorias((prev) => prev.map((h) => (
+      h.id === id ? { ...h, ...(typeof cambios === 'function' ? cambios(h) : cambios) } : h
+    )));
+  }
+
+  // Vuelve a pedir una historia al backend (p. ej. tras un conflicto de versión), la reemplaza
+  // en la lista y la devuelve. El detalle incluye el paciente y la fila completa de la historia.
+  async function recargarHistoria(id) {
+    const [detalle, evoluciones] = await Promise.all([
+      api.getHistoriaDetalle(id),
+      api.getEvoluciones(id),
+    ]);
+    const fresca = {
+      ...construirHistoriaBase(detalle.paciente, detalle, detalle),
+      evoluciones: evoluciones.map(formatearEvolucion),
+    };
+    setHistorias((prev) => prev.map((h) => (h.id === id ? fresca : h)));
+    return fresca;
   }
 
   function handleVolver() {
-    setHistoriaActiva(null);
-    window.history.replaceState({}, '', '/historias');
+    setHistoriaElegidaId(null);
+    setSearchParams({}, { replace: true });
   }
 
   const stats = buildStats(historias, pacientes);
@@ -306,9 +348,11 @@ export default function Historias() {
 
         {historiaActiva ? (
           <HistoriaDetalle
+            key={historiaActiva.id}
             historia={historiaActiva}
             onVolver={handleVolver}
             onActualizar={handleActualizar}
+            onRecargar={recargarHistoria}
             onVerPDF={() => api.verHistoriaPDF(historiaActiva.id)} 
           />
         ) : (
@@ -332,7 +376,7 @@ export default function Historias() {
               <p className="text-[13px] text-teal-muted dark:text-slate-400 px-1 text-center py-8">Cargando historias...</p>
             ) : (
               <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-2xl overflow-hidden shadow-soft-sm">
-                <HistoriaLista historias={historias} onSeleccionar={setHistoriaActiva} />
+                <HistoriaLista historias={historias} onSeleccionar={(h) => setHistoriaElegidaId(h.id)} />
               </div>
             )}
           </main>
