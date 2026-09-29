@@ -4,6 +4,7 @@ const verificarToken = require('../middlewares/auth')
 const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
 const { PERMISSIONS } = require('../lib/permissions')
 const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
+const { enviarNotificacionConfirmacionCita, resetearRecordatorioPorReprogramacion } = require('../services/notification.service')
 
 const router = express.Router()
 router.use(verificarToken)
@@ -110,6 +111,11 @@ router.post('/', requirePermission(PERMISSIONS.APPOINTMENTS_CREATE), async (req,
       modulo: 'Citas',
       recurso_id: cita.id,
       detalles: `Cita programada para el paciente #${paciente_id} el ${cita.fecha_hora}`
+    })
+
+    // Enviar notificación de confirmación de manera asíncrona no bloqueante
+    enviarNotificacionConfirmacionCita(cita.id, req.usuario.consultorio_id).catch(err => {
+      console.error('[CitasRoute] Error asíncrono enviando confirmación:', err)
     })
 
     res.status(201).json(cita)
@@ -322,6 +328,14 @@ router.put('/:id', requirePermission(PERMISSIONS.APPOINTMENTS_UPDATE), async (re
     }
 
     const diferencias = calcularDiferencias(existe, cita, ['fecha_hora', 'procedimiento', 'doctor', 'estado', 'valor_cobrado'])
+
+    // Si cambió la fecha/hora de la cita (reprogramación), resetear recordatorio previo
+    if (existe.fecha_hora.getTime() !== cita.fecha_hora.getTime()) {
+      await resetearRecordatorioPorReprogramacion(cita.id)
+      enviarNotificacionConfirmacionCita(cita.id, req.usuario.consultorio_id).catch(err => {
+        console.error('[CitasRoute] Error asíncrono enviando nueva confirmación por reprogramación:', err)
+      })
+    }
 
     registrarAuditoria({
       req,

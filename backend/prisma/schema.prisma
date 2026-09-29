@@ -66,6 +66,21 @@ enum Rol {
   RECEPCIONISTA
 }
 
+enum TipoNotificacion {
+  confirmacion_cita
+  recordatorio_cita
+}
+
+enum CanalNotificacion {
+  email
+}
+
+enum EstadoNotificacion {
+  pendiente
+  enviado
+  error
+}
+
 // ─── CONFIGURACIÓN DEL CONSULTORIO ──────────────────────────
 
 model Configuracion {
@@ -113,6 +128,7 @@ model Configuracion {
   auditorias                 Auditoria[]
   profesionales              Profesional[]
   insumos                    Insumo[]
+  notificaciones             Notificacion[]
 }
 
 // ─── PROFESIONALES ──────────────────────────────────────────
@@ -228,6 +244,7 @@ model Usuario {
   token_version       Int                  @default(0)
   auditorias          Auditoria[]
   passwordResetTokens PasswordResetToken[]
+  evoluciones_anuladas HojaEvolucion[]     @relation("EvolucionAnuladaPor")
 }
 
 model PasswordResetToken {
@@ -303,6 +320,7 @@ model Paciente {
   acudiente_nombre     String?
   acudiente_parentesco String?
   acudiente_telefono   String?
+  notificaciones_email Boolean       @default(true)
   activo               Boolean       @default(true)
   creado_en            DateTime      @default(now())
 
@@ -313,6 +331,7 @@ model Paciente {
   consentimientos Consentimiento[]
   certificados    CertificadoDental[]
   facturas        Factura[]
+  notificaciones  Notificacion[]
 
   @@unique([consultorio_id, numero_documento])
   @@index([consultorio_id])
@@ -451,11 +470,9 @@ model HojaEvolucion {
   version                      Int                       @default(1)
   anulada                      Boolean                   @default(false)
   anulada_en                   DateTime?
-  anulada_por                  Int?
   motivo_anulacion             String?
-  // Sin default: las evoluciones anteriores a esta columna quedan en null en vez de con una fecha falsa
-  creado_en                    DateTime?
-  creado_por                   Int?
+  anulada_por_id               Int?
+  anulada_por                  Usuario?                  @relation("EvolucionAnuladaPor", fields: [anulada_por_id], references: [id], onDelete: SetNull)
 
   @@index([historia_id])
   @@index([profesional_id])
@@ -674,6 +691,7 @@ model Cita {
   causas_no_atencion           String?
   creado_en                    DateTime                  @default(now())
   certificados                 CertificadoDental[]
+  notificaciones               Notificacion[]
 
   @@index([consultorio_id])
   @@index([paciente_id])
@@ -793,4 +811,33 @@ model MovimientoInsumo {
 
   @@index([insumo_id])
   @@map("movimientos_insumo")
+}
+
+// ─── NOTIFICACIONES ──────────────────────────────────────────
+
+model Notificacion {
+  id             String             @id @default(uuid())
+  consultorio_id Int
+  consultorio    Configuracion      @relation(fields: [consultorio_id], references: [id])
+  paciente_id    Int
+  paciente       Paciente           @relation(fields: [paciente_id], references: [id])
+  cita_id        Int
+  cita           Cita               @relation(fields: [cita_id], references: [id], onDelete: Cascade)
+
+  tipo           TipoNotificacion
+  canal          CanalNotificacion  @default(email)
+  estado         EstadoNotificacion @default(pendiente)
+
+  enviado_at     DateTime?
+  error          String?
+
+  creado_en      DateTime           @default(now())
+  actualizado_en DateTime           @default(now()) @updatedAt
+
+  @@unique([cita_id, tipo, canal])
+  @@index([consultorio_id])
+  @@index([paciente_id])
+  @@index([cita_id])
+  @@index([estado])
+  @@map("notificaciones")
 }
