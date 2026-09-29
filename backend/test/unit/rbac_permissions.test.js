@@ -1,7 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const { hasPermission, PERMISSIONS, ROLES } = require('../../src/lib/permissions')
-const { requireRole, requirePermission, restrictSuperadminClinicalAccess } = require('../../src/middlewares/rbac')
+const { requireRole, requirePermission, requireAnyPermission, restrictSuperadminClinicalAccess } = require('../../src/middlewares/rbac')
 
 test('hasPermission evalúa permisos correctamente por rol', () => {
   const rolSuperadmin = ROLES.SUPERADMIN
@@ -68,6 +68,46 @@ test('requirePermission middleware permite acceso cuando se posee el permiso', a
   middleware(req, res, () => { nextCalled = true })
 
   assert.equal(nextCalled, true)
+})
+
+function runMiddleware(middleware, req) {
+  const out = { statusCode: null, jsonBody: null, nextCalled: false }
+  const res = {
+    status(code) { out.statusCode = code; return this },
+    json(body) { out.jsonBody = body; return this }
+  }
+  middleware(req, res, () => { out.nextCalled = true })
+  return out
+}
+
+test('requireAnyPermission permite acceso si el rol tiene al menos uno de los permisos', async () => {
+  const middleware = requireAnyPermission(PERMISSIONS.SETTINGS_READ, PERMISSIONS.CLINICAL_RECORDS_READ)
+
+  // ASISTENTE: sin SETTINGS_READ pero con CLINICAL_RECORDS_READ
+  assert.equal(runMiddleware(middleware, { usuario: { rol: ROLES.ASISTENTE_ODONTOLOGO } }).nextCalled, true)
+  // RECEPCIONISTA: con SETTINGS_READ pero sin CLINICAL_RECORDS_READ
+  assert.equal(runMiddleware(middleware, { usuario: { rol: ROLES.RECEPCIONISTA } }).nextCalled, true)
+  // DUEÑO: ambos
+  assert.equal(runMiddleware(middleware, { usuario: { rol: ROLES.DUENO } }).nextCalled, true)
+})
+
+test('requireAnyPermission bloquea con 403 si el rol no tiene ninguno de los permisos', async () => {
+  const middleware = requireAnyPermission(PERMISSIONS.USERS_CREATE, PERMISSIONS.CLINICAL_RECORDS_CREATE)
+
+  const out = runMiddleware(middleware, { usuario: { rol: ROLES.RECEPCIONISTA } })
+  assert.equal(out.statusCode, 403)
+  assert.equal(out.jsonBody.error, 'Acceso denegado: permiso insuficiente')
+  assert.equal(out.nextCalled, false)
+
+  const outRolDesconocido = runMiddleware(middleware, { usuario: { rol: 'ROL_INEXISTENTE' } })
+  assert.equal(outRolDesconocido.statusCode, 403)
+  assert.equal(outRolDesconocido.nextCalled, false)
+})
+
+test('requireAnyPermission retorna 401 sin usuario autenticado', async () => {
+  const out = runMiddleware(requireAnyPermission(PERMISSIONS.SETTINGS_READ), {})
+  assert.equal(out.statusCode, 401)
+  assert.equal(out.nextCalled, false)
 })
 
 test('restrictSuperadminClinicalAccess bloquea estrictamente a SUPERADMIN en rutas clínicas', async () => {

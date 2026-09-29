@@ -1,8 +1,8 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const verificarToken = require('../middlewares/auth')
-const { requirePermission } = require('../middlewares/rbac')
-const { PERMISSIONS } = require('../lib/permissions')
+const { requirePermission, requireAnyPermission } = require('../middlewares/rbac')
+const { PERMISSIONS, hasPermission } = require('../lib/permissions')
 const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
 
 const router = express.Router()
@@ -10,7 +10,9 @@ const router = express.Router()
 router.use(verificarToken)
 
 // GET /profesionales — listar profesionales activos del consultorio
-router.get('/', requirePermission(PERMISSIONS.SETTINGS_READ), async (req, res) => {
+// Quien no tiene SETTINGS_READ (p. ej. ASISTENTE_ODONTOLOGO, para elegir profesional en evoluciones)
+// recibe solo los campos básicos, sin firma_default.
+router.get('/', requireAnyPermission(PERMISSIONS.SETTINGS_READ, PERMISSIONS.CLINICAL_RECORDS_READ), async (req, res) => {
   if (req.usuario.rol === 'SUPERADMIN') {
     return res.status(403).json({ error: 'Acceso denegado: El SUPERADMIN administra la plataforma a través de /api/admin.' })
   }
@@ -26,7 +28,10 @@ router.get('/', requirePermission(PERMISSIONS.SETTINGS_READ), async (req, res) =
         consultorio_id: consultorioId,
         activo: true
       },
-      orderBy: { creado_en: 'asc' }
+      orderBy: { creado_en: 'asc' },
+      ...(hasPermission(req.usuario.rol, PERMISSIONS.SETTINGS_READ)
+        ? {}
+        : { select: { id: true, nombre_completo: true, cedula_profesional: true, activo: true } })
     })
 
     res.json(profesionales)

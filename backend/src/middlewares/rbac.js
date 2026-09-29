@@ -40,6 +40,25 @@ function requirePermission(...requiredPermissions) {
 }
 
 /**
+ * Middleware para requerir al menos uno de los permisos indicados (módulo.acción)
+ */
+function requireAnyPermission(...permissions) {
+  return (req, res, next) => {
+    if (!req.usuario) {
+      return res.status(401).json({ error: 'No autenticado' })
+    }
+
+    const userRole = req.usuario.rol
+
+    if (!permissions.some(perm => hasPermission(userRole, perm))) {
+      return res.status(403).json({ error: 'Acceso denegado: permiso insuficiente' })
+    }
+
+    next()
+  }
+}
+
+/**
  * Middleware para restringir explícitamente al SUPERADMIN de acceder o modificar información clínica de pacientes
  */
 function restrictSuperadminClinicalAccess(req, res, next) {
@@ -107,6 +126,7 @@ function verifyTenantAccess(modelName, paramName = 'id') {
 module.exports = {
   requireRole,
   requirePermission,
+  requireAnyPermission,
   restrictSuperadminClinicalAccess,
   verifyTenantAccess
 }
