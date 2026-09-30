@@ -1,22 +1,22 @@
 export default function BadgeSemaforo({ eje, color }) {
   const config = {
     verde: {
-      bg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      bg: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300',
       dot: 'bg-emerald-500',
       label: 'Óptimo'
     },
     amarillo: {
-      bg: 'bg-amber-50 border-amber-200 text-amber-800',
+      bg: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300',
       dot: 'bg-amber-500',
       label: 'Alerta'
     },
     rojo: {
-      bg: 'bg-rose-50 border-rose-200 text-rose-800',
+      bg: 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-300',
       dot: 'bg-rose-500',
       label: 'Crítico'
     },
     gris: {
-      bg: 'bg-slate-100 border-slate-200 text-slate-600',
+      bg: 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400',
       dot: 'bg-slate-400',
       label: 'Sin fecha'
     }

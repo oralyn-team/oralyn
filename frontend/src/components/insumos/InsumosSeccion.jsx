@@ -127,25 +127,25 @@ export default function InsumosSeccion() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-teal-soft">
-        <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
-        <p className="text-sm font-medium text-slate-600">Cargando inventario de insumos...</p>
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-dark-card rounded-xl border border-teal-soft dark:border-dark-border shadow-sm">
+        <Loader2 className="w-8 h-8 text-primary dark:text-teal animate-spin mb-3" />
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Cargando inventario de insumos...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 flex flex-col items-start gap-3">
+      <div className="p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-rose-800 dark:text-rose-300 flex flex-col items-start gap-3">
         <div className="flex items-center gap-2 font-medium">
-          <XCircle className="w-5 h-5 text-rose-600" />
+          <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
           <span>Error al conectar con la API de insumos</span>
         </div>
-        <p className="text-xs text-rose-700">{error}</p>
+        <p className="text-xs text-rose-700 dark:text-rose-300">{error}</p>
         <button
           type="button"
           onClick={cargarInsumos}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Reintentar
         </button>
@@ -163,15 +163,15 @@ export default function InsumosSeccion() {
       </div>
 
       {/* Contenedor Principal de la Sección */}
-      <div className="bg-white border border-teal-border rounded-xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl overflow-hidden shadow-xs">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 py-4 border-b border-teal-soft gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-5 py-4 border-b border-teal-soft dark:border-dark-border gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-primary dark:text-dark-text flex items-center gap-2">
               <Package className="w-4 h-4 text-teal" />
               Semaforización de Insumos ({insumosFiltrados.length})
             </h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Control de inventario, stock mínimo y semáforo bi-axial de vencimiento.
             </p>
           </div>
@@ -179,14 +179,14 @@ export default function InsumosSeccion() {
           <button
             type="button"
             onClick={handleNuevoInsumo}
-            className="text-xs text-white font-medium px-4 py-2 bg-primary rounded-lg cursor-pointer hover:bg-primary-light transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-xs"
+            className="text-xs text-white dark:text-slate-900 font-medium px-4 py-2 bg-primary dark:bg-teal rounded-lg cursor-pointer hover:bg-primary-light dark:hover:bg-teal-light transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-xs"
           >
             <Plus className="w-4 h-4" /> Nuevo insumo
           </button>
         </div>
 
         {/* Buscador y Filtros */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 py-3 bg-teal-panel border-b border-teal-soft">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 py-3 bg-teal-panel dark:bg-slate-800/50 border-b border-teal-soft dark:border-dark-border">
           <div className="w-full sm:w-72">
             <SearchBar busqueda={busqueda} onBuscar={setBusqueda} placeholder="Buscar por nombre, categoría, proveedor..." />
           </div>
@@ -198,10 +198,10 @@ export default function InsumosSeccion() {
                 key={f}
                 type="button"
                 onClick={() => setFiltroEstado(f)}
-                className={`px-3 py-1 text-xs rounded-full font-medium transition-all whitespace-nowrap ${
+                className={`px-3 py-1 text-xs rounded-full font-medium transition-all whitespace-nowrap cursor-pointer ${
                   filtroEstado === f
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    ? 'bg-primary dark:bg-teal text-white dark:text-slate-900 shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
                 {f}
@@ -214,7 +214,7 @@ export default function InsumosSeccion() {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 text-slate-600 font-semibold border-b border-teal-soft uppercase text-[10px] tracking-wider">
+              <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold border-b border-teal-soft dark:border-dark-border uppercase text-[10px] tracking-wider">
                 <th className="px-5 py-3">Insumo</th>
                 <th className="px-4 py-3">Categoría</th>
                 <th className="px-4 py-3">Stock Actual</th>
@@ -224,42 +224,42 @@ export default function InsumosSeccion() {
                 <th className="px-4 py-3 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-teal-soft text-slate-700 font-sans">
+            <tbody className="divide-y divide-teal-soft dark:divide-slate-800 text-slate-700 dark:text-slate-300 font-sans">
               {insumosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-8 text-center text-slate-500 dark:text-slate-400">
                     No se encontraron insumos que coincidan con la búsqueda o filtro seleccionado.
                   </td>
                 </tr>
               ) : (
                 insumosFiltrados.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                  <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-5 py-3">
                       <button
                         type="button"
                         onClick={() => handleVerDetalle(item)}
-                        className="font-medium text-slate-900 hover:text-primary hover:underline text-left cursor-pointer"
+                        className="font-medium text-slate-900 dark:text-slate-100 hover:text-primary dark:hover:text-teal hover:underline text-left cursor-pointer"
                       >
                         {item.nombre}
                       </button>
                       {item.ubicacion && (
-                        <div className="text-[10px] text-slate-500">Ubicación: {item.ubicacion}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">Ubicación: {item.ubicacion}</div>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] rounded font-medium">
+                      <span className="inline-block px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border dark:border-slate-700 text-[11px] rounded font-medium">
                         {item.categoria || 'Sin categoría'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold text-slate-900">
-                      {item.cantidad_actual} <span className="text-[11px] font-normal text-slate-500">{item.unidad_medida}</span>
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">
+                      {item.cantidad_actual} <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">{item.unidad_medida}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {item.stock_minimo} <span className="text-[11px] text-slate-400">{item.unidad_medida}</span>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                      {item.stock_minimo} <span className="text-[11px] text-slate-400 dark:text-slate-500">{item.unidad_medida}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                         <span>{formatearFecha(item.fecha_vencimiento)}</span>
                       </div>
                     </td>
@@ -274,7 +274,7 @@ export default function InsumosSeccion() {
                         <button
                           type="button"
                           onClick={() => handleVerDetalle(item)}
-                          className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-teal hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                           title="Ver detalle e histórico"
                         >
                           <Eye className="w-4 h-4" />
@@ -282,7 +282,7 @@ export default function InsumosSeccion() {
                         <button
                           type="button"
                           onClick={() => handleRegistrarMovimiento(item)}
-                          className="p-1.5 text-slate-500 hover:text-teal hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-teal dark:hover:text-teal hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                           title="Registrar movimiento"
                         >
                           <ArrowUpDown className="w-4 h-4" />
@@ -290,7 +290,7 @@ export default function InsumosSeccion() {
                         <button
                           type="button"
                           onClick={() => handleEditarInsumo(item)}
-                          className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-teal hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                           title="Editar insumo"
                         >
                           <Edit className="w-4 h-4" />
@@ -305,42 +305,42 @@ export default function InsumosSeccion() {
         </div>
 
         {/* Vista Mobile en Cards (block md:hidden) */}
-        <div className="block md:hidden divide-y divide-teal-soft">
+        <div className="block md:hidden divide-y divide-teal-soft dark:divide-slate-800">
           {insumosFiltrados.length === 0 ? (
-            <div className="p-6 text-center text-xs text-slate-500">
+            <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400">
               No se encontraron insumos que coincidan con la búsqueda.
             </div>
           ) : (
             insumosFiltrados.map((item) => (
-              <div key={item.id} className="p-4 space-y-2.5 hover:bg-slate-50 transition-colors">
+              <div key={item.id} className="p-4 space-y-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <button
                       type="button"
                       onClick={() => handleVerDetalle(item)}
-                      className="text-xs font-semibold text-slate-900 hover:text-primary hover:underline text-left cursor-pointer"
+                      className="text-xs font-semibold text-slate-900 dark:text-slate-100 hover:text-primary dark:hover:text-teal hover:underline text-left cursor-pointer"
                     >
                       {item.nombre}
                     </button>
                     <div>
-                      <span className="inline-block mt-0.5 px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded font-medium">
+                      <span className="inline-block mt-0.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border dark:border-slate-700 text-[10px] rounded font-medium">
                         {item.categoria || 'General'}
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="text-right">
-                      <div className="text-xs font-bold text-primary">
+                      <div className="text-xs font-bold text-primary dark:text-teal">
                         {item.cantidad_actual} {item.unidad_medida}
                       </div>
-                      <div className="text-[10px] text-slate-500">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
                         Min: {item.stock_minimo} {item.unidad_medida}
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleVerDetalle(item)}
-                      className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border border-slate-200 shrink-0"
+                      className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-teal hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0"
                       title="Ver detalle"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -348,7 +348,7 @@ export default function InsumosSeccion() {
                     <button
                       type="button"
                       onClick={() => handleRegistrarMovimiento(item)}
-                      className="p-1.5 text-slate-500 hover:text-teal hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border border-slate-200 shrink-0"
+                      className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-teal dark:hover:text-teal hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0"
                       title="Registrar movimiento"
                     >
                       <ArrowUpDown className="w-3.5 h-3.5" />
@@ -356,7 +356,7 @@ export default function InsumosSeccion() {
                     <button
                       type="button"
                       onClick={() => handleEditarInsumo(item)}
-                      className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border border-slate-200 shrink-0"
+                      className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-teal hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 shrink-0"
                       title="Editar insumo"
                     >
                       <Edit className="w-3.5 h-3.5" />
@@ -364,13 +364,13 @@ export default function InsumosSeccion() {
                   </div>
                 </div>
 
-                <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                   <span>Vence: {formatearFecha(item.fecha_vencimiento)}</span>
                 </div>
 
                 {/* Badges lado a lado */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
                   <BadgeSemaforo eje="Vencimiento" color={item.color_vencimiento} />
                   <BadgeSemaforo eje="Stock" color={item.color_stock} />
                 </div>
