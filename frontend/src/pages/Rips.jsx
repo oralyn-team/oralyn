@@ -254,28 +254,22 @@ function RipsContenido() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-end">
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] text-teal-muted dark:text-slate-400 font-semibold uppercase tracking-wider">Fecha inicial</label>
-                <div className="relative">
-                  <CalendarDays size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400" />
-                  <input
-                    type="date"
-                    value={fechaInicial}
-                    onChange={(e) => setFechaInicial(e.target.value)}
-                    className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3 py-2 outline-none focus:border-primary dark:focus:border-teal text-primary dark:text-dark-text min-h-[38px]"
-                  />
-                </div>
+                <input
+                  type="date"
+                  value={fechaInicial}
+                  onChange={(e) => setFechaInicial(e.target.value)}
+                  className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2 outline-none focus:border-primary dark:focus:border-teal text-primary dark:text-dark-text min-h-[38px]"
+                />
               </div>
 
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] text-teal-muted dark:text-slate-400 font-semibold uppercase tracking-wider">Fecha final</label>
-                <div className="relative">
-                  <CalendarDays size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400" />
-                  <input
-                    type="date"
-                    value={fechaFinal}
-                    onChange={(e) => setFechaFinal(e.target.value)}
-                    className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl pl-9 pr-3 py-2 outline-none focus:border-primary dark:focus:border-teal text-primary dark:text-dark-text min-h-[38px]"
-                  />
-                </div>
+                <input
+                  type="date"
+                  value={fechaFinal}
+                  onChange={(e) => setFechaFinal(e.target.value)}
+                  className="w-full text-[12px] bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl px-3 py-2 outline-none focus:border-primary dark:focus:border-teal text-primary dark:text-dark-text min-h-[38px]"
+                />
               </div>
 
               <div className="flex flex-col gap-1">
