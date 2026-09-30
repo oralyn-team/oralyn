@@ -88,7 +88,7 @@ export default function Notificaciones({ notificaciones }) {
         onClick={() => setAbierto((v) => !v)}
         className="relative w-8 h-8 rounded-full border border-teal-border dark:border-dark-border bg-teal-info dark:bg-dark-input flex items-center justify-center cursor-pointer hover:bg-teal-soft dark:hover:bg-slate-800 transition-colors"
       >
-        <Bell size={15} className="text-primary dark:text-dark-text" strokeWidth={1.8} />
+        <Bell size={15} className="text-primary dark:text-slate-100" strokeWidth={1.8} />
         {sinLeer > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-status-red border-2 border-white dark:border-dark-card flex items-center justify-center text-[9px] text-white font-bold">
             {sinLeer > 9 ? '9+' : sinLeer}
@@ -104,7 +104,7 @@ export default function Notificaciones({ notificaciones }) {
           <div className="flex items-center justify-between px-4 py-3 border-b border-teal-soft dark:border-dark-border">
             <div>
               <p className="text-[13px] font-medium text-primary dark:text-dark-text">Notificaciones</p>
-              <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
+              <p className="text-[11px] text-teal-muted dark:text-slate-200 mt-0.5">
                 {sinLeer > 0 ? `${sinLeer} sin leer` : 'Todo al día'}
               </p>
             </div>
@@ -121,7 +121,7 @@ export default function Notificaciones({ notificaciones }) {
           {/* Lista */}
           <ul className="max-h-[360px] overflow-y-auto divide-y divide-teal-soft dark:divide-dark-border">
             {notificaciones.length === 0 ? (
-              <li className="flex flex-col items-center justify-center py-10 text-teal-muted dark:text-slate-400 text-[12px] gap-2">
+              <li className="flex flex-col items-center justify-center py-10 text-teal-muted dark:text-slate-300 text-[12px] gap-2">
                 <CheckCheck size={24} className="text-teal dark:text-teal-300" />
                 Sin notificaciones pendientes
               </li>
@@ -158,7 +158,7 @@ export default function Notificaciones({ notificaciones }) {
                         )}
                       </div>
                       <p className="text-[12px] font-medium text-primary dark:text-dark-text leading-snug">{n.titulo}</p>
-                      <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5 leading-snug">{n.mensaje}</p>
+                      <p className="text-[11px] text-teal-muted dark:text-slate-200 mt-0.5 leading-snug">{n.mensaje}</p>
                     </div>
 
                     {/* Botón cerrar / marcar leída */}
@@ -166,7 +166,7 @@ export default function Notificaciones({ notificaciones }) {
                       <button
                         type="button"
                         onClick={() => marcarLeida(n.id)}
-                        className="flex-shrink-0 mt-0.5 text-teal-muted dark:text-slate-400 hover:text-primary dark:hover:text-dark-text transition-colors border-none bg-transparent cursor-pointer"
+                        className="flex-shrink-0 mt-0.5 text-teal-muted dark:text-slate-300 hover:text-primary dark:hover:text-dark-text transition-colors border-none bg-transparent cursor-pointer"
                       >
                         <X size={13} />
                       </button>
@@ -180,7 +180,7 @@ export default function Notificaciones({ notificaciones }) {
           {/* Footer */}
           {notificaciones.length > 0 && (
             <div className="px-4 py-2.5 border-t border-teal-soft dark:border-dark-border bg-teal-panel dark:bg-slate-800/50">
-              <p className="text-[11px] text-teal-muted dark:text-slate-400 text-center">
+              <p className="text-[11px] text-teal-muted dark:text-slate-300 text-center">
                 {notificaciones.length} alertas generadas automáticamente
               </p>
             </div>

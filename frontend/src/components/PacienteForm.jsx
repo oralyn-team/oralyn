@@ -34,7 +34,7 @@ function Field({
 
   return (
     <div className="mb-3.5">
-      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1.5">
+      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-200 uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
 
@@ -73,7 +73,7 @@ function SelectField({
 
   return (
     <div className="mb-3.5">
-      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1.5">
+      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-200 uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
 

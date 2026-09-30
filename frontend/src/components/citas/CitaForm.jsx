@@ -47,7 +47,7 @@ const inputBase = [
 function Field({ label, error, children }) {
   return (
     <div className="mb-3.5">
-      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1.5">
+      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-200 uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
 
@@ -536,7 +536,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
               error={errs.valor_cobrado}
             >
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 text-[12px] font-bold">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-200 font-bold text-[12px]">$</span>
                 <input
                   type="number"
                   name="valor_cobrado"
