@@ -5,16 +5,16 @@ import { api } from '../../api';
 const TIPOS_AFILIACION = ['Contributivo', 'Subsidiado', 'Particular'];
 
 const inputBase = [
-  'w-full px-2.5 py-1.5 border border-teal-border rounded-lg',
-  'text-[12px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
-  'outline-none transition-colors focus:border-teal focus:bg-white placeholder:text-teal-light',
+  'w-full px-2.5 py-1.5 border border-teal-border dark:border-dark-border rounded-lg',
+  'text-[12px] font-sans text-[#1a3a3a] dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
+  'outline-none transition-colors focus:border-teal dark:focus:border-teal focus:bg-white dark:focus:bg-slate-800 placeholder:text-teal-light dark:placeholder:text-slate-500',
 ].join(' ');
 
 function Label({ text, opcional }) {
   return (
-    <p className="text-[10px] font-medium text-teal-muted uppercase tracking-[0.7px] mb-1 flex items-center gap-1">
+    <p className="text-[10px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1 flex items-center gap-1">
       {text}
-      {opcional && <span className="text-[9px] normal-case tracking-normal text-teal-light font-normal">(opcional)</span>}
+      {opcional && <span className="text-[9px] normal-case tracking-normal text-teal-light dark:text-teal-400 font-normal">(opcional)</span>}
     </p>
   );
 }
@@ -22,10 +22,10 @@ function Label({ text, opcional }) {
 function SectionTitle({ number, text }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
+      <div className="w-5 h-5 rounded-full bg-primary dark:bg-teal flex items-center justify-center text-[10px] text-white dark:text-slate-900 font-bold flex-shrink-0">
         {number}
       </div>
-      <h4 className="text-[12px] font-semibold text-primary uppercase tracking-[0.5px]">{text}</h4>
+      <h4 className="text-[12px] font-semibold text-primary dark:text-teal uppercase tracking-[0.5px]">{text}</h4>
     </div>
   );
 }
@@ -34,8 +34,8 @@ function InfoField({ label, value }) {
   return (
     <div>
       <Label text={label} />
-      <div className="px-2.5 py-1.5 border border-teal-soft rounded-lg bg-[#F7FDFD] text-[12px] text-[#1a3a3a] min-h-[32px]">
-        {value || <span className="text-teal-light">—</span>}
+      <div className="px-2.5 py-1.5 border border-teal-soft dark:border-dark-border rounded-lg bg-[#F7FDFD] dark:bg-slate-800/60 text-[12px] text-[#1a3a3a] dark:text-dark-text min-h-[32px]">
+        {value || <span className="text-teal-light dark:text-slate-500">—</span>}
       </div>
     </div>
   );
@@ -45,20 +45,20 @@ function CheckSiNo({ label, value, onChange, disabled }) {
   // Sanitizar el name para evitar colisiones con caracteres especiales o acentos
   const safeName = `ant-${label.replace(/[^a-zA-Z0-9]/g, '_')}`;
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-teal-soft last:border-0">
-      <span className="text-[12px] text-[#1a3a3a] flex-1 pr-2">{label}</span>
+    <div className="flex items-center justify-between py-1.5 border-b border-teal-soft dark:border-dark-border last:border-0">
+      <span className="text-[12px] text-[#1a3a3a] dark:text-dark-text flex-1 pr-2">{label}</span>
       <div className="flex items-center gap-3 flex-shrink-0">
         <label className="flex items-center gap-1 cursor-pointer">
           <input type="radio" name={safeName} disabled={disabled}
             checked={value === true} onChange={() => onChange(true)}
-            className="accent-primary w-3.5 h-3.5" />
-          <span className="text-[11px]">Sí</span>
+            className="accent-primary dark:accent-teal w-3.5 h-3.5" />
+          <span className="text-[11px] text-primary dark:text-dark-text">Sí</span>
         </label>
         <label className="flex items-center gap-1 cursor-pointer">
           <input type="radio" name={safeName} disabled={disabled}
             checked={value === false} onChange={() => onChange(false)}
-            className="accent-status-red w-3.5 h-3.5" />
-          <span className="text-[11px]">No</span>
+            className="accent-status-red dark:accent-red-400 w-3.5 h-3.5" />
+          <span className="text-[11px] text-primary dark:text-dark-text">No</span>
         </label>
       </div>
     </div>
@@ -67,10 +67,10 @@ function CheckSiNo({ label, value, onChange, disabled }) {
 
 function CheckHabito({ label, checked, onChange, disabled }) {
   return (
-    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${checked ? 'border-primary bg-teal-soft' : 'border-teal-border bg-white hover:bg-teal-panel'}`}>
+    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${checked ? 'border-primary dark:border-teal bg-teal-soft dark:bg-teal/10' : 'border-teal-border dark:border-dark-border bg-white dark:bg-dark-input hover:bg-teal-panel dark:hover:bg-slate-800'}`}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
-        disabled={disabled} className="accent-primary w-3.5 h-3.5" />
-      <span className="text-[12px] text-[#1a3a3a]">{label}</span>
+        disabled={disabled} className="accent-primary dark:accent-teal w-3.5 h-3.5" />
+      <span className="text-[12px] text-[#1a3a3a] dark:text-dark-text">{label}</span>
     </label>
   );
 }

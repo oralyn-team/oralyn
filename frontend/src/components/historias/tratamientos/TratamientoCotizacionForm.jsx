@@ -24,30 +24,30 @@ const BASE_URL =
 // ─── Estilos compartidos ──────────────────────────────────────────────────────
 
 const input = [
-  'w-full px-2.5 py-[7px] border border-teal-border rounded-lg',
-  'text-[12.5px] text-[#1a3a3a] bg-[#FAFEFE]',
-  'outline-none transition-colors focus:border-teal focus:bg-white',
-  'placeholder:text-teal-light',
+  'w-full px-2.5 py-[7px] border border-teal-border dark:border-dark-border rounded-lg',
+  'text-[12.5px] text-[#1a3a3a] dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
+  'outline-none transition-colors focus:border-teal focus:bg-white dark:focus:bg-slate-800',
+  'placeholder:text-teal-light dark:placeholder:text-slate-500',
 ].join(' ');
 
-const inputErr = 'border-status-red bg-red-50/30';
+const inputErr = 'border-status-red bg-red-50/30 dark:bg-red-950/20';
 
 // ─── Sub-componentes locales ──────────────────────────────────────────────────
 
 function Field({ label, error, optional, children, className = '' }) {
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label className="flex items-center gap-1.5 text-[10px] font-semibold text-teal-muted uppercase tracking-[0.65px]">
+      <label className="flex items-center gap-1.5 text-[10px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.65px]">
         {label}
         {optional && (
-          <span className="normal-case tracking-normal font-normal text-[9.5px] text-teal-light bg-teal-soft px-1.5 py-0.5 rounded-full">
+          <span className="normal-case tracking-normal font-normal text-[9.5px] text-teal-light dark:text-slate-400 bg-teal-soft dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
             opcional
           </span>
         )}
       </label>
       {children}
       {error && (
-        <p className="text-[10.5px] text-status-red flex items-center gap-1">
+        <p className="text-[10.5px] text-status-red dark:text-red-400 flex items-center gap-1">
           <AlertCircle size={10} /> {error}
         </p>
       )}
@@ -65,7 +65,7 @@ function SelectBox({ children, value, onChange, error }) {
       >
         {children}
       </select>
-      <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
+      <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 pointer-events-none" />
     </div>
   );
 }
@@ -74,10 +74,10 @@ function SectionTitle({ icon: Icon, title, action }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon size={13} className="text-primary" />
+        <div className="w-7 h-7 rounded-lg bg-primary/10 dark:bg-teal-500/20 flex items-center justify-center">
+          <Icon size={13} className="text-primary dark:text-teal-300" />
         </div>
-        <span className="text-[12.5px] font-semibold text-[#1a3a3a]">{title}</span>
+        <span className="text-[12.5px] font-semibold text-[#1a3a3a] dark:text-dark-text">{title}</span>
       </div>
       {action}
     </div>
@@ -85,7 +85,7 @@ function SectionTitle({ icon: Icon, title, action }) {
 }
 
 function Divider() {
-  return <div className="h-px bg-teal-soft my-5" />;
+  return <div className="h-px bg-teal-soft dark:bg-dark-border my-5" />;
 }
 
 function StatusBadge({ estado }) {
@@ -299,7 +299,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
       className="fixed inset-0 bg-primary/45 backdrop-blur-[2px] flex items-center justify-center z-40 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl w-full max-w-[1050px] max-h-[93vh] border border-teal-border shadow-2xl flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-dark-card rounded-2xl w-full max-w-[1050px] max-h-[93vh] border border-teal-border dark:border-dark-border shadow-2xl flex flex-col overflow-hidden">
 
         {/* ══ HEADER ══════════════════════════════════════════════════════ */}
         <div className="flex items-center justify-between px-5 py-3.5 bg-primary flex-shrink-0">
@@ -333,7 +333,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
 
             {/* Banner global de errores */}
             {errs._global && (
-              <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 text-[12.5px] font-medium rounded-xl flex items-center gap-2.5 shadow-sm animate-fade-in">
+              <div className="mb-4 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-[12.5px] font-medium rounded-xl flex items-center gap-2.5 shadow-sm animate-fade-in">
                 <AlertCircle size={17} className="text-red-500 flex-shrink-0" />
                 <span>{errs._global}</span>
               </div>
@@ -423,12 +423,12 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
 
             <div className="flex flex-col gap-2.5">
               {procs.length === 0 ? (
-                <div className="rounded-xl border-2 border-dashed border-teal-border py-8 flex flex-col items-center gap-2.5">
-                  <Activity size={22} className="text-teal-border" />
-                  <p className="text-[12px] text-teal-muted">Sin procedimientos. Agrega el primero.</p>
+                <div className="rounded-xl border-2 border-dashed border-teal-border dark:border-dark-border py-8 flex flex-col items-center gap-2.5">
+                  <Activity size={22} className="text-teal-border dark:text-slate-600" />
+                  <p className="text-[12px] text-teal-muted dark:text-slate-400">Sin procedimientos. Agrega el primero.</p>
                   <button
                     onClick={addProc}
-                    className="text-[11.5px] font-medium text-primary border border-primary/30 bg-primary/5 px-3.5 py-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+                    className="text-[11.5px] font-medium text-primary dark:text-teal-300 border border-primary/30 dark:border-teal-500/30 bg-primary/5 dark:bg-teal-500/10 px-3.5 py-1.5 rounded-lg hover:bg-primary/10 transition-colors"
                   >
                     + Agregar procedimiento
                   </button>
@@ -458,7 +458,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
               action={
                 <button
                   onClick={addPago}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium text-primary border border-primary/25 bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium text-primary dark:text-teal-300 border border-primary/25 dark:border-teal-500/30 bg-primary/5 dark:bg-teal-500/10 rounded-lg hover:bg-primary/10 transition-colors"
                 >
                   <Plus size={12} /> Registrar pago
                 </button>
@@ -467,7 +467,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
 
             <div className="flex flex-col gap-2">
               {pagos.length === 0 ? (
-                <p className="text-[11.5px] text-teal-muted text-center py-4 border border-dashed border-teal-border rounded-xl">
+                <p className="text-[11.5px] text-teal-muted dark:text-slate-400 text-center py-4 border border-dashed border-teal-border dark:border-dark-border rounded-xl">
                   Sin pagos registrados aún.
                 </p>
               ) : (
@@ -485,9 +485,9 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
 
             {/* Error global */}
             {errs._global && (
-              <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-red-50 border border-red-200">
+              <div className="mt-3 flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900">
                 <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
-                <p className="text-[11.5px] text-red-600">{errs._global}</p>
+                <p className="text-[11.5px] text-red-600 dark:text-red-300">{errs._global}</p>
               </div>
             )}
 
@@ -496,8 +496,8 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
           </div>
 
           {/* ─ RIGHT: panel financiero ───────────────────────────────── */}
-          <div className="w-[248px] flex-shrink-0 border-l border-teal-soft bg-[#FAFEFE] overflow-y-auto p-4">
-            <p className="text-[10px] font-semibold text-teal-muted uppercase tracking-[0.65px] mb-3">
+          <div className="w-[248px] flex-shrink-0 border-l border-teal-soft dark:border-dark-border bg-[#FAFEFE] dark:bg-dark-card overflow-y-auto p-4">
+            <p className="text-[10px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.65px] mb-3">
               Resumen financiero
             </p>
             <FinancialPanel
@@ -509,12 +509,12 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
         </div>
 
         {/* ══ FOOTER ══════════════════════════════════════════════════════ */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-teal-soft bg-[#FAFEFE] flex-shrink-0">
-          <p className="text-[10.5px] text-teal-muted tabular-nums">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-teal-soft dark:border-dark-border bg-[#FAFEFE] dark:bg-dark-card flex-shrink-0">
+          <p className="text-[10.5px] text-teal-muted dark:text-slate-400 tabular-nums">
             {procs.length} procedimiento{procs.length !== 1 ? 's' : ''} ·{' '}
-            Total: <span className="font-semibold text-primary">{fmt(totales.total)}</span>
+            Total: <span className="font-semibold text-primary dark:text-teal-300">{fmt(totales.total)}</span>
             {totales.saldo > 0 && (
-              <> · Saldo: <span className="font-semibold text-amber-600">{fmt(totales.saldo)}</span></>
+              <> · Saldo: <span className="font-semibold text-amber-600 dark:text-amber-400">{fmt(totales.saldo)}</span></>
             )}
           </p>
 
@@ -524,7 +524,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
                 <button
                   type="button"
                   onClick={() => setShowFacturaModal(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors shadow-2xs"
+                  className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-2xs"
                 >
                   <Receipt size={12} />
                   Generar factura electrónica
@@ -534,7 +534,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
                   type="button"
                   onClick={handleDescargarPDF}
                   disabled={descargandoPDF || saving}
-                  className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-medium text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-info transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-medium text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-lg hover:bg-teal-info dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
                 >
                   <Download size={12} />
                   {descargandoPDF ? 'Generando...' : 'Descargar PDF'}
@@ -546,7 +546,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
               <button
                 type="button"
                 onClick={() => setShowFacturaModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors shadow-2xs"
+                className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-2xs"
               >
                 <Receipt size={12} />
                 Generar factura electrónica
@@ -556,7 +556,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
             <button
               onClick={onClose}
               disabled={saving}
-              className="px-3.5 py-[7px] text-[12px] font-medium text-primary bg-white border border-teal-border rounded-lg hover:bg-teal-info transition-colors disabled:opacity-50"
+              className="px-3.5 py-[7px] text-[12px] font-medium text-primary dark:text-dark-text bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-lg hover:bg-teal-info dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -564,7 +564,7 @@ export default function TratamientoCotizacionForm({ onGuardar, onClose, tratamie
             <button
               onClick={() => handleSubmit('borrador')}
               disabled={saving}
-              className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-medium text-teal-muted bg-white border border-teal-border rounded-lg hover:bg-teal-info transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] font-medium text-teal-muted dark:text-slate-300 bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-lg hover:bg-teal-info dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               <FileText size={12} />
               {saving ? 'Guardando...' : 'Borrador'}

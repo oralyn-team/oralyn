@@ -23,6 +23,23 @@
   .dark body, body.dark {
     background-color: #0F172A;
     color: #F8FAFC;
+    color-scheme: dark;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  .dark option {
+    background-color: #1E293B;
+    color: #F8FAFC;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator,
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85) hue-rotate(180deg) brightness(1.2);
+    cursor: pointer;
   }
 
   /* Accessibility Focus Rings */

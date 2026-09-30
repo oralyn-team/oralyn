@@ -8,13 +8,13 @@ import { useApp } from '../../../context/useApp';
 // ─── Estilos base ─────────────────────────────────────────────────────────────
 
 const input = [
-  'w-full px-2.5 py-[7px] border border-teal-border rounded-lg',
-  'text-[12.5px] text-[#1a3a3a] bg-[#FAFEFE]',
-  'outline-none transition-colors focus:border-teal focus:bg-white',
-  'placeholder:text-teal-light',
+  'w-full px-2.5 py-[7px] border border-teal-border dark:border-dark-border rounded-lg',
+  'text-[12.5px] text-[#1a3a3a] dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
+  'outline-none transition-colors focus:border-teal focus:bg-white dark:focus:bg-slate-800',
+  'placeholder:text-teal-light dark:placeholder:text-slate-500',
 ].join(' ');
 
-const inputErr = 'border-status-red bg-red-50/30';
+const inputErr = 'border-status-red bg-red-50/30 dark:bg-red-950/20';
 
 // ─── Componentes auxiliares ───────────────────────────────────────────────────
 
@@ -28,14 +28,14 @@ function SelectBox({ children, value, onChange, error, className = '' }) {
       >
         {children}
       </select>
-      <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
+      <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 pointer-events-none" />
     </div>
   );
 }
 
 function FieldLabel({ children }) {
   return (
-    <span className="block text-[10px] font-semibold text-teal-muted uppercase tracking-[0.65px] mb-1">
+    <span className="block text-[10px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.65px] mb-1">
       {children}
     </span>
   );
@@ -44,7 +44,7 @@ function FieldLabel({ children }) {
 function ErrMsg({ msg }) {
   if (!msg) return null;
   return (
-    <p className="text-[10.5px] text-status-red mt-1 flex items-center gap-1">
+    <p className="text-[10.5px] text-status-red dark:text-red-400 mt-1 flex items-center gap-1">
       <AlertCircle size={10} /> {msg}
     </p>
   );
@@ -91,16 +91,16 @@ function TeethPicker({ selected = [], onChange }) {
         className={[
           'w-full min-h-[34px] px-2.5 py-1.5 border rounded-lg text-left',
           'flex flex-wrap items-center gap-1 transition-colors',
-          open ? 'border-teal bg-white' : 'border-teal-border bg-[#FAFEFE] hover:border-teal/50',
+          open ? 'border-teal bg-white dark:bg-slate-800' : 'border-teal-border dark:border-dark-border bg-[#FAFEFE] dark:bg-dark-input hover:border-teal/50',
         ].join(' ')}
       >
         {selected.length === 0 ? (
-          <span className="text-[12px] text-teal-light">Seleccionar dientes...</span>
+          <span className="text-[12px] text-teal-light dark:text-slate-500">Seleccionar dientes...</span>
         ) : (
           selected.sort((a, b) => a - b).map((d) => (
             <span
               key={d}
-              className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-medium"
+              className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 dark:bg-teal-500/20 text-primary dark:text-teal-300 text-[11px] font-medium"
             >
               {d}
             </span>
@@ -108,20 +108,20 @@ function TeethPicker({ selected = [], onChange }) {
         )}
         <ChevronDown
           size={11}
-          className={`ml-auto text-teal-muted flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`ml-auto text-teal-muted dark:text-slate-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {/* Dropdown panel */}
       {open && (
-        <div className="absolute z-20 left-0 mt-1.5 w-full bg-white border border-teal-border rounded-xl shadow-lg p-3">
+        <div className="absolute z-20 left-0 mt-1.5 w-full bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl shadow-lg p-3">
           <div className="grid grid-cols-2 gap-3">
             {CUADRANTES.map((cuad) => {
               const todosCuad = cuad.dientes.every((d) => selected.includes(d));
               return (
                 <div key={cuad.id}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-semibold text-teal-muted uppercase tracking-[0.5px]">
+                    <span className="text-[10px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.5px]">
                       {cuad.label}
                     </span>
                     <button
@@ -130,8 +130,8 @@ function TeethPicker({ selected = [], onChange }) {
                       className={[
                         'text-[9px] font-medium px-1.5 py-0.5 rounded transition-colors',
                         todosCuad
-                          ? 'bg-primary/15 text-primary'
-                          : 'bg-teal-soft text-teal-muted hover:bg-primary/10 hover:text-primary',
+                          ? 'bg-primary/15 dark:bg-teal-500/25 text-primary dark:text-teal-300'
+                          : 'bg-teal-soft dark:bg-slate-800 text-teal-muted dark:text-slate-400 hover:bg-primary/10 hover:text-primary dark:hover:text-teal-300',
                       ].join(' ')}
                     >
                       {todosCuad ? 'Quitar todos' : 'Todos'}
@@ -149,7 +149,7 @@ function TeethPicker({ selected = [], onChange }) {
                             'w-7 h-7 rounded-md text-[11px] font-medium transition-all',
                             sel
                               ? 'bg-primary text-white shadow-sm'
-                              : 'bg-teal-soft text-[#1a3a3a] hover:bg-primary/10 hover:text-primary',
+                              : 'bg-teal-soft dark:bg-slate-800 text-[#1a3a3a] dark:text-dark-text hover:bg-primary/10 hover:text-primary dark:hover:text-teal-300',
                           ].join(' ')}
                         >
                           {d}
@@ -162,12 +162,12 @@ function TeethPicker({ selected = [], onChange }) {
             })}
           </div>
           {selected.length > 0 && (
-            <div className="mt-2.5 pt-2 border-t border-teal-soft flex items-center justify-between">
-              <span className="text-[10.5px] text-teal-muted">{selected.length} diente{selected.length > 1 ? 's' : ''} seleccionado{selected.length > 1 ? 's' : ''}</span>
+            <div className="mt-2.5 pt-2 border-t border-teal-soft dark:border-dark-border flex items-center justify-between">
+              <span className="text-[10.5px] text-teal-muted dark:text-slate-400">{selected.length} diente{selected.length > 1 ? 's' : ''} seleccionado{selected.length > 1 ? 's' : ''}</span>
               <button
                 type="button"
                 onClick={() => onChange([])}
-                className="text-[10px] text-red-400 hover:text-red-600 transition-colors"
+                className="text-[10px] text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
               >
                 Limpiar selección
               </button>
@@ -223,8 +223,8 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
       className={[
         'rounded-xl border transition-all duration-200',
         hasError
-          ? 'border-red-200 bg-red-50/10'
-          : 'border-teal-border bg-white hover:border-teal/40',
+          ? 'border-red-200 dark:border-red-900 bg-red-50/10 dark:bg-red-950/10'
+          : 'border-teal-border dark:border-dark-border bg-white dark:bg-dark-card hover:border-teal/40',
       ].join(' ')}
     >
       {/* ── Cabecera compacta ─────────────────────────────────────────── */}
@@ -233,18 +233,18 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
         onClick={() => setExpanded((e) => !e)}
       >
         {/* Número */}
-        <span className="w-5 h-5 rounded-md bg-primary/12 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+        <span className="w-5 h-5 rounded-md bg-primary/12 dark:bg-teal-500/20 text-primary dark:text-teal-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
           {index + 1}
         </span>
 
         {/* Info principal */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13px] font-semibold text-[#1a3a3a] truncate">
-              {proc.procedimiento || <span className="text-teal-light font-normal">Sin procedimiento</span>}
+            <span className="text-[13px] font-semibold text-[#1a3a3a] dark:text-dark-text truncate">
+              {proc.procedimiento || <span className="text-teal-light dark:text-slate-500 font-normal">Sin procedimiento</span>}
             </span>
             {/* Aplica en badge */}
-            <span className="text-[10.5px] text-teal-muted bg-teal-soft px-2 py-0.5 rounded-full flex-shrink-0">
+            <span className="text-[10.5px] text-teal-muted dark:text-slate-400 bg-teal-soft dark:bg-slate-800 px-2 py-0.5 rounded-full flex-shrink-0">
               {aplicResumen}
             </span>
             {/* Estado badge */}
@@ -255,7 +255,7 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
             )}
             {/* Error badge */}
             {hasError && (
-              <span className="text-[10px] font-semibold text-red-600 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+              <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-2 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
                 <AlertCircle size={10} /> Corregir datos
               </span>
             )}
@@ -263,7 +263,7 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
         </div>
 
         {/* Total */}
-        <span className="text-[13px] font-bold text-primary flex-shrink-0 tabular-nums">
+        <span className="text-[13px] font-bold text-primary dark:text-teal-300 flex-shrink-0 tabular-nums">
           {fmt(subtotal)}
         </span>
 
@@ -271,29 +271,29 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
         <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => onDuplicate(proc.id)}
-            className="w-6 h-6 rounded-md text-teal-muted flex items-center justify-center hover:bg-teal-soft hover:text-primary transition-colors"
+            className="w-6 h-6 rounded-md text-teal-muted dark:text-slate-400 flex items-center justify-center hover:bg-teal-soft dark:hover:bg-slate-800 hover:text-primary dark:hover:text-teal-300 transition-colors"
             title="Duplicar"
           >
             <Copy size={11} />
           </button>
           <button
             onClick={() => onDelete(proc.id)}
-            className="w-6 h-6 rounded-md text-teal-muted flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+            className="w-6 h-6 rounded-md text-teal-muted dark:text-slate-400 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 dark:hover:text-red-400 transition-colors"
             title="Eliminar"
           >
             <Trash2 size={11} />
           </button>
           {expanded ? (
-            <ChevronUp size={13} className="text-teal-muted ml-0.5" />
+            <ChevronUp size={13} className="text-teal-muted dark:text-slate-400 ml-0.5" />
           ) : (
-            <ChevronDown size={13} className="text-teal-muted ml-0.5" />
+            <ChevronDown size={13} className="text-teal-muted dark:text-slate-400 ml-0.5" />
           )}
         </div>
       </div>
 
       {/* ── Panel expandible ──────────────────────────────────────────── */}
       {expanded && (
-        <div className="px-4 pb-4 pt-0 border-t border-teal-soft/60">
+        <div className="px-4 pb-4 pt-0 border-t border-teal-soft/60 dark:border-dark-border">
           <div className="pt-3 grid gap-3">
 
             {/* Fila 1: Procedimiento + Estado */}
@@ -366,7 +366,7 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
               )}
               {proc.aplicaEn === 'general' && (
                 <div className="col-span-2 flex items-end pb-[7px]">
-                  <p className="text-[11.5px] text-teal-muted italic">
+                  <p className="text-[11.5px] text-teal-muted dark:text-slate-400 italic">
                     Aplica de forma general, sin diente específico.
                   </p>
                 </div>
@@ -396,18 +396,18 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
                   onChange={(e) => set('cantidad', e.target.value)}
                   readOnly={proc.aplicaEn === 'dientes'}
                   className={`${input} text-center ${error.cantidad ? inputErr : ''} 
-                  ${proc.aplicaEn === 'dientes' ? 'bg-teal-soft text-teal-muted cursor-default' : ''}`}
+                  ${proc.aplicaEn === 'dientes' ? 'bg-teal-soft dark:bg-slate-800 text-teal-muted dark:text-slate-400 cursor-default' : ''}`}
                   />
                 <ErrMsg msg={error.cantidad} />
                 {proc.aplicaEn === 'dientes' && (
-                  <p className="text-[10px] text-teal-muted mt-0.5">Auto · {proc.dientes?.length || 0} diente(s)</p>
+                  <p className="text-[10px] text-teal-muted dark:text-slate-400 mt-0.5">Auto · {proc.dientes?.length || 0} diente(s)</p>
                   )}
               </div>
 
               <div>
                 <FieldLabel>Valor unitario</FieldLabel>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-teal-muted text-[11px]">$</span>
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 text-[11px]">$</span>
                   <input
                     type="number"
                     min="0"
@@ -431,14 +431,14 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
                     onChange={(e) => set('descuento', e.target.value)}
                     className={`${input} pr-6`}
                   />
-                  <Percent size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
+                  <Percent size={10} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 pointer-events-none" />
                 </div>
               </div>
 
               {/* Subtotal */}
               <div>
                 <FieldLabel>Total</FieldLabel>
-                <div className="px-2.5 py-[7px] rounded-lg bg-primary/8 border border-primary/20 text-[13px] font-bold text-primary text-right tabular-nums">
+                <div className="px-2.5 py-[7px] rounded-lg bg-primary/8 dark:bg-teal-500/10 border border-primary/20 dark:border-teal-500/30 text-[13px] font-bold text-primary dark:text-teal-300 text-right tabular-nums">
                   {fmt(subtotal)}
                 </div>
               </div>
@@ -460,4 +460,4 @@ export default function ProcedureCard({ proc, index, onChange, onDelete, onDupli
       )}
     </div>
   );
-}
+}

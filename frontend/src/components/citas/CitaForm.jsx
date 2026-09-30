@@ -47,7 +47,7 @@ const inputBase = [
 function Field({ label, error, children }) {
   return (
     <div className="mb-3.5">
-      <label className="block text-[11px] font-medium text-teal-muted uppercase tracking-[0.7px] mb-1.5">
+      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
 
@@ -56,7 +56,7 @@ function Field({ label, error, children }) {
       {error && (
         <p
           role="alert"
-          className="text-[11px] text-status-red mt-1"
+          className="text-[11px] text-status-red dark:text-red-400 mt-1"
         >
           {error}
         </p>
@@ -536,7 +536,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
               error={errs.valor_cobrado}
             >
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted text-[12px] font-bold">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 text-[12px] font-bold">$</span>
                 <input
                   type="number"
                   name="valor_cobrado"
@@ -628,12 +628,12 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
 
         {/* FOOTER */}
 
-        <div className="flex justify-end gap-2 px-5 py-3 border-t border-teal-soft flex-shrink-0">
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-teal-soft dark:border-dark-border bg-white dark:bg-dark-card flex-shrink-0">
 
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-[7px] text-[12px] text-primary font-sans bg-white border border-teal-border rounded-lg cursor-pointer hover:bg-teal-info transition-colors"
+            className="px-3 py-[7px] text-[12px] text-primary dark:text-slate-300 font-sans bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-lg cursor-pointer hover:bg-teal-info dark:hover:bg-slate-700 transition-colors"
           >
             Cancelar
           </button>
@@ -641,7 +641,7 @@ export default function CitaForm({ onGuardar, onClose, citaEditar, pacientes }) 
           <button
             type="button"
             onClick={handleSubmit}
-            className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] text-white dark:text-slate-900 font-medium font-sans bg-primary dark:bg-teal rounded-lg border-none cursor-pointer hover:bg-primary-light dark:hover:bg-teal-light transition-colors shadow-soft-sm"
           >
             <Save size={13} />
 

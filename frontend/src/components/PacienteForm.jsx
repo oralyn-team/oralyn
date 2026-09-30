@@ -26,15 +26,15 @@ function Field({
   error,
 }) {
   const inputBase = [
-    'w-full px-2.5 py-2 border border-teal-border rounded-lg',
-    'text-[13px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
+    'w-full px-2.5 py-2 border border-teal-border dark:border-dark-border rounded-lg',
+    'text-[13px] font-sans text-primary dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
     'outline-none transition-colors duration-150',
-    'focus:border-teal focus:bg-white placeholder:text-teal-light',
+    'focus:border-teal dark:focus:border-teal focus:bg-white dark:focus:bg-slate-800 placeholder:text-teal-light dark:placeholder:text-slate-500',
   ].join(' ');
 
   return (
     <div className="mb-3.5">
-      <label className="block text-[11px] font-medium text-teal-muted uppercase tracking-[0.7px] mb-1.5">
+      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
 
@@ -48,7 +48,7 @@ function Field({
       />
 
       {error && (
-        <p role="alert" className="text-[11px] text-status-red mt-1">
+        <p role="alert" className="text-[11px] text-status-red dark:text-red-400 mt-1">
           {error}
         </p>
       )}
@@ -65,15 +65,15 @@ function SelectField({
   children,
 }) {
   const selectBase = [
-    'w-full px-2.5 py-2 border border-teal-border rounded-lg',
-    'text-[13px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
+    'w-full px-2.5 py-2 border border-teal-border dark:border-dark-border rounded-lg',
+    'text-[13px] font-sans text-primary dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
     'outline-none transition-colors duration-150',
-    'focus:border-teal focus:bg-white cursor-pointer',
+    'focus:border-teal dark:focus:border-teal focus:bg-white dark:focus:bg-slate-800 cursor-pointer',
   ].join(' ');
 
   return (
     <div className="mb-3.5">
-      <label className="block text-[11px] font-medium text-teal-muted uppercase tracking-[0.7px] mb-1.5">
+      <label className="block text-[11px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1.5">
         {label}
       </label>
 
@@ -87,7 +87,7 @@ function SelectField({
       </select>
 
       {error && (
-        <p role="alert" className="text-[11px] text-status-red mt-1">
+        <p role="alert" className="text-[11px] text-status-red dark:text-red-400 mt-1">
           {error}
         </p>
       )}
