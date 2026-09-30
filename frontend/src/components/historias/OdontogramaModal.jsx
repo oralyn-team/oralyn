@@ -472,9 +472,9 @@ function PanelEdicion({ numero, datos, tipoOdontograma, onChange, onCerrar }) {
             rows={4}
             placeholder="Observaciones, lesiones, tratamientos previos..."
             className={[
-              'w-full px-2.5 py-2 border border-teal-border rounded-lg resize-none',
-              'text-[12px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
-              'outline-none transition-colors focus:border-teal focus:bg-white placeholder:text-teal-light',
+              'w-full px-2.5 py-2 border border-teal-border dark:border-dark-border rounded-lg resize-none',
+              'text-[12px] font-sans text-[#1a3a3a] dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
+              'outline-none transition-colors focus:border-teal focus:bg-white dark:focus:bg-slate-800 placeholder:text-teal-light dark:placeholder:text-slate-500',
             ].join(' ')}
           />
         </div>

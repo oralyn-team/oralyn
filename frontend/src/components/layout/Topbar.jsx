@@ -1,4 +1,5 @@
-import { Menu, Sun, Moon } from 'lucide-react';
+import { useState } from 'react';
+import { Menu, Sun, Moon, RefreshCw } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useApp } from '../../context/useApp';
 import Notificaciones from '../Notificaciones';
@@ -10,6 +11,9 @@ const TITULOS_PAGINAS = {
   '/citas': { titulo: 'Agenda de Citas', sub: 'Oralyn › Citas' },
   '/historias': { titulo: 'Historias Clínicas', sub: 'Oralyn › Historias' },
   '/consentimientos': { titulo: 'Consentimientos Informados', sub: 'Oralyn › Consentimientos' },
+  '/insumos': { titulo: 'Inventario de Insumos', sub: 'Oralyn › Insumos' },
+  '/facturacion': { titulo: 'Facturación', sub: 'Oralyn › Facturación' },
+  '/auditoria': { titulo: 'Auditoría del Sistema', sub: 'Oralyn › Auditoría' },
   '/rips': { titulo: 'Generador de RIPS', sub: 'Oralyn › RIPS' },
   '/configuracion': { titulo: 'Ajustes del Consultorio', sub: 'Oralyn › Configuración' },
 };
@@ -18,14 +22,22 @@ export default function Topbar({ onToggleMobileMenu }) {
   const { pacientes, configuracion, darkMode, toggleDarkMode } = useApp();
   const notificaciones = useNotificaciones(pacientes);
   const location = useLocation();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const pageInfo = TITULOS_PAGINAS[location.pathname] || {
     titulo: 'Sistema Odontológico',
     sub: 'Oralyn',
   };
 
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      window.location.reload();
+    }, 150);
+  };
+
   return (
-    <header className="bg-white dark:bg-dark-card border-b border-teal-border dark:border-dark-border px-4 sm:px-6 py-3 flex items-center justify-between flex-shrink-0 sticky top-0 z-30 transition-colors">
+    <header className="bg-white dark:bg-dark-card border-b border-teal-border dark:border-dark-border px-4 sm:px-6 py-3 flex items-center justify-between flex-shrink-0 sticky top-0 z-30 transition-colors font-sans">
       <div className="flex items-center gap-3">
         {/* Mobile Hamburger button */}
         {onToggleMobileMenu && (
@@ -49,7 +61,18 @@ export default function Topbar({ onToggleMobileMenu }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* Refresh button */}
+        <button
+          type="button"
+          onClick={handleRefresh}
+          className="p-2 rounded-lg text-primary dark:text-teal hover:bg-teal-soft dark:hover:bg-slate-800 transition-colors touch-target flex items-center justify-center cursor-pointer"
+          title="Actualizar información (Recargar)"
+          aria-label="Actualizar página"
+        >
+          <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : 'hover:rotate-180 transition-transform duration-500'} />
+        </button>
+
         {/* Dark mode button quick toggle */}
         <button
           type="button"

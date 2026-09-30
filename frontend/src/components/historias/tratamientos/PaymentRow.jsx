@@ -4,10 +4,10 @@ import { METODOS_PAGO } from './constants';
 import { fmt } from './helpers';
 
 const input = [
-  'w-full px-2.5 py-[7px] border border-teal-border rounded-lg',
-  'text-[12.5px] text-[#1a3a3a] bg-[#FAFEFE]',
-  'outline-none transition-colors focus:border-teal focus:bg-white',
-  'placeholder:text-teal-light',
+  'w-full px-2.5 py-[7px] border border-teal-border dark:border-dark-border rounded-lg',
+  'text-[12.5px] text-[#1a3a3a] dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
+  'outline-none transition-colors focus:border-teal dark:focus:border-teal focus:bg-white dark:focus:bg-slate-800',
+  'placeholder:text-teal-light dark:placeholder:text-slate-500',
 ].join(' ');
 
 function SelectBox({ value, onChange, children }) {
@@ -16,11 +16,11 @@ function SelectBox({ value, onChange, children }) {
       <select
         value={value}
         onChange={onChange}
-        className={`${input} appearance-none pr-7`}
+        className={`${input} appearance-none pr-7 cursor-pointer`}
       >
         {children}
       </select>
-      <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
+      <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 pointer-events-none" />
     </div>
   );
 }
@@ -29,11 +29,11 @@ export default function PaymentRow({ pago, onChange, onDelete, error = {} }) {
   const set = (field, value) => onChange(pago.id, field, value);
 
   return (
-    <div className="flex items-start gap-2.5 p-3 rounded-xl border border-teal-border bg-white hover:border-teal/40 transition-colors">
+    <div className="flex items-start gap-2.5 p-3 rounded-xl border border-teal-border dark:border-dark-border bg-white dark:bg-dark-card hover:border-teal/40 transition-colors">
 
       {/* Fecha */}
       <div className="flex flex-col gap-1 w-32 flex-shrink-0">
-        <span className="text-[9.5px] font-semibold text-teal-muted uppercase tracking-[0.6px]">Fecha</span>
+        <span className="text-[9.5px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.6px]">Fecha</span>
         <input
           type="date"
           value={pago.fecha}
@@ -44,20 +44,20 @@ export default function PaymentRow({ pago, onChange, onDelete, error = {} }) {
 
       {/* Monto */}
       <div className="flex flex-col gap-1 w-36 flex-shrink-0">
-        <span className="text-[9.5px] font-semibold text-teal-muted uppercase tracking-[0.6px]">Monto</span>
+        <span className="text-[9.5px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.6px]">Monto</span>
         <div className="relative">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-teal-muted text-[11px]">$</span>
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 text-[11px]">$</span>
           <input
             type="number"
             min="0"
             value={pago.monto}
             onChange={(e) => set('monto', e.target.value)}
             placeholder="0"
-            className={`${input} pl-5 ${error.monto ? 'border-status-red bg-red-50/30' : ''}`}
+            className={`${input} pl-5 ${error.monto ? 'border-status-red dark:border-red-400 bg-red-50/30 dark:bg-red-950/30' : ''}`}
           />
         </div>
         {error.monto && (
-          <span className="text-[10px] text-status-red flex items-center gap-1">
+          <span className="text-[10px] text-status-red dark:text-red-400 flex items-center gap-1">
             <AlertCircle size={9} /> {error.monto}
           </span>
         )}
@@ -65,7 +65,7 @@ export default function PaymentRow({ pago, onChange, onDelete, error = {} }) {
 
       {/* Método */}
       <div className="flex flex-col gap-1 flex-1">
-        <span className="text-[9.5px] font-semibold text-teal-muted uppercase tracking-[0.6px]">Método</span>
+        <span className="text-[9.5px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.6px]">Método</span>
         <SelectBox value={pago.metodo} onChange={(e) => set('metodo', e.target.value)}>
           {METODOS_PAGO.map((m) => <option key={m} value={m}>{m}</option>)}
         </SelectBox>
@@ -73,7 +73,7 @@ export default function PaymentRow({ pago, onChange, onDelete, error = {} }) {
 
       {/* Referencia */}
       <div className="flex flex-col gap-1 flex-1">
-        <span className="text-[9.5px] font-semibold text-teal-muted uppercase tracking-[0.6px]">
+        <span className="text-[9.5px] font-semibold text-teal-muted dark:text-slate-400 uppercase tracking-[0.6px]">
           Referencia <span className="font-normal normal-case">(opcional)</span>
         </span>
         <input
@@ -88,14 +88,14 @@ export default function PaymentRow({ pago, onChange, onDelete, error = {} }) {
       {/* Monto formateado + eliminar */}
       <div className="flex flex-col items-end gap-1 flex-shrink-0 pt-5">
         {Number(pago.monto) > 0 && (
-          <span className="text-[11.5px] font-semibold text-emerald-600 tabular-nums">
+          <span className="text-[11.5px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
             {fmt(pago.monto)}
           </span>
         )}
         <button
           type="button"
           onClick={() => onDelete(pago.id)}
-          className="w-7 h-[34px] rounded-lg border border-teal-border text-teal-muted flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
+          className="w-7 h-[34px] rounded-lg border border-teal-border dark:border-dark-border text-teal-muted dark:text-slate-400 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-950/40 hover:border-red-200 dark:hover:border-red-900/50 hover:text-red-500 dark:hover:text-red-400 transition-colors"
           title="Eliminar pago"
         >
           <Trash2 size={12} />

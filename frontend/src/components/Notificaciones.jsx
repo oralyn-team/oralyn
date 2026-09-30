@@ -86,11 +86,11 @@ export default function Notificaciones({ notificaciones }) {
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
-        className="relative w-8 h-8 rounded-full border border-teal-border bg-teal-info flex items-center justify-center cursor-pointer hover:bg-teal-soft transition-colors"
+        className="relative w-8 h-8 rounded-full border border-teal-border dark:border-dark-border bg-teal-info dark:bg-dark-input flex items-center justify-center cursor-pointer hover:bg-teal-soft dark:hover:bg-slate-800 transition-colors"
       >
-        <Bell size={15} className="text-primary" strokeWidth={1.8} />
+        <Bell size={15} className="text-primary dark:text-dark-text" strokeWidth={1.8} />
         {sinLeer > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-status-red border-2 border-white flex items-center justify-center text-[9px] text-white font-bold">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-status-red border-2 border-white dark:border-dark-card flex items-center justify-center text-[9px] text-white font-bold">
             {sinLeer > 9 ? '9+' : sinLeer}
           </span>
         )}
@@ -98,20 +98,20 @@ export default function Notificaciones({ notificaciones }) {
 
       {/* Panel desplegable */}
       {abierto && (
-        <div className="absolute right-0 top-10 w-[340px] bg-white border border-teal-border rounded-xl shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 top-10 w-[340px] bg-white dark:bg-dark-card border border-teal-border dark:border-dark-border rounded-xl shadow-lg z-50 overflow-hidden">
 
           {/* Header del panel */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-teal-soft">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-teal-soft dark:border-dark-border">
             <div>
-              <p className="text-[13px] font-medium text-primary">Notificaciones</p>
-              <p className="text-[11px] text-teal-muted mt-0.5">
+              <p className="text-[13px] font-medium text-primary dark:text-dark-text">Notificaciones</p>
+              <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5">
                 {sinLeer > 0 ? `${sinLeer} sin leer` : 'Todo al día'}
               </p>
             </div>
             <button
               type="button"
               onClick={marcarTodasLeidas}
-              className="flex items-center gap-1 text-[11px] text-teal cursor-pointer hover:text-primary transition-colors font-sans border-none bg-transparent"
+              className="flex items-center gap-1 text-[11px] text-teal dark:text-teal-300 cursor-pointer hover:text-primary dark:hover:text-teal-200 transition-colors font-sans border-none bg-transparent"
             >
               <CheckCheck size={13} />
               Marcar todas
@@ -119,10 +119,10 @@ export default function Notificaciones({ notificaciones }) {
           </div>
 
           {/* Lista */}
-          <ul className="max-h-[360px] overflow-y-auto divide-y divide-teal-soft">
+          <ul className="max-h-[360px] overflow-y-auto divide-y divide-teal-soft dark:divide-dark-border">
             {notificaciones.length === 0 ? (
-              <li className="flex flex-col items-center justify-center py-10 text-teal-muted text-[12px] gap-2">
-                <CheckCheck size={24} className="text-teal" />
+              <li className="flex flex-col items-center justify-center py-10 text-teal-muted dark:text-slate-400 text-[12px] gap-2">
+                <CheckCheck size={24} className="text-teal dark:text-teal-300" />
                 Sin notificaciones pendientes
               </li>
             ) : (
@@ -137,7 +137,9 @@ export default function Notificaciones({ notificaciones }) {
                     className={[
                       'flex items-start gap-3 px-4 py-3 border-l-[3px] transition-colors',
                       estilos.borde,
-                      esLeida ? 'bg-white opacity-50' : 'bg-white hover:bg-teal-panel',
+                      esLeida
+                        ? 'bg-white dark:bg-dark-card opacity-50'
+                        : 'bg-white dark:bg-dark-card hover:bg-teal-panel dark:hover:bg-slate-800/60',
                     ].join(' ')}
                   >
                     {/* Ícono */}
@@ -155,8 +157,8 @@ export default function Notificaciones({ notificaciones }) {
                           <span className="w-1.5 h-1.5 rounded-full bg-teal flex-shrink-0" />
                         )}
                       </div>
-                      <p className="text-[12px] font-medium text-primary leading-snug">{n.titulo}</p>
-                      <p className="text-[11px] text-teal-muted mt-0.5 leading-snug">{n.mensaje}</p>
+                      <p className="text-[12px] font-medium text-primary dark:text-dark-text leading-snug">{n.titulo}</p>
+                      <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-0.5 leading-snug">{n.mensaje}</p>
                     </div>
 
                     {/* Botón cerrar / marcar leída */}
@@ -164,7 +166,7 @@ export default function Notificaciones({ notificaciones }) {
                       <button
                         type="button"
                         onClick={() => marcarLeida(n.id)}
-                        className="flex-shrink-0 mt-0.5 text-teal-muted hover:text-primary transition-colors border-none bg-transparent cursor-pointer"
+                        className="flex-shrink-0 mt-0.5 text-teal-muted dark:text-slate-400 hover:text-primary dark:hover:text-dark-text transition-colors border-none bg-transparent cursor-pointer"
                       >
                         <X size={13} />
                       </button>
@@ -177,8 +179,8 @@ export default function Notificaciones({ notificaciones }) {
 
           {/* Footer */}
           {notificaciones.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-teal-soft bg-teal-panel">
-              <p className="text-[11px] text-teal-muted text-center">
+            <div className="px-4 py-2.5 border-t border-teal-soft dark:border-dark-border bg-teal-panel dark:bg-slate-800/50">
+              <p className="text-[11px] text-teal-muted dark:text-slate-400 text-center">
                 {notificaciones.length} alertas generadas automáticamente
               </p>
             </div>

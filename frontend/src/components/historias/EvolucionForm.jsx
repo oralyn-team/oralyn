@@ -44,30 +44,30 @@ function validarPiezas(val) {
 // ─── Estilos compartidos ─────────────────────────────────────────────────────
 
 const inputBase = [
-  'w-full px-2.5 py-2 border border-teal-border rounded-lg',
-  'text-[13px] font-sans text-[#1a3a3a] bg-[#FAFEFE]',
+  'w-full px-2.5 py-2 border border-teal-border dark:border-dark-border rounded-lg',
+  'text-[13px] font-sans text-[#1a3a3a] dark:text-dark-text bg-[#FAFEFE] dark:bg-dark-input',
   'outline-none transition-colors duration-150',
-  'focus:border-teal focus:bg-white placeholder:text-teal-light',
+  'focus:border-teal dark:focus:border-teal focus:bg-white dark:focus:bg-slate-800 placeholder:text-teal-light dark:placeholder:text-slate-500',
 ].join(' ');
 
-const inputError = 'border-status-red';
+const inputError = 'border-status-red dark:border-red-400';
 
 // ─── Subcomponentes ───────────────────────────────────────────────────────────
 
 function Field({ label, error, children, optional = false }) {
   return (
     <div className="mb-3.5">
-      <label className="flex items-center gap-1.5 text-[11px] font-medium text-teal-muted uppercase tracking-[0.7px] mb-1.5">
+      <label className="flex items-center gap-1.5 text-[11px] font-medium text-teal-muted dark:text-slate-400 uppercase tracking-[0.7px] mb-1.5">
         {label}
         {optional && (
-          <span className="normal-case tracking-normal font-normal text-[10px] text-teal-light bg-teal-soft px-1.5 py-0.5 rounded-full">
+          <span className="normal-case tracking-normal font-normal text-[10px] text-teal-light dark:text-teal-400 bg-teal-soft dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
             opcional
           </span>
         )}
       </label>
       {children}
       {error && (
-        <p role="alert" className="text-[11px] text-status-red mt-1 flex items-center gap-1">
+        <p role="alert" className="text-[11px] text-status-red dark:text-red-400 mt-1 flex items-center gap-1">
           <span>⚠</span> {error}
         </p>
       )}
@@ -77,11 +77,11 @@ function Field({ label, error, children, optional = false }) {
 
 function SectionDivider({ icon: Icon, title }) {
   return (
-    <div className="flex items-center gap-2 mt-5 mb-4 pb-2 border-b border-teal-soft">
-      <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-        <Icon size={11} className="text-primary" />
+    <div className="flex items-center gap-2 mt-5 mb-4 pb-2 border-b border-teal-soft dark:border-dark-border">
+      <div className="w-5 h-5 rounded-md bg-primary/10 dark:bg-teal/10 flex items-center justify-center flex-shrink-0">
+        <Icon size={11} className="text-primary dark:text-teal" />
       </div>
-      <span className="text-[10.5px] font-semibold text-primary/70 uppercase tracking-[0.9px]">
+      <span className="text-[10.5px] font-semibold text-primary/70 dark:text-teal-light/80 uppercase tracking-[0.9px]">
         {title}
       </span>
     </div>
@@ -193,13 +193,13 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
 
   return (
     <div
-      className="fixed inset-0 bg-primary/40 flex items-center justify-center z-30 p-4"
+      className="fixed inset-0 bg-primary/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center z-30 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl w-full max-w-[520px] max-h-[92vh] border border-teal-border overflow-hidden flex flex-col shadow-xl">
+      <div className="bg-white dark:bg-dark-card rounded-2xl w-full max-w-[520px] max-h-[92vh] border border-teal-border dark:border-dark-border overflow-hidden flex flex-col shadow-xl">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-5 py-4 bg-primary flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 bg-primary dark:bg-slate-900 flex-shrink-0 text-white">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center">
               <ClipboardList size={14} className="text-white" />
@@ -252,7 +252,7 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
+                  <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 pointer-events-none" />
                 </div>
               ) : (
                 <input
@@ -266,7 +266,7 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
                 />
               )}
               {usarSelectProfesional && doctorSinVincular && (
-                <p className="text-[10.5px] text-teal-muted mt-1">Registrado como: {doctorOriginal}</p>
+                <p className="text-[10.5px] text-teal-muted dark:text-slate-400 mt-1">Registrado como: {doctorOriginal}</p>
               )}
             </Field>
           </div>
@@ -317,7 +317,7 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
                     </optgroup>
                   ))}
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted pointer-events-none" />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-teal-muted dark:text-slate-400 pointer-events-none" />
               </div>
             </Field>
             <Field label="Piezas tratadas" error={errs.piezasTratadas} optional>
@@ -338,7 +338,7 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
               {form.piezasTratadas.split(',').map((p) => p.trim()).filter(Boolean).map((pieza) => (
                 <span
                   key={pieza}
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20"
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 dark:bg-teal/10 text-primary dark:text-teal border border-primary/20 dark:border-teal/20"
                 >
                   🦷 {pieza}
                 </span>
@@ -368,8 +368,8 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
                   className={[
                     'flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all text-[12px]',
                     form.estadoClinico === value
-                      ? 'border-primary bg-primary/8 font-medium text-primary'
-                      : 'border-teal-border bg-[#FAFEFE] text-[#1a3a3a] hover:border-teal hover:bg-teal-info',
+                      ? 'border-primary dark:border-teal bg-primary/8 dark:bg-teal/10 font-medium text-primary dark:text-teal'
+                      : 'border-teal-border dark:border-dark-border bg-[#FAFEFE] dark:bg-dark-input text-[#1a3a3a] dark:text-dark-text hover:border-teal hover:bg-teal-info dark:hover:bg-slate-800',
                   ].join(' ')}
                 >
                   <input
@@ -382,16 +382,16 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
                   />
                   <span className={[
                     'w-2 h-2 rounded-full flex-shrink-0',
-                    form.estadoClinico === value ? 'bg-primary' : 'bg-teal-border',
+                    form.estadoClinico === value ? 'bg-primary dark:bg-teal' : 'bg-teal-border dark:bg-slate-600',
                   ].join(' ')} />
-                  <span className={form.estadoClinico === value ? 'text-primary' : color}>
+                  <span className={form.estadoClinico === value ? 'text-primary dark:text-teal' : color}>
                     {label}
                   </span>
                 </label>
               ))}
             </div>
             {errs.estadoClinico && (
-              <p role="alert" className="text-[11px] text-status-red mt-1 flex items-center gap-1">
+              <p role="alert" className="text-[11px] text-status-red dark:text-red-400 mt-1 flex items-center gap-1">
                 <span>⚠</span> {errs.estadoClinico}
               </p>
             )}
@@ -433,19 +433,19 @@ export default function EvolucionForm({ onGuardar, onClose, evolucionEditar }) {
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-teal-soft flex-shrink-0 bg-[#FAFEFE]">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-teal-soft dark:border-dark-border flex-shrink-0 bg-[#FAFEFE] dark:bg-dark-card">
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-[7px] text-[12px] text-primary font-sans bg-white border border-teal-border rounded-lg cursor-pointer hover:bg-teal-info transition-colors"
+              className="px-3 py-[7px] text-[12px] text-primary dark:text-slate-300 font-sans bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-lg cursor-pointer hover:bg-teal-info dark:hover:bg-slate-700 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="button"
               onClick={handleSubmit}
-              className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] text-white font-medium font-sans bg-primary rounded-lg border-none cursor-pointer hover:bg-primary-light transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-[7px] text-[12px] text-white dark:text-slate-900 font-medium font-sans bg-primary dark:bg-teal rounded-lg border-none cursor-pointer hover:bg-primary-light dark:hover:bg-teal-light transition-colors shadow-soft-sm"
             >
               <Save size={13} />
               {esEdicion ? 'Guardar cambios' : 'Agregar evolución'}
