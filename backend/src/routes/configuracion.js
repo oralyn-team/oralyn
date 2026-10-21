@@ -4,6 +4,7 @@ const verificarToken = require('../middlewares/auth')
 const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
 const { PERMISSIONS } = require('../lib/permissions')
 const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
+const { esFirmaValida } = require('../lib/firmas')
 
 const router = express.Router()
 
@@ -189,6 +190,10 @@ router.put('/firma-doctor-default', requirePermission(PERMISSIONS.SETTINGS_UPDAT
     }
 
     const { firma_doctor_default } = req.body
+
+    if (firma_doctor_default && !esFirmaValida(firma_doctor_default)) {
+      return res.status(400).json({ error: 'Formato de firma no válido. Debe ser una imagen PNG en base64.' })
+    }
 
     const config = await prisma.configuracion.update({
       where: { id: consultorioId },

@@ -490,3 +490,100 @@ test('Aislamiento: DELETE /api/consentimientos/:id — no permite eliminar conse
   assert.equal(response.status, 403) // Esperado: 403 o 404. Obtenido: 204 (Vulnerabilidad).
 })
 
+// ─────────────────────────────────────────────────────────────
+// 9. Snapshot de firma del doctor y validaciones de firma
+// ─────────────────────────────────────────────────────────────
+
+test('POST /api/consentimientos — congela (snapshot) la firma por defecto del profesional al crear', async (t) => {
+  const prismaMock = createConsentimientosMock()
+  prismaMock.__db.profesional.push({
+    id: 50,
+    consultorio_id: 10,
+    nombre_completo: 'Dra. Snapshot',
+    cedula_profesional: 'CC5050',
+    firma_default: 'data:image/png;base64,firmaProfesionalSnapshot==',
+    activo: true
+  })
+
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const token = generateToken(1, 10)
+  const payload = {
+    paciente_id: 5,
+    profesional_id: 50,
+    tipo: 'anestesia',
+    firma_paciente: 'data:image/png;base64,firmaPacienteValida=='
+  }
+
+  const { response, body } = await harness.request('/api/consentimientos', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+
+  assert.equal(response.status, 201)
+  assert.equal(body.firma_paciente, 'data:image/png;base64,firmaPacienteValida==')
+  assert.equal(body.firma_doctor, 'data:image/png;base64,firmaProfesionalSnapshot==')
+  assert.equal(body.cc_profesional, 'CC5050')
+  assert.ok(body.pdf_generado_en)
+})
+
+test('POST /api/consentimientos — rechaza firma_paciente que no sea PNG base64 (ej. URL externa)', async (t) => {
+  const harness = await startAppWithPrisma(createConsentimientosMock())
+  t.after(() => harness.close())
+
+  const token = generateToken(1, 10)
+  const payload = {
+    paciente_id: 5,
+    tipo: 'anestesia',
+    firma_paciente: 'https://evil.example.com/ssrf.png'
+  }
+
+  const { response, body } = await harness.request('/api/consentimientos', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+
+  assert.equal(response.status, 400)
+  assert.ok(body.error.includes('Formato de firma'))
+})
+
+test('PATCH /api/consentimientos/:id/firmas — bloquea re-firma si ya tiene firma_paciente (409) o si está anulado (400)', async (t) => {
+  const prismaMock = createConsentimientosMock()
+  const harness = await startAppWithPrisma(prismaMock)
+  t.after(() => harness.close())
+
+  const token = generateToken(1, 10)
+
+  // Primera firma exitosa
+  const firstRes = await harness.request('/api/consentimientos/301/firmas', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ firma_paciente: 'data:image/png;base64,primeraFirma==' })
+  })
+  assert.equal(firstRes.response.status, 200)
+
+  // Intento de re-firmar debe devolver 409
+  const secondRes = await harness.request('/api/consentimientos/301/firmas', {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ firma_paciente: 'data:image/png;base64,segundaFirma==' })
+  })
+  assert.equal(secondRes.response.status, 409)
+})
+
+

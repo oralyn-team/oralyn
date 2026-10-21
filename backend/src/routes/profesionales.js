@@ -4,6 +4,7 @@ const verificarToken = require('../middlewares/auth')
 const { requirePermission, requireAnyPermission } = require('../middlewares/rbac')
 const { PERMISSIONS, hasPermission } = require('../lib/permissions')
 const { registrarAuditoria, calcularDiferencias } = require('../services/audit.service')
+const { esFirmaValida } = require('../lib/firmas')
 
 const router = express.Router()
 
@@ -59,6 +60,10 @@ router.post('/', requirePermission(PERMISSIONS.SETTINGS_UPDATE), async (req, res
       return res.status(400).json({ error: 'El nombre completo del profesional es obligatorio' })
     }
 
+    if (firma_default && !esFirmaValida(firma_default)) {
+      return res.status(400).json({ error: 'Formato de firma no válido. Debe ser una imagen PNG en base64.' })
+    }
+
     const nuevo = await prisma.profesional.create({
       data: {
         consultorio_id: consultorioId,
@@ -106,6 +111,10 @@ router.put('/:id/firma-default', requirePermission(PERMISSIONS.SETTINGS_UPDATE),
     }
 
     const { firma_default } = req.body
+
+    if (firma_default && !esFirmaValida(firma_default)) {
+      return res.status(400).json({ error: 'Formato de firma no válido. Debe ser una imagen PNG en base64.' })
+    }
 
     const actualizado = await prisma.profesional.update({
       where: { id },

@@ -5,6 +5,7 @@ const verificarToken = require('../middlewares/auth')
 const { requirePermission, restrictSuperadminClinicalAccess } = require('../middlewares/rbac')
 const { PERMISSIONS } = require('../lib/permissions')
 const { registrarAuditoria } = require('../services/audit.service')
+const { obtenerProfesionalDelConsultorio } = require('../lib/firmas')
 
 const router = express.Router()
 router.use(verificarToken)
@@ -18,23 +19,32 @@ router.post('/', requirePermission(PERMISSIONS.CERTIFICADOS_CREATE), async (req,
   }
 
   try {
+    const consultorioId = req.usuario.consultorio_id
     const paciente = await prisma.paciente.findUnique({
       where: { id: paciente_id }
     })
     if (!paciente) return res.status(404).json({ error: 'Paciente no encontrado' })
-    if (paciente.consultorio_id !== req.usuario.consultorio_id) {
+    if (paciente.consultorio_id !== consultorioId) {
       return res.status(403).json({ error: 'No autorizado' })
+    }
+
+    let profesional = null
+    if (profesional_id) {
+      profesional = await obtenerProfesionalDelConsultorio(prisma, profesional_id, consultorioId)
+      if (!profesional) {
+        return res.status(404).json({ error: 'Profesional no encontrado' })
+      }
     }
 
     const certificado = await prisma.certificadoDental.create({
       data: {
-        consultorio_id: req.usuario.consultorio_id,
+        consultorio_id: consultorioId,
         paciente_id,
         cita_id: cita_id || null,
         tipo_cita_texto,
         fecha_expedicion: new Date(fecha_expedicion),
         ciudad: ciudad || 'Villavicencio',
-        profesional_id: profesional_id ? Number(profesional_id) : null
+        profesional_id: profesional ? profesional.id : null
       }
     })
 

@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   BadgeCheck,
   CalendarDays,
@@ -184,8 +185,62 @@ function Campo({ label, children }) {
   );
 }
 
+function VistaPreviaFirmaDoctor({ profesional, configuracion }) {
+  const firma = profesional?.firma_default || configuracion?.firma_doctor_default || null;
+  const origenTexto = profesional?.firma_default
+    ? `Firma configurada de ${profesional.nombre_completo}`
+    : configuracion?.firma_doctor_default
+      ? 'Firma predeterminada del consultorio'
+      : null;
+
+  if (firma) {
+    return (
+      <div className="border border-teal-border dark:border-dark-border rounded-xl p-3 bg-teal-panel/40 dark:bg-slate-800/40">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="text-[11px] font-semibold text-primary dark:text-dark-text">
+            {origenTexto}
+          </span>
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+            Automática
+          </span>
+        </div>
+        <div className="bg-white rounded-lg border border-teal-soft dark:border-dark-border p-2 flex items-center justify-center h-20">
+          <img
+            src={firma}
+            alt="Firma predeterminada del profesional"
+            className="max-h-16 object-contain"
+          />
+        </div>
+        <p className="text-[10px] text-teal-muted dark:text-slate-400 mt-1.5 leading-snug">
+          Se estampará y conservará automáticamente en el documento oficial.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-amber-200 dark:border-amber-900/60 rounded-xl p-3 bg-amber-50/70 dark:bg-amber-950/30">
+      <p className="text-[11px] font-semibold text-amber-900 dark:text-amber-300">
+        {profesional
+          ? `${profesional.nombre_completo} aún no tiene firma por defecto`
+          : 'Sin firma predeterminada del profesional'}
+      </p>
+      <p className="text-[11px] text-amber-800/90 dark:text-amber-200/80 mt-0.5 leading-relaxed">
+        Configúrala una sola vez en{' '}
+        <Link
+          to="/configuracion"
+          className="font-semibold underline hover:opacity-80"
+        >
+          Ajustes → Profesionales
+        </Link>{' '}
+        para que se incluya automáticamente en consentimientos y certificados.
+      </p>
+    </div>
+  );
+}
+
 export default function Consentimientos() {
-  const { pacientes, loading, error, recargarPacientes } = useApp();
+  const { pacientes, loading, error, recargarPacientes, configuracion } = useApp();
 
   const [busqueda, setBusqueda] = useState('');
   const [pacienteId, setPacienteId] = useState('');
@@ -216,11 +271,9 @@ export default function Consentimientos() {
     [pacientes, pacienteId]
   );
 
-  // Firmas: una para el paciente, otra para la doctora
+  // Firma manuscrita en vivo únicamente para el paciente (la del doctor se toma de Ajustes)
   const firmaPaciente = useSignaturePad(pacienteId);
-  const firmaDoctor = useSignaturePad(pacienteId);
   const { canvasRef: canvasRefPaciente } = firmaPaciente;
-  const { canvasRef: canvasRefDoctor } = firmaDoctor;
 
   const pacientesFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -251,7 +304,24 @@ export default function Consentimientos() {
     tipo_cita_texto: '',
     fecha_expedicion: fechaInputHoy(),
     ciudad: 'Villavicencio',
+    profesional_id: '',
   });
+
+  const profesionalConsentimiento = useMemo(
+    () =>
+      profesionalesActivos.find(
+        (p) => String(p.id) === String(consentimientoForm.profesional_id)
+      ) || null,
+    [profesionalesActivos, consentimientoForm.profesional_id]
+  );
+
+  const profesionalCertificado = useMemo(
+    () =>
+      profesionalesActivos.find(
+        (p) => String(p.id) === String(certificadoForm.profesional_id)
+      ) || null,
+    [profesionalesActivos, certificadoForm.profesional_id]
+  );
 
   async function cargarDocumentos(id = pacienteId) {
     if (!id) return;
@@ -294,6 +364,11 @@ export default function Consentimientos() {
       cc_profesional: pDef ? (pDef.cedula_profesional || prev.cc_profesional) : prev.cc_profesional,
     }));
 
+    setCertificadoForm((prev) => ({
+      ...prev,
+      profesional_id: pDef ? pDef.id : prev.profesional_id,
+    }));
+
     cargarDocumentos(paciente.id);
   }
 
@@ -309,6 +384,12 @@ export default function Consentimientos() {
     event.preventDefault();
 
     if (!pacienteId) return;
+
+    const imagenFirmaPaciente = firmaPaciente.obtenerImagen();
+    if (!imagenFirmaPaciente) {
+      setErrorDocs('Por favor solicita la firma del paciente en el recuadro antes de guardar el consentimiento.');
+      return;
+    }
 
     setGuardando('consentimiento');
     setErrorDocs(null);
@@ -329,11 +410,9 @@ export default function Consentimientos() {
         cc_paciente_declarado:
           consentimientoForm.cc_paciente_declarado || null,
 
-        firma_paciente: firmaPaciente.obtenerImagen() || null,
+        firma_paciente: imagenFirmaPaciente,
 
         cc_profesional: consentimientoForm.cc_profesional || null,
-
-        firma_doctor: firmaDoctor.obtenerImagen() || null,
       });
 
       setConsentimientoForm((prev) => ({
@@ -342,7 +421,6 @@ export default function Consentimientos() {
       }));
 
       firmaPaciente.limpiar();
-      firmaDoctor.limpiar();
       await cargarDocumentos(pacienteId);
 
       mostrarMensaje('Consentimiento creado correctamente');
@@ -368,16 +446,18 @@ export default function Consentimientos() {
     try {
       await api.crearCertificado({
         paciente_id: Number(pacienteId),
+        profesional_id: certificadoForm.profesional_id ? Number(certificadoForm.profesional_id) : null,
         tipo_cita_texto: certificadoForm.tipo_cita_texto,
         fecha_expedicion: certificadoForm.fecha_expedicion,
         ciudad: certificadoForm.ciudad || 'Villavicencio',
       });
 
-      setCertificadoForm({
+      setCertificadoForm((prev) => ({
+        ...prev,
         tipo_cita_texto: '',
         fecha_expedicion: fechaInputHoy(),
-        ciudad: certificadoForm.ciudad || 'Villavicencio',
-      });
+        ciudad: prev.ciudad || 'Villavicencio',
+      }));
 
       await cargarDocumentos(pacienteId);
 
@@ -662,41 +742,26 @@ export default function Consentimientos() {
                           />
 
                         </Campo>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Campo label="Firma paciente">
-                            <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden bg-white">
-                              <canvas
-                                ref={canvasRefPaciente}
-                                className="w-full h-32 cursor-crosshair touch-none"
-                              />
-                            </div>
+                        <Campo label="Firma del paciente *">
+                          <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden bg-white">
+                            <canvas
+                              ref={canvasRefPaciente}
+                              className="w-full h-32 cursor-crosshair touch-none"
+                            />
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-between">
+                            <span className="text-[10px] text-teal-muted dark:text-slate-400">
+                              El paciente debe firmar dentro del recuadro
+                            </span>
                             <button
                               type="button"
                               onClick={() => firmaPaciente.limpiar()}
-                              className="mt-1.5 text-[11px] text-status-red dark:text-red-400 hover:underline cursor-pointer"
+                              className="text-[11px] text-status-red dark:text-red-400 hover:underline cursor-pointer"
                             >
                               Limpiar firma
                             </button>
-                          </Campo>
-
-                          {/* FIRMA DOCTOR */}
-                          <Campo label="Firma doctor">
-                            <div className="border border-teal-border dark:border-dark-border rounded-xl overflow-hidden bg-white">
-                              <canvas
-                                ref={canvasRefDoctor}
-                                className="w-full h-32 cursor-crosshair touch-none"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => firmaDoctor.limpiar()}
-                              className="mt-1.5 text-[11px] text-status-red dark:text-red-400 hover:underline cursor-pointer"
-                            >
-                              Limpiar firma
-                            </button>
-                          </Campo>
-
-                        </div>
+                          </div>
+                        </Campo>
 
                         <Campo label="Profesional que atiende">
                           <select
@@ -728,19 +793,26 @@ export default function Consentimientos() {
                             className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                           />
                         </Campo>
+
+                        <VistaPreviaFirmaDoctor
+                          profesional={profesionalConsentimiento}
+                          configuracion={configuracion}
+                        />
+
                         <div className="flex gap-2 pt-2">
                           <button
                             type="button"
                             onClick={() => {
                               firmaPaciente.limpiar();
-                              firmaDoctor.limpiar();
+                              const pDef = profesionalesActivos.length === 1 ? profesionalesActivos[0] : null;
                               setConsentimientoForm({
                                 tipo: 'anestesia',
                                 ciudad: 'Villavicencio',
                                 detalle: '',
                                 nombre_paciente_declarado: nombreCompleto(pacienteSeleccionado),
                                 cc_paciente_declarado: pacienteSeleccionado?.numero_documento || '',
-                                cc_profesional: '',
+                                profesional_id: pDef ? pDef.id : '',
+                                cc_profesional: pDef ? (pDef.cedula_profesional || '') : '',
                               });
                             }}
                             className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] text-primary dark:text-slate-300 bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors touch-target font-medium cursor-pointer"
@@ -794,6 +866,32 @@ export default function Consentimientos() {
                             className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px]"
                           />
                         </Campo>
+
+                        <Campo label="Profesional que expide">
+                          <select
+                            value={certificadoForm.profesional_id}
+                            onChange={(e) =>
+                              setCertificadoForm((prev) => ({
+                                ...prev,
+                                profesional_id: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2.5 border border-teal-border dark:border-dark-border rounded-xl text-[12px] text-primary dark:text-dark-text bg-white dark:bg-dark-input outline-none focus:border-primary dark:focus:border-teal transition-colors min-h-[40px] appearance-none"
+                          >
+                            <option value="">Seleccionar profesional...</option>
+                            {profesionalesActivos.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.nombre_completo} {p.cedula_profesional ? `(${p.cedula_profesional})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </Campo>
+
+                        <VistaPreviaFirmaDoctor
+                          profesional={profesionalCertificado}
+                          configuracion={configuracion}
+                        />
+
                         <div className="bg-teal-panel dark:bg-slate-800/60 border border-teal-soft dark:border-dark-border rounded-xl p-4">
                           <p className="text-[12px] font-semibold text-primary dark:text-dark-text">Vista previa</p>
                           <p className="text-[11px] text-teal-muted dark:text-slate-400 mt-1 leading-relaxed">
@@ -804,11 +902,15 @@ export default function Consentimientos() {
                         <div className="flex gap-2 pt-2">
                           <button
                             type="button"
-                            onClick={() => setCertificadoForm({
-                              tipo_cita_texto: '',
-                              fecha_expedicion: fechaInputHoy(),
-                              ciudad: 'Villavicencio',
-                            })}
+                            onClick={() => {
+                              const pDef = profesionalesActivos.length === 1 ? profesionalesActivos[0] : null;
+                              setCertificadoForm({
+                                tipo_cita_texto: '',
+                                fecha_expedicion: fechaInputHoy(),
+                                ciudad: 'Villavicencio',
+                                profesional_id: pDef ? pDef.id : '',
+                              });
+                            }}
                             className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] text-primary dark:text-slate-300 bg-white dark:bg-dark-input border border-teal-border dark:border-dark-border rounded-xl hover:bg-teal-soft dark:hover:bg-slate-700 transition-colors touch-target font-medium cursor-pointer"
                           >
                             Cancelar
